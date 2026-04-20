@@ -577,13 +577,22 @@ function EditModal(props) {
   var onSave = props.onSave;
   var onDelete = props.onDelete;
   var onClose = props.onClose;
+
+  // 날짜 형식을 표준화(YYYY-MM-DD)하는 함수 추가
+  var formatDate = function(dStr) {
+    if(!dStr) return new Date().toISOString().split('T')[0];
+    var dateObj = new Date(dStr);
+    if(isNaN(dateObj.getTime())) return dStr; 
+    return dateObj.toISOString().split('T')[0];
+  };
+
   var s = {
     amt:  useState(String(tx.amount)),
     st:   useState(tx.store),
     cat:  useState(tx.catId),
     mem:  useState(tx.member),
     meth: useState(tx.method),
-    date: useState(tx.date),
+    date: useState(formatDate(tx.date)), // 수정된 날짜 로직
     del:  useState(false)
   };
   var isI = tx.type==='income';
@@ -947,9 +956,22 @@ function ManualIn(props) {
   function handleSave() {
     if(!amount||!catId||!payType) return;
     if(isFixed && !fixDay) return;
-    var txData = {id:Date.now(),type:'expense',amount:parseInt(amount),catId:catId,
-      store:store||'미입력',member:member,date:date,method:methodDisplay(),
-      source:isFixed?'fixed':'manual'};
+    
+    // ★ 이 부분이 수정되었습니다: 수입 탭일 때는 'income', 그 외는 'expense'로 저장
+    var finalType = (type === 'income') ? 'income' : 'expense';
+
+    var txData = {
+      id: Date.now(),
+      type: finalType, // 고정된 'expense' 대신 변수 사용
+      amount: parseInt(amount),
+      catId: catId,
+      store: store || (isI ? '기타수입' : '미입력'),
+      member: member,
+      date: date,
+      method: methodDisplay(),
+      source: isFixed ? 'fixed' : 'manual'
+    };
+
     if(isFixed) {
       txData.fixedId = 'fx_'+Date.now();
       txData.dayOfMonth = parseInt(fixDay);
@@ -2058,6 +2080,7 @@ function TxList(props) {
   var selMode = useState(false); var setSelMode = selMode[1]; selMode = selMode[0];
   var selected= useState({});    var setSelected= selected[1];selected = selected[0];
   var holdTimer=useRef(null);
+  var touchStartPos = useRef({ x: 0, y: 0 }); // 터치 시작 위치 저장용 변수 추가
   var filtered = useMemo(function(){
     return txs.filter(function(tx){
       if(search && tx.store.toLowerCase().indexOf(search.toLowerCase())<0) return false;
@@ -2187,10 +2210,31 @@ function TxList(props) {
               onMouseDown:function(){startHold(tx.id);},
               onMouseUp:cancelHold,
               onMouseLeave:cancelHold,
-              onTouchStart:function(){startHold(tx.id);},
-              onTouchEnd:function(e){cancelHold();e.preventDefault();tapItem(tx);},
-              onTouchMove:cancelHold,
-              onClick:function(){if(!selMode)tapItem(tx);},
+              onTouchStart: function(e) {
+                // 터치 시작 위치 기록
+                touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                startHold(tx.id);
+              },
+              onTouchEnd: function(e) {
+                cancelHold();
+                // 손을 뗐을 때 위치와 시작 위치를 비교
+                var touch = e.changedTouches[0];
+                var moveX = Math.abs(touch.clientX - touchStartPos.current.x);
+                var moveY = Math.abs(touch.clientY - touchStartPos.current.y);
+                
+                // 손가락이 x나 y축으로 10픽셀 이상 움직였다면 스크롤로 간주하고 무시
+                if (moveX < 10 && moveY < 10) {
+                  e.preventDefault(); // 브라우저 기본 클릭 동작 방지
+                  tapItem(tx); // 움직임이 거의 없을 때만 수정창 열기
+                }
+              },
+              onTouchMove: function() {
+                cancelHold(); // 스크롤이 시작되면 '길게 누르기(삭제모드)' 타이머도 취소
+              },
+              onClick: function(e) {
+                // 모바일 환경이 아닐 때(마우스 클릭 등)를 위한 대비
+                if(!selMode) tapItem(tx);
+              },
               style:{background:'linear-gradient(135deg,'+(isSel?C.red+'22':C.card)+','+(isSel?C.card2:C.card2)+')',
                 border:'1px solid '+(isSel?C.red+'88':C.border),
                 borderRadius:16,padding:16,cursor:'pointer',userSelect:'none'}
@@ -3519,17 +3563,26 @@ useEffect(function(){
     }
     setTab('dashboard');
   }
-  function updTx(u) {
+ function updTx(u) {
     if(fbDb) {
-      fbSaveTx(u); // Firebase 업데이트 → 리스너 자동 반영
+      // Firebase를 사용 중이면 해당 항목의 경로를 찾아 날짜를 포함해 덮어쓰기
+      var r = fbRef('txs/tx_' + u.id);
+      if(r) {
+        r.set(u).then(function(){
+          show('수정 완료! (날짜 포함)');
+        }).catch(function(e){
+          console.error('[수정실패]', e);
+        });
+      }
     } else {
+      // 로컬 스토리지만 사용할 경우
       setTxs(function(p){
         var next = p.map(function(t){ return t.id===u.id ? u : t; });
         lsSet(LS_TXS, next);
         return next;
       });
+      show('수정되었습니다!');
     }
-    show('수정되었습니다!');
   }
   function delTx(id) {
     if(fbDb) {
