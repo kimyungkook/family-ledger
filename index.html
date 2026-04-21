@@ -79,6 +79,8 @@ var LS_USERS   = 'flai_users';
 var LS_BUDGET  = 'flai_budget';
 var LS_FIXED   = 'flai_fixed';
 var LS_GEMINI  = 'flai_gemini_key';
+var LS_BLACKLIST = 'flai_blacklist'; /* ★블랙리스트 저장 키 */
+if(!lsGet(LS_BLACKLIST,null)) lsSet(LS_BLACKLIST,[]); /* 초기화 */
 var LS_ALARMS  = 'flai_alarms'; /* ★수정: 알림 저장 키 추가 */
 
 /* ★수정: 대표님 추가 요청 세부 카테고리(생필품) 반영 완료! */
@@ -232,24 +234,41 @@ function fDash(txs, p) {
     return new Date(t.date).getFullYear()===y;
   });
 }
+/* ★수정: 가계부 기준일을 매월 10일 ~ 익월 9일로 전면 개편 ★ */
 function fPeriod(txs, p) {
   var now = getNow();
-  var y = now.getFullYear();
-  var m = now.getMonth();
+  var curLY = now.getFullYear();
+  var curLM = now.getMonth();
+  // 오늘 날짜가 10일 미만이면, 가계부상으로는 아직 '저번 달'입니다.
+  if (now.getDate() < 10) {
+    curLM--;
+    if (curLM < 0) { curLM = 11; curLY--; }
+  }
+
   if(p === '주간') {
+    // 주간은 최근 7일의 지출을 보기 위함 (수입은 별도 환산)
     var weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate()-6);
     weekAgo.setHours(0,0,0,0);
     return txs.filter(function(t){ return new Date(t.date)>=weekAgo; });
   }
   if(p === '월간') {
+    // 월간 데이터 추출: 거래일이 [현재 가계부 달의 10일 ~ 익월 9일] 사이에 속하는지 확인
     return txs.filter(function(t){
-      var d=new Date(t.date);
-      return d.getFullYear()===y && d.getMonth()===m;
+      var d = new Date(t.date);
+      var ty = d.getFullYear();
+      var tm = d.getMonth();
+      // 거래일자가 10일 미만이면 이전 달로 취급하여 검사
+      if(d.getDate() < 10) {
+        tm--;
+        if(tm < 0) { tm = 11; ty--; }
+      }
+      return ty === curLY && tm === curLM;
     });
   }
+  // 연간은 올해 전체
   return txs.filter(function(t){
-    return new Date(t.date).getFullYear()===y;
+    return new Date(t.date).getFullYear() === now.getFullYear();
   });
 }
 
@@ -1985,7 +2004,37 @@ function Analysis(props) {
   var exp = ftx.filter(function(t){ return t.type==='expense'; });
   var inc = ftx.filter(function(t){ return t.type==='income'; });
   var totE = exp.reduce(function(s,t){ return s+t.amount; }, 0);
-  var totI = inc.reduce(function(s,t){ return s+t.amount; }, 0);
+  
+  /* ★수정: 수입(totI) 지능형 계산 (10일 기준 합산 및 주간 비례 환산) ★ */
+  var totI = useMemo(function(){
+    var now = new Date();
+    var curLY = now.getFullYear(), curLM = now.getMonth();
+    if(now.getDate() < 10) { curLM--; if(curLM<0){curLM=11; curLY--;} }
+    
+    // 10일~9일 룰이 적용된 '이번 달'의 총 수입
+    var monthlyIncTxs = txs.filter(function(t){
+      if(t.type !== 'income') return false;
+      var d = new Date(t.date);
+      var ty = d.getFullYear(), tm = d.getMonth();
+      if(d.getDate() < 10) { tm--; if(tm<0){tm=11; ty--;} }
+      return ty === curLY && tm === curLM;
+    });
+    var monthlyTotI = monthlyIncTxs.reduce(function(s,t){ return s+t.amount; }, 0);
+
+    if(period === '주간') {
+      // 이번 가계부 달(10일~9일)의 정확한 총 일수 구하기
+      var startDate = new Date(curLY, curLM, 10);
+      var endDate = new Date(curLM===11?curLY+1:curLY, curLM===11?0:curLM+1, 9);
+      var days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // 환산 로직: (월 총수입 ÷ 월 총 일수) × 7일 (1주치)
+      return Math.round((monthlyTotI / days) * 7);
+    } else if(period === '연간') {
+      return inc.reduce(function(s,t){ return s+t.amount; }, 0); // 연간은 합산
+    } else {
+      return monthlyTotI; // 월간은 10일 기준 당월 총 수입
+    }
+  }, [txs, period, inc]);
   var ALL_ANALYSIS_CATS = [{id:'all', name:'전체', icon:'📊', color:'#3D5AFE'}].concat(EX_CATS);
   function getCatTotal(catId) {
     if(catId === 'all') return totE;
@@ -2098,7 +2147,8 @@ function Analysis(props) {
       h(GCard,{style:{padding:'11px 13px', border:'1px solid '+C.green+'66', boxShadow:'0 2px 10px '+C.green+'15'}},
         h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 3px'}},'총 수입'),
         h('p',{style:{color:C.green,fontSize:17,fontWeight:800,margin:0}},fmtS(totI)),
-        h('p',{style:{color:C.muted,fontSize:10,margin:'2px 0 0'}},pLabel+' 합산')
+        /* ★수정: 주/월간 상태에 따른 맞춤형 텍스트 표시 ★ */
+        h('p',{style:{color:C.muted,fontSize:10,margin:'2px 0 0'}}, period === '주간' ? '월 수입 주간 환산액' : (period === '월간' ? '10일~9일 합산' : '올해 합산'))
       ),
       h(GCard,{style:{padding:'11px 13px', border:'1px solid '+C.red+'66', boxShadow:'0 2px 10px '+C.red+'15'}},
         h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 3px'}},'총 지출'),
@@ -2496,465 +2546,122 @@ function ProfileModal(props) {
   var onClose  = props.onClose;
   var curUser  = props.curUser;
   var onUpdate = props.onUpdate;
-
-  // 탭 상태 관리
   var activeTab = useState('info');
   var setActiveTab = activeTab[1]; activeTab = activeTab[0];
 
-  // 현재 사용자 정보 로드
   var users = lsGet(LS_USERS, []);
-  var myUser = null;
-  for(var i=0; i<users.length; i++){
-    if(users[i].userId === curUser.userId){ myUser = users[i]; break; }
-  }
+  var myUser = users.find(function(u){ return u.userId === curUser.userId; });
 
-  // 기본정보 수정 상태
-  var editName  = useState(myUser ? myUser.name  : '');
-  var setEditName = editName[1]; editName = editName[0];
-  var editEmail = useState(myUser ? (myUser.email||'') : '');
-  var setEditEmail = editEmail[1]; editEmail = editEmail[0];
-  var editPhone = useState(myUser ? (myUser.phone||'') : '');
-  var setEditPhone = editPhone[1]; editPhone = editPhone[0];
-  var infoMsg   = useState('');
-  var setInfoMsg = infoMsg[1]; infoMsg = infoMsg[0];
-  var infoOk    = useState(false);
-  var setInfoOk = infoOk[1]; infoOk = infoOk[0];
+  // 정보 수정용 상태값들
+  var [eName, setEName] = useState(myUser ? myUser.name : '');
+  var [eEmail, setEEmail] = useState(myUser ? myUser.email : '');
+  var [ePhone, setEPhone] = useState(myUser ? myUser.phone : '');
+  var [oldPw, setOldPw] = useState('');
+  var [newPw, setNewPw] = useState('');
+  var [newId, setNewId] = useState('');
 
-  // 비밀번호 변경 상태
-  var oldPw   = useState('');
-  var setOldPw = oldPw[1]; oldPw = oldPw[0];
-  var newPw   = useState('');
-  var setNewPw = newPw[1]; newPw = newPw[0];
-  var newPw2  = useState('');
-  var setNewPw2 = newPw2[1]; newPw2 = newPw2[0];
-  var showOld = useState(false);
-  var setShowOld = showOld[1]; showOld = showOld[0];
-  var showNew = useState(false);
-  var setShowNew = showNew[1]; showNew = showNew[0];
-  var pwMsg   = useState('');
-  var setPwMsg = pwMsg[1]; pwMsg = pwMsg[0];
-  var pwOk    = useState(false);
-  var setPwOk = pwOk[1]; pwOk = pwOk[0];
-
-  // 아이디 변경 상태
-  var newId   = useState('');
-  var setNewId = newId[1]; newId = newId[0];
-  var idPw    = useState('');
-  var setIdPw = idPw[1]; idPw = idPw[0];
-  var showIdPw= useState(false);
-  var setShowIdPw = showIdPw[1]; showIdPw = showIdPw[0];
-  var idMsg   = useState('');
-  var setIdMsg = idMsg[1]; idMsg = idMsg[0];
-  var idOk    = useState(false);
-  var setIdOk = idOk[1]; idOk = idOk[0];
-
-  // 비밀번호 강도 체크 함수
-  function chkPw(p) {
-    if(!p || p.length < 8)    return '최소 8자 이상 입력하세요';
-    if(!/[A-Za-z]/.test(p))  return '영문자를 포함하세요';
-    if(!/[0-9]/.test(p))     return '숫자를 포함하세요';
-    return '';
-  }
-
-  // 기본정보 저장
-  function saveInfo() {
-    setInfoMsg(''); setInfoOk(false);
-    if(!editName.trim()){
-      setInfoMsg('이름을 입력하세요');return;
-    }
-    if(editEmail && editEmail.indexOf('@')<0){
-      setInfoMsg('이메일 형식이 올바르지 않습니다');return;
-    }
-    var phone = editPhone.replace(/[^0-9]/g,'');
-    if(phone && phone.length < 10){
-      setInfoMsg('전화번호가 올바르지 않습니다 (숫자 10자리 이상)');return;
-    }
-
-    // localStorage 업데이트
-    var updated = users.map(function(u){
-      if(u.userId === curUser.userId){
-        return Object.assign({},u,{
-          name: editName.trim(),
-          email: editEmail.trim(),
-          phone: editPhone.trim()
-        });
-      }
-      return u;
-    });
-    lsSet(LS_USERS, updated);
-
-    // 현재 세션 정보 업데이트
-    var newUserInfo = Object.assign({},curUser,{
-      name: editName.trim(),
-      email: editEmail.trim(),
-      phone: editPhone.trim()
-    });
-    lsSet(LS_USER, newUserInfo);
-    onUpdate(newUserInfo);
-    
-    setInfoOk(true);
-    setInfoMsg('✅ 정보가 성공적으로 수정되었습니다!');
-  }
-
-  // 비밀번호 변경
-  function savePw() {
-    setPwMsg(''); setPwOk(false);
-    if(!oldPw){ setPwMsg('현재 비밀번호를 입력하세요'); return; }
-    if(!myUser || myUser.pw !== oldPw){
-      setPwMsg('현재 비밀번호가 일치하지 않습니다'); return;
-    }
-    var err = chkPw(newPw);
-    if(err){ setPwMsg(err); return; }
-    if(newPw !== newPw2){ setPwMsg('새 비밀번호가 일치하지 않습니다'); return; }
-    if(oldPw === newPw){ setPwMsg('현재 비밀번호와 동일합니다. 다른 비밀번호를 입력하세요'); return; }
-
-    // 비밀번호 업데이트
-    var updated = users.map(function(u){
-      if(u.userId === curUser.userId){
-        return Object.assign({},u,{pw: newPw});
-      }
-      return u;
-    });
-    lsSet(LS_USERS, updated);
-    
-    setPwOk(true);
-    setPwMsg('✅ 비밀번호가 성공적으로 변경되었습니다!');
-    setOldPw(''); setNewPw(''); setNewPw2('');
-  }
-
-  // 아이디 변경
-  function saveId() {
-    setIdMsg(''); setIdOk(false);
-    if(!newId.trim()){ setIdMsg('새 아이디를 입력하세요'); return; }
-    if(newId.trim().length < 4){ setIdMsg('아이디는 4자 이상이어야 합니다'); return; }
-    if(!/^[a-zA-Z0-9_]+$/.test(newId.trim())){ setIdMsg('영문, 숫자, 밑줄(_)만 사용 가능합니다'); return; }
-    if(!idPw){ setIdPw('비밀번호를 입력하세요'); return; }
-    if(!myUser || myUser.pw !== idPw){ setIdMsg('비밀번호가 일치하지 않습니다'); return; }
-    if(newId.trim() === curUser.userId){ setIdMsg('현재 아이디와 동일합니다'); return; }
-
-    // 중복 체크
-    for(var i=0; i<users.length; i++){
-      if(users[i].userId === newId.trim()){
-        setIdMsg('이미 사용 중인 아이디입니다'); return;
-      }
-    }
-
-    // 아이디 업데이트
-    var updated = users.map(function(u){
-      if(u.userId === curUser.userId){
-        return Object.assign({},u,{userId: newId.trim()});
-      }
-      return u;
-    });
-    lsSet(LS_USERS, updated);
-
-    var newUserInfo = Object.assign({},curUser,{userId: newId.trim()});
-    lsSet(LS_USER, newUserInfo);
-    onUpdate(newUserInfo);
-    
-    setIdOk(true);
-    setIdMsg('✅ 아이디가 성공적으로 변경되었습니다! 새 아이디: '+newId.trim());
-    setNewId(''); setIdPw('');
-  }
-
-  // 공통 입력 스타일
-  function iStyle(hasErr) {
-    return {
-      width:'100%', padding:'12px 14px', borderRadius:10,
-      background:C.card2, border:'1px solid '+(hasErr?C.red:C.border),
-      color:C.text, fontSize:14, boxSizing:'border-box', outline:'none',
-      marginBottom:8
-    };
-  }
-
+  // 탭 구성 (대표님 아이디 scfjhkk 일 때만 관리자 메뉴 노출)
   var TABS = [
     {id:'info', label:'📋 기본정보'},
     {id:'pw',   label:'🔑 비밀번호'},
     {id:'id',   label:'🆔 아이디'}
   ];
+  if(curUser.userId === 'scfjhkk') {
+    TABS.push({id:'admin', label:'👑 회원관리'});
+    TABS.push({id:'black', label:'🚫 블랙리스트'});
+  }
+
+  // 공통 입력창 스타일
+  var inpS = { width:'100%', padding:'12px', borderRadius:10, background:C.card2, border:'1px solid '+C.border, color:C.text, marginBottom:10, outline:'none' };
 
   return h(Sheet, {title:'👤 회원정보 관리', onClose:onClose},
-
-    // 현재 사용자 요약 카드
-    h('div',{style:{
-      background:'linear-gradient(135deg,'+C.accent+'22,'+C.card2+')',
-      border:'1px solid '+C.accent+'44', borderRadius:14,
-      padding:'14px 16px', marginBottom:16,
-      display:'flex', alignItems:'center', gap:12
-    }},
-      h('div',{style:{
-        width:48, height:48, borderRadius:'50%',
-        background:C.accent+'33', border:'2px solid '+C.accent+'66',
-        display:'flex', alignItems:'center', justifyContent:'center', fontSize:24
-      }},'👤'),
-      h('div',{style:{flex:1}},
-        h('p',{style:{color:C.text,fontSize:16,fontWeight:800,margin:'0 0 3px'}},
-          curUser.name || '사용자'),
-        h('p',{style:{color:C.accent,fontSize:12,margin:'0 0 2px'}},
-          '아이디: '+curUser.userId),
-        h('p',{style:{color:C.muted,fontSize:11,margin:0}},
-          curUser.email || '이메일 미등록')
-      ),
-      h('div',{style:{
-        background:C.green+'22', border:'1px solid '+C.green+'44',
-        borderRadius:20, padding:'4px 10px'
-      }},
-        h('span',{style:{color:C.green,fontSize:11,fontWeight:700}},'로그인 중')
-      )
-    ),
-
-    // 탭 버튼
-    h('div',{style:{
-      display:'flex', gap:5, marginBottom:16,
-      background:C.faint, borderRadius:12, padding:4
-    }},
+    // 상단 탭 버튼
+    h('div',{style:{display:'flex', gap:5, marginBottom:16, background:C.faint, borderRadius:12, padding:4}},
       TABS.map(function(t){
-        return h('button',{key:t.id,
-          onClick:function(){
-            setActiveTab(t.id);
-            // 탭 변경 시 메시지 초기화
-            setInfoMsg('');setPwMsg('');setIdMsg('');
-            setInfoOk(false);setPwOk(false);setIdOk(false);
-          },
-          style:{
-            flex:1, padding:'9px 4px', borderRadius:9,
-            border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-            background:activeTab===t.id?C.card:'none',
-            color:activeTab===t.id?C.text:C.muted
-          }
-        },t.label);
+        return h('button',{key:t.id, onClick:function(){setActiveTab(t.id);}, style:{flex:1, padding:'9px 0', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, background:activeTab===t.id?C.card:'none', color:activeTab===t.id?C.text:C.muted}}, t.label);
       })
     ),
 
-    // ── 탭 1: 기본 정보 수정 ──
+    // 1. 기본정보 수정 탭
     activeTab==='info' && h('div',null,
       h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'이름'),
-      h('input',{
-        value:editName,
-        onChange:function(e){setEditName(e.target.value);setInfoMsg('');setInfoOk(false);},
-        placeholder:'표시될 이름',
-        style:iStyle(false)
-      }),
-
+      h('input',{value:eName, onChange:function(e){setEName(e.target.value);}, style:inpS}),
       h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'이메일'),
-      h('input',{
-        value:editEmail,
-        onChange:function(e){setEditEmail(e.target.value);setInfoMsg('');setInfoOk(false);},
-        placeholder:'example@email.com',
-        type:'email',
-        style:iStyle(false)
-      }),
-
+      h('input',{value:eEmail, onChange:function(e){setEEmail(e.target.value);}, style:inpS}),
       h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'전화번호'),
-      h('input',{
-        value:editPhone,
-        onChange:function(e){
-          var v = e.target.value.replace(/[^0-9]/g,'');
-          if(v.length<=3) setEditPhone(v);
-          else if(v.length<=7) setEditPhone(v.slice(0,3)+'-'+v.slice(3));
-          else setEditPhone(v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11));
-          setInfoMsg('');setInfoOk(false);
-        },
-        placeholder:'010-0000-0000',
-        type:'tel', maxLength:13,
-        style:iStyle(false)
-      }),
-
-      h('p',{style:{color:C.faint,fontSize:10,margin:'0 0 14px',paddingLeft:4}},
-        '※ 전화번호는 자동으로 형식이 맞춰집니다'),
-
-      // 메시지 박스
-      infoMsg && h('div',{style:{
-        background:infoOk?C.green+'22':C.red+'22',
-        border:'1px solid '+(infoOk?C.green+'44':C.red+'44'),
-        borderRadius:10, padding:'10px 14px', marginBottom:12
-      }},
-        h('p',{style:{color:infoOk?C.green:C.red,fontSize:13,margin:0,fontWeight:600}},infoMsg)
-      ),
-
-      h('button',{
-        onClick:saveInfo,
-        style:{
-          width:'100%', padding:15, borderRadius:12, border:'none',
-          cursor:'pointer',
-          background:'linear-gradient(135deg,'+C.accent+',#536DFE)',
-          color:'#fff', fontSize:15, fontWeight:800
-        }
-      },'💾 정보 저장하기')
+      h('input',{value:ePhone, onChange:function(e){setEPhone(e.target.value);}, style:inpS}),
+      h('button',{onClick:function(){
+        var updated = users.map(function(u){ if(u.userId===curUser.userId){ u.name=eName; u.email=eEmail; u.phone=ePhone; } return u; });
+        lsSet(LS_USERS, updated); onUpdate(Object.assign({},curUser,{name:eName, email:eEmail, phone:ePhone})); alert('정보가 저장되었습니다.');
+      }, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800}},'💾 정보 저장하기')
     ),
 
-    // ── 탭 2: 비밀번호 변경 ──
+    // 2. 비밀번호 변경 탭
     activeTab==='pw' && h('div',null,
-      h('div',{style:{
-        background:C.gold+'11', border:'1px solid '+C.gold+'33',
-        borderRadius:10, padding:'10px 14px', marginBottom:14
-      }},
-        h('p',{style:{color:C.gold,fontSize:12,fontWeight:700,margin:'0 0 4px'}},'🔑 비밀번호 변경 안내'),
-        h('p',{style:{color:C.muted,fontSize:11,margin:0,lineHeight:1.7}},
-          '현재 비밀번호를 먼저 확인한 후 새 비밀번호로 변경합니다.\n새 비밀번호는 영문+숫자 8자 이상이어야 합니다.')
-      ),
-
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'현재 비밀번호'),
-      h('div',{style:{position:'relative',marginBottom:8}},
-        h('input',{
-          value:oldPw,
-          onChange:function(e){setOldPw(e.target.value);setPwMsg('');setPwOk(false);},
-          type:showOld?'text':'password',
-          placeholder:'현재 비밀번호 입력',
-          style:Object.assign({},iStyle(false),{marginBottom:0,paddingRight:64})
-        }),
-        h('button',{
-          onClick:function(){setShowOld(!showOld);},
-          style:{
-            position:'absolute', right:12, top:'50%',
-            transform:'translateY(-50%)',
-            background:'none', border:'none', cursor:'pointer',
-            color:C.muted, fontSize:12
-          }
-        },showOld?'숨기기':'보기')
-      ),
-
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'새 비밀번호'),
-      h('div',{style:{position:'relative',marginBottom:4}},
-        h('input',{
-          value:newPw,
-          onChange:function(e){setNewPw(e.target.value);setPwMsg('');setPwOk(false);},
-          type:showNew?'text':'password',
-          placeholder:'영문+숫자 8자 이상',
-          style:Object.assign({},iStyle(false),{marginBottom:0,paddingRight:64})
-        }),
-        h('button',{
-          onClick:function(){setShowNew(!showNew);},
-          style:{
-            position:'absolute', right:12, top:'50%',
-            transform:'translateY(-50%)',
-            background:'none', border:'none', cursor:'pointer',
-            color:C.muted, fontSize:12
-          }
-        },showNew?'숨기기':'보기')
-      ),
-
-      // 비밀번호 강도 표시
-      newPw && h('div',{style:{display:'flex',gap:5,marginBottom:8}},
-        [{l:'8자+',ok:newPw.length>=8},{l:'영문',ok:/[A-Za-z]/.test(newPw)},{l:'숫자',ok:/[0-9]/.test(newPw)}]
-        .map(function(r){
-          return h('span',{key:r.l,style:{
-            padding:'2px 8px', borderRadius:10, fontSize:10,
-            background:r.ok?C.green+'22':C.faint,
-            color:r.ok?C.green:C.muted,
-            border:'1px solid '+(r.ok?C.green+'44':C.border)
-          }},(r.ok?'✓ ':'✗ ')+r.l);
-        })
-      ),
-
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'새 비밀번호 확인'),
-      h('input',{
-        value:newPw2,
-        onChange:function(e){setNewPw2(e.target.value);setPwMsg('');setPwOk(false);},
-        type:'password',
-        placeholder:'새 비밀번호 재입력',
-        style:iStyle(false)
-      }),
-
-      // 비밀번호 일치 여부
-      newPw && newPw2 && h('p',{style:{
-        color:newPw===newPw2?C.green:C.red,
-        fontSize:11, margin:'0 0 10px', paddingLeft:4, fontWeight:600
-      }},newPw===newPw2?'✅ 비밀번호 일치':'❌ 비밀번호 불일치'),
-
-      // 메시지 박스
-      pwMsg && h('div',{style:{
-        background:pwOk?C.green+'22':C.red+'22',
-        border:'1px solid '+(pwOk?C.green+'44':C.red+'44'),
-        borderRadius:10, padding:'10px 14px', marginBottom:12
-      }},
-        h('p',{style:{color:pwOk?C.green:C.red,fontSize:13,margin:0,fontWeight:600}},pwMsg)
-      ),
-
-      h('button',{
-        onClick:savePw,
-        style:{
-          width:'100%', padding:15, borderRadius:12, border:'none',
-          cursor:'pointer',
-          background:'linear-gradient(135deg,'+C.green+',#00F5C4)',
-          color:'#fff', fontSize:15, fontWeight:800
-        }
-      },'🔑 비밀번호 변경하기')
+      h('input',{type:'password', placeholder:'현재 비밀번호', value:oldPw, onChange:function(e){setOldPw(e.target.value);}, style:inpS}),
+      h('input',{type:'password', placeholder:'새 비밀번호', value:newPw, onChange:function(e){setNewPw(e.target.value);}, style:inpS}),
+      h('button',{onClick:function(){
+        if(myUser.pw !== oldPw) return alert('현재 비밀번호가 틀립니다.');
+        var updated = users.map(function(u){ if(u.userId===curUser.userId) u.pw=newPw; return u; });
+        lsSet(LS_USERS, updated); alert('비밀번호가 변경되었습니다.'); setOldPw(''); setNewPw('');
+      }, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.green, color:'#fff', fontWeight:800}},'🔑 비밀번호 변경')
     ),
 
-    // ── 탭 3: 아이디 변경 ──
+    // 3. 아이디 변경 탭
     activeTab==='id' && h('div',null,
-      h('div',{style:{
-        background:C.red+'11', border:'1px solid '+C.red+'33',
-        borderRadius:10, padding:'10px 14px', marginBottom:14
-      }},
-        h('p',{style:{color:C.red,fontSize:12,fontWeight:700,margin:'0 0 4px'}},'⚠️ 아이디 변경 주의사항'),
-        h('p',{style:{color:C.muted,fontSize:11,margin:0,lineHeight:1.7}},
-          '아이디 변경 후에는 새 아이디로 로그인해야 합니다.\n보안을 위해 현재 비밀번호 확인이 필요합니다.')
-      ),
+      h('p',{style:{color:C.red, fontSize:11, marginBottom:10}},'⚠️ 아이디 변경 시 로그아웃 후 다시 로그인해야 합니다.'),
+      h('input',{placeholder:'새 아이디', value:newId, onChange:function(e){setNewId(e.target.value);}, style:inpS}),
+      h('button',{onClick:function(){
+        if(users.some(function(u){return u.userId===newId;})) return alert('이미 존재하는 아이디입니다.');
+        var updated = users.map(function(u){ if(u.userId===curUser.userId) u.userId=newId; return u; });
+        lsSet(LS_USERS, updated); alert('아이디가 변경되었습니다. 다시 로그인해주세요.'); window.location.reload();
+      }, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800}},'🆔 아이디 변경하기')
+    ),
 
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'현재 아이디'),
-      h('div',{style:{
-        background:C.faint, borderRadius:10, padding:'12px 14px',
-        marginBottom:12, border:'1px solid '+C.border
-      }},
-        h('p',{style:{color:C.accent,fontSize:15,fontWeight:800,margin:0}},curUser.userId)
-      ),
+    // 4. [관리자 모드] 회원 명부 관리
+    activeTab==='admin' && h('div',null,
+      h('p',{style:{color:C.muted, fontSize:11, marginBottom:10}},'현재 가입된 전체 회원 명부입니다. (비밀번호 확인 및 강퇴 가능)'),
+      users.map(function(u){
+        return h(GCard, {key:u.userId, style:{marginBottom:10, border:'1px solid '+C.border}},
+          h('div',{style:{display:'flex', justifyContent:'space-between', alignItems:'center'}},
+            h('div',null,
+              h('p',{style:{fontSize:14, fontWeight:800, color:C.text}}, u.name + ' (' + u.userId + ')'),
+              h('p',{style:{fontSize:11, color:C.accent}}, 'PW: ' + u.pw + ' | 📱 ' + (u.phone || '미등록'))
+            ),
+            h('button',{onClick:function(){
+              if(u.userId === 'scfjhkk') return alert('관리자 본인은 강퇴할 수 없습니다.');
+              if(confirm(u.name + '님을 강제 탈퇴시키고 가입을 차단(블랙리스트)할까요?')){
+                var blacks = lsGet(LS_BLACKLIST, []);
+                blacks.push({userId: u.userId, phone: u.phone, reason: '관리자 강제탈퇴'});
+                lsSet(LS_BLACKLIST, blacks);
+                lsSet(LS_USERS, users.filter(function(x){ return x.userId !== u.userId; }));
+                alert('강제 탈퇴 처리가 완료되었습니다.'); window.location.reload();
+              }
+            }, style:{padding:'6px 10px', borderRadius:8, border:'none', background:C.red, color:'#fff', fontSize:11, fontWeight:700}}, '강퇴/차단')
+          )
+        );
+      })
+    ),
 
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'새 아이디'),
-      h('input',{
-        value:newId,
-        onChange:function(e){
-          setNewId(e.target.value.replace(/[^a-zA-Z0-9_]/g,''));
-          setIdMsg('');setIdOk(false);
-        },
-        placeholder:'영문, 숫자, 밑줄(_) 4자 이상',
-        autoCapitalize:'none',
-        style:iStyle(false)
-      }),
-
-      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'현재 비밀번호 (본인 확인)'),
-      h('div',{style:{position:'relative',marginBottom:14}},
-        h('input',{
-          value:idPw,
-          onChange:function(e){setIdPw(e.target.value);setIdMsg('');setIdOk(false);},
-          type:showIdPw?'text':'password',
-          placeholder:'현재 비밀번호 입력',
-          style:Object.assign({},iStyle(false),{marginBottom:0,paddingRight:64})
-        }),
-        h('button',{
-          onClick:function(){setShowIdPw(!showIdPw);},
-          style:{
-            position:'absolute', right:12, top:'50%',
-            transform:'translateY(-50%)',
-            background:'none', border:'none', cursor:'pointer',
-            color:C.muted, fontSize:12
-          }
-        },showIdPw?'숨기기':'보기')
-      ),
-
-      // 메시지 박스
-      idMsg && h('div',{style:{
-        background:idOk?C.green+'22':C.red+'22',
-        border:'1px solid '+(idOk?C.green+'44':C.red+'44'),
-        borderRadius:10, padding:'10px 14px', marginBottom:12
-      }},
-        h('p',{style:{color:idOk?C.green:C.red,fontSize:13,margin:0,fontWeight:600}},idMsg)
-      ),
-
-      h('button',{
-        onClick:saveId,
-        style:{
-          width:'100%', padding:15, borderRadius:12, border:'none',
-          cursor:'pointer',
-          background:'linear-gradient(135deg,'+C.accent+',#536DFE)',
-          color:'#fff', fontSize:15, fontWeight:800
-        }
-      },'🆔 아이디 변경하기')
+    // 5. [관리자 모드] 블랙리스트 관리
+    activeTab==='black' && h('div',null,
+      h('p',{style:{color:C.red, fontSize:12, fontWeight:700, marginBottom:10}},'🚫 영구 가입 차단 목록'),
+      lsGet(LS_BLACKLIST, []).length === 0 ? h('p',{style:{color:C.muted, textAlign:'center', marginTop:20}},'차단된 회원이 없습니다.') :
+      lsGet(LS_BLACKLIST, []).map(function(b){
+        return h('div', {key:b.userId, style:{display:'flex', justifyContent:'space-between', padding:'12px', background:C.faint, borderRadius:10, marginBottom:8, border:'1px solid '+C.border}},
+          h('div', null,
+            h('p',{style:{fontSize:13, color:C.text, fontWeight:700}}, b.userId),
+            h('p',{style:{fontSize:11, color:C.muted}}, b.reason)
+          ),
+          h('button',{onClick:function(){
+            var newBlacks = lsGet(LS_BLACKLIST, []).filter(function(x){ return x.userId !== b.userId; });
+            lsSet(LS_BLACKLIST, newBlacks); alert('차단이 해제되었습니다.'); setActiveTab('admin');
+          }, style:{border:'none', background:C.accent+'22', color:C.accent, padding:'5px 10px', borderRadius:6, fontSize:11, fontWeight:700}}, '차단 해제')
+        );
+      })
     )
   );
 }
-
 // ══════════════════════════════════════════════════
 // ★ 회원관리 시스템 끝 ★
 // ══════════════════════════════════════════════════
@@ -3193,168 +2900,89 @@ function AuthScreen(props) {
   var sName   = useState('');     var setSName   = sName[1];   sName   = sName[0];
   var sId     = useState('');     var setSId     = sId[1];     sId     = sId[0];
   var sEmail  = useState('');     var setSEmail  = sEmail[1];  sEmail  = sEmail[0];
+  var sPhone  = useState('');     var setSPhone  = sPhone[1];  sPhone  = sPhone[0];
   var sPw     = useState('');     var setsPw     = sPw[1];     sPw     = sPw[0];
   var sPw2    = useState('');     var setsPw2    = sPw2[1];    sPw2    = sPw2[0];
   var showSPw = useState(false);  var setShowSPw = showSPw[1]; showSPw = showSPw[0];
   var errs    = useState({});     var setErrs    = errs[1];    errs    = errs[0];
   var loginMsg= useState('');     var setLoginMsg= loginMsg[1]; loginMsg= loginMsg[0];
-  function chkPw(p) {
-    if (!p || p.length < 8)      return '최소 8자 이상 입력하세요';
-    if (!/[A-Za-z]/.test(p))     return '영문자를 포함하세요';
-    if (!/[0-9]/.test(p))        return '숫자를 포함하세요';
-    return '';
-  }
-  function chkId(id) {
-    if (!id || id.length < 4)    return '아이디는 4자 이상이어야 합니다';
-    if (!/^[a-zA-Z0-9_]+$/.test(id)) return '영문, 숫자, 밑줄(_)만 사용 가능합니다';
-    return '';
-  }
+  /* ★찾기 기능 상태 */
+  var findInput = useState(''); var setFindInput = findInput[1]; findInput = findInput[0];
+  var findRes   = useState(''); var setFindRes   = findRes[1]; findRes   = findRes[0];
+
+  function chkPw(p) { if (!p || p.length < 8) return '최소 8자 이상'; if (!/[A-Za-z]/.test(p)) return '영문 포함'; if (!/[0-9]/.test(p)) return '숫자 포함'; return ''; }
+  function chkId(id) { if (!id || id.length < 4) return '4자 이상'; if (!/^[a-zA-Z0-9_]+$/.test(id)) return '영문/숫자만'; return ''; }
+
   function doLogin() {
     setLoginMsg('');
-    if (!loginId.trim()) { setLoginMsg('아이디를 입력하세요'); return; }
-    if (!loginPw)        { setLoginMsg('비밀번호를 입력하세요'); return; }
     var users = lsGet(LS_USERS, []);
-    var found = null;
-    for (var i=0; i<users.length; i++) {
-      if (users[i].userId === loginId.trim()) { found = users[i]; break; }
-    }
-    if (!found) {
-      setLoginMsg('등록되지 않은 아이디입니다. 먼저 회원가입을 해주세요.');
-      return;
-    }
-    if (found.pw !== loginPw) {
-      setLoginMsg('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    onLogin({userId: found.userId, name: found.name, email: found.email});
+    var found = users.find(function(u){ return u.userId === loginId.trim(); });
+    if (!found) { setLoginMsg('등록되지 않은 아이디입니다.'); return; }
+    if (found.pw !== loginPw) { setLoginMsg('비밀번호가 틀립니다.'); return; }
+    onLogin({userId: found.userId, name: found.name, email: found.email, phone: found.phone});
   }
+
   function doSignup() {
-    var e = {};
-    if (!sName.trim())              e.name  = '이름을 입력하세요';
-    var idErr = chkId(sId.trim());
-    if (idErr)                      e.sid   = idErr;
-    if (sEmail && sEmail.indexOf('@') < 0) e.email = '이메일 형식이 올바르지 않습니다';
-    var pwErr = chkPw(sPw);
-    if (pwErr)                      e.pw    = pwErr;
-    if (sPw !== sPw2)               e.pw2   = '비밀번호가 일치하지 않습니다';
-    setErrs(e);
-    if (Object.keys(e).length > 0) return;
-    var users = lsGet(LS_USERS, []);
-    for (var i=0; i<users.length; i++) {
-      if (users[i].userId === sId.trim()) {
-        setErrs({sid:'이미 사용 중인 아이디입니다'});
-        return;
-      }
+    /* ★블랙리스트 체크 */
+    var blacks = lsGet(LS_BLACKLIST, []);
+    if (blacks.some(function(b){ return b.userId === sId.trim() || b.phone === sPhone.trim(); })) {
+      alert('🚫 차단된 정보입니다. 가입이 불가능합니다.'); return;
     }
-    var newUser = {userId: sId.trim(), name: sName.trim(), email: sEmail.trim(), pw: sPw};
-    users.push(newUser);
-    lsSet(LS_USERS, users);
-    onLogin({userId: newUser.userId, name: newUser.name, email: newUser.email});
+    var e = {};
+    if (!sName.trim()) e.name = '이름 입력 필수';
+    if (chkId(sId.trim())) e.sid = chkId(sId.trim());
+    if (chkPw(sPw)) e.pw = chkPw(sPw);
+    if (sPw !== sPw2) e.pw2 = '비밀번호 불일치';
+    setErrs(e); if (Object.keys(e).length > 0) return;
+    var users = lsGet(LS_USERS, []);
+    if (users.some(function(u){return u.userId===sId.trim();})) { setErrs({sid:'중복된 아이디'}); return; }
+    var newUser = {userId: sId.trim(), name: sName.trim(), email: sEmail.trim(), phone: sPhone.trim(), pw: sPw};
+    users.push(newUser); lsSet(LS_USERS, users);
+    onLogin({userId: newUser.userId, name: newUser.name, email: newUser.email, phone: newUser.phone});
   }
-  function inp(errKey) {
-    return {
-      width:'100%', padding:'12px 14px', borderRadius:10,
-      background:C.card2, border:'1px solid '+(errs[errKey]?C.red:C.border),
-      color:C.text, fontSize:14, margin:'0 0 4px', boxSizing:'border-box', outline:'none'
-    };
+
+  function doFind(type) {
+    var users = lsGet(LS_USERS, []);
+    var found = users.find(function(u){ return u.email === findInput || u.phone === findInput; });
+    if(!found) { setFindRes('error:일치하는 정보가 없습니다.'); return; }
+    if(type==='id') setFindRes('success:아이디는 ['+found.userId+'] 입니다.');
+    else setFindRes('success:비밀번호는 ['+found.pw+'] 입니다.');
   }
-  return h('div', {style:{minHeight:'100vh', display:'flex', flexDirection:'column',
-    justifyContent:'center', padding:'20px 24px', background:C.bg, overflowY:'auto'}},
-    h('div', {style:{textAlign:'center', marginBottom:28}},
-      h('p', {style:{fontSize:52, margin:0}}, '👨‍👩‍👧'),
-      h('p', {style:{color:C.text, fontSize:22, fontWeight:900, margin:'8px 0 4px'}}, 'FamilyLedger AI'),
-      h('p', {style:{color:C.muted, fontSize:13, margin:0}}, '가족 스마트 가계부')
-    ),
+
+  function inp(errKey) { return { width:'100%', padding:'12px 14px', borderRadius:10, background:C.card2, border:'1px solid '+(errs[errKey]?C.red:C.border), color:C.text, fontSize:14, margin:'0 0 4px', boxSizing:'border-box', outline:'none' }; }
+
+  return h('div', {style:{minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'20px 24px', background:C.bg, overflowY:'auto'}},
+    h('div', {style:{textAlign:'center', marginBottom:28}}, h('p', {style:{fontSize:52}}, '👨‍👩‍👧'), h('p', {style:{color:C.text, fontSize:22, fontWeight:900}}, 'FamilyLedger AI')),
     h('div', {style:{display:'flex', gap:4, marginBottom:20, background:C.faint, borderRadius:12, padding:4}},
-      [['login','로그인'], ['signup','회원가입']].map(function(v) {
-        return h('button', {key:v[0], onClick:function(){setMode(v[0]);setErrs({});setLoginMsg('');},
-          style:{flex:1, padding:'10px 0', borderRadius:9, border:'none', cursor:'pointer',
-            background:mode===v[0]?C.card:'none',
-            color:mode===v[0]?C.text:C.muted,
-            fontSize:14, fontWeight:mode===v[0]?700:400}}, v[1]);
-      })
+      [['login','로그인'], ['signup','회원가입']].map(function(v) { return h('button', {key:v[0], onClick:function(){setMode(v[0]);setErrs({});setLoginMsg('');}, style:{flex:1, padding:'10px 0', borderRadius:9, border:'none', cursor:'pointer', background:mode===v[0]?C.card:'none', color:mode===v[0]?C.text:C.muted, fontSize:14, fontWeight:mode===v[0]?700:400}}, v[1]); })
     ),
     mode==='login' && h('div', null,
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 6px'}}, '아이디'),
-      h('input', {
-        value:loginId, onChange:function(e){setLoginId(e.target.value);setLoginMsg('');},
-        placeholder:'아이디 입력 (가입 시 설정한 아이디)',
-        autoCapitalize:'none', autoCorrect:'off',
-        style:{width:'100%', padding:'12px 14px', borderRadius:10, background:C.card2,
-          border:'1px solid '+C.border, color:C.text, fontSize:14,
-          margin:'0 0 12px', boxSizing:'border-box', outline:'none'}
-      }),
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 6px'}}, '비밀번호'),
-      h('div', {style:{position:'relative', marginBottom:12}},
-        h('input', {
-          value:loginPw, onChange:function(e){setLoginPw(e.target.value);setLoginMsg('');},
-          type:showLPw?'text':'password', placeholder:'비밀번호 입력',
-          style:{width:'100%', padding:'12px 14px', borderRadius:10, background:C.card2,
-            border:'1px solid '+C.border, color:C.text, fontSize:14,
-            paddingRight:64, boxSizing:'border-box', outline:'none'}
-        }),
-        h('button', {
-          onClick:function(){setShowLPw(!showLPw);},
-          style:{position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
-            background:'none', border:'none', cursor:'pointer', color:C.muted, fontSize:12}
-        }, showLPw?'숨기기':'보기')
+      h('input', {value:loginId, onChange:function(e){setLoginId(e.target.value);}, placeholder:'아이디', style:inp('login')}),
+      h('div', {style:{position:'relative', marginBottom:12}}, 
+        h('input', {value:loginPw, onChange:function(e){setLoginPw(e.target.value);}, type:showLPw?'text':'password', placeholder:'비밀번호', style:Object.assign(inp('lpw'),{paddingRight:60})}),
+        h('button', {onClick:function(){setShowLPw(!showLPw);}, style:{position:'absolute',right:10,top:12,background:'none',border:'none',color:C.muted,fontSize:12}}, showLPw?'숨기기':'보기')
       ),
-      loginMsg && h('div', {style:{background:C.red+'15', border:'1px solid '+C.red+'44',
-        borderRadius:8, padding:'8px 12px', marginBottom:12}},
-        h('p', {style:{color:C.red, fontSize:12, margin:0}}, '⚠️ '+loginMsg)
-      ),
-      h('button', {
-        onClick:doLogin,
-        style:{width:'100%', padding:15, borderRadius:12, border:'none', cursor:'pointer',
-          background:'linear-gradient(135deg,'+C.accent+',#536DFE)',
-          color:'#fff', fontSize:16, fontWeight:800}
-      }, '로그인'),
-      h('p', {style:{color:C.muted, fontSize:12, textAlign:'center', marginTop:14, lineHeight:1.6}},
-        '처음 사용하시나요?\n위 탭에서 [회원가입]을 눌러 계정을 만들어 주세요.')
+      loginMsg && h('p',{style:{color:C.red, fontSize:12, marginBottom:10}}, '⚠️ '+loginMsg),
+      h('button', {onClick:doLogin, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800}}, '로그인'),
+      h('div',{style:{display:'flex', justifyContent:'center', gap:15, marginTop:20}},
+        h('span',{onClick:function(){setMode('findId'); setFindRes('');}, style:{color:C.muted, fontSize:12, cursor:'pointer'}},'아이디 찾기'),
+        h('span',{onClick:function(){setMode('findPw'); setFindRes('');}, style:{color:C.muted, fontSize:12, cursor:'pointer'}},'비밀번호 찾기')
+      )
     ),
     mode==='signup' && h('div', null,
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '이름 (앱에서 표시될 이름)'),
-      h('input', {value:sName, onChange:function(e){setSName(e.target.value);},
-        placeholder:'예: 홍길동', style:inp('name')}),
-      errs.name && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 8px'}}, '⚠️ '+errs.name),
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '아이디 (로그인에 사용)'),
-      h('input', {value:sId, onChange:function(e){setSId(e.target.value.replace(/[^a-zA-Z0-9_]/g,''));},
-        placeholder:'영문, 숫자, 밑줄(_) 4자 이상', autoCapitalize:'none', style:inp('sid')}),
-      errs.sid && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 8px'}}, '⚠️ '+errs.sid),
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '이메일 (선택 사항)'),
-      h('input', {value:sEmail, onChange:function(e){setSEmail(e.target.value);},
-        placeholder:'example@email.com (선택)', type:'email', style:inp('email')}),
-      errs.email && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 8px'}}, '⚠️ '+errs.email),
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '비밀번호 (영문+숫자 8자 이상)'),
-      h('div', {style:{position:'relative', marginBottom:4}},
-        h('input', {value:sPw, onChange:function(e){setsPw(e.target.value);},
-          type:showSPw?'text':'password', placeholder:'영문+숫자 8자 이상',
-          style:{width:'100%', padding:'12px 14px', borderRadius:10, background:C.card2,
-            border:'1px solid '+(errs.pw?C.red:C.border), color:C.text, fontSize:14,
-            paddingRight:64, boxSizing:'border-box', outline:'none'}}),
-        h('button', {onClick:function(){setShowSPw(!showSPw);},
-          style:{position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
-            background:'none', border:'none', cursor:'pointer', color:C.muted, fontSize:12}},
-          showSPw?'숨기기':'보기')
-      ),
-      sPw && h('div', {style:{display:'flex', gap:5, marginBottom:4}},
-        [{l:'8자+', ok:sPw.length>=8}, {l:'영문', ok:/[A-Za-z]/.test(sPw)}, {l:'숫자', ok:/[0-9]/.test(sPw)}].map(function(r) {
-          return h('span', {key:r.l, style:{padding:'2px 8px', borderRadius:10, fontSize:10,
-            background:r.ok?C.green+'22':C.faint, color:r.ok?C.green:C.muted,
-            border:'1px solid '+(r.ok?C.green+'44':C.border)}}, (r.ok?'✓ ':'✗ ')+r.l);
-        })
-      ),
-      errs.pw && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 8px'}}, '⚠️ '+errs.pw),
-      h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '비밀번호 확인'),
-      h('input', {value:sPw2, onChange:function(e){setsPw2(e.target.value);},
-        type:'password', placeholder:'비밀번호 재입력', style:inp('pw2')}),
-      errs.pw2 && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 10px'}}, '⚠️ '+errs.pw2),
-      h('p', {style:{color:C.faint, fontSize:11, textAlign:'center', margin:'10px 0'}},
-        '가입 시 개인정보처리방침에 동의합니다'),
-      h('button', {onClick:doSignup,
-        style:{width:'100%', padding:15, borderRadius:12, border:'none', cursor:'pointer',
-          background:'linear-gradient(135deg,'+C.green+',#00F5C4)',
-          color:'#fff', fontSize:16, fontWeight:800}}, '가입하기')
+      h('input', {value:sName, onChange:function(e){setSName(e.target.value);}, placeholder:'이름', style:inp('name')}),
+      h('input', {value:sId, onChange:function(e){setSId(e.target.value);}, placeholder:'아이디 (4자 이상)', style:inp('sid')}),
+      h('input', {value:sPhone, onChange:function(e){setSPhone(e.target.value);}, placeholder:'전화번호', style:inp('phone')}),
+      h('input', {value:sEmail, onChange:function(e){setSEmail(e.target.value);}, placeholder:'이메일', style:inp('email')}),
+      h('input', {value:sPw, onChange:function(e){setsPw(e.target.value);}, type:'password', placeholder:'비밀번호 (8자 이상)', style:inp('pw')}),
+      h('button', {onClick:doSignup, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.green, color:'#fff', fontWeight:800, marginTop:10}}, '가입하기')
+    ),
+    (mode==='findId' || mode==='findPw') && h('div', null,
+      h('p',{style:{color:C.text, fontSize:16, fontWeight:700, textAlign:'center', marginBottom:15}}, mode==='findId'?'🆔 아이디 찾기':'🔑 비밀번호 찾기'),
+      h('input', {value:findInput, onChange:function(e){setFindInput(e.target.value);}, placeholder:'등록한 이메일 또는 전화번호', style:inp('find')}),
+      findRes && h('div', {style:{background:findRes.startsWith('error')?C.red+'15':C.green+'15', padding:12, borderRadius:10, marginBottom:10}}, h('p',{style:{color:findRes.startsWith('error')?C.red:C.green, fontSize:13, margin:0}}, findRes.split(':')[1])),
+      h('button', {onClick:function(){doFind(mode==='findId'?'id':'pw');}, style:{width:'100%', padding:14, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800, marginBottom:10}}, '확인하기'),
+      h('button', {onClick:function(){setMode('login');}, style:{width:'100%', background:'none', border:'none', color:C.muted, fontSize:13}}, '로그인으로 돌아가기')
     )
   );
 }
