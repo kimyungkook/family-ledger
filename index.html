@@ -79,6 +79,21 @@ var LS_USERS   = 'flai_users';
 var LS_BUDGET  = 'flai_budget';
 var LS_FIXED   = 'flai_fixed';
 var LS_GEMINI  = 'flai_gemini_key';
+var LS_ALARMS  = 'flai_alarms'; /* ★수정: 알림 저장 키 추가 */
+
+/* ★수정: 대표님 추가 요청 세부 카테고리(생필품) 반영 완료! */
+var SUB_CATS = {
+  food: ['외식', '식자재'],
+  shop: ['온라인', '오프라인', 'TV홈쇼핑'],
+  culture: ['OTT', '예술공연', '취미생활', '지적및문화', '여행'],
+  trans: ['주유', '버스', '택시', '지하철'],
+  comm: ['아빠', '엄마', '딸', '기타'],
+  health: ['병원', '약', '건강보조식품'],
+  ins: ['아빠', '엄마', '딸', '부모님'],
+  edu: ['학원', '서적', '인강', '예체능'],
+  daily: ['위생&케어용품', '세제&청소용품', '가전&가구', '주방용품', '잡화'], /* ★추가: 생필품 세부항목 */
+  other: ['편의점', '할인마트', '정비&수리']
+};
 
 function lsGet(key, def) {
   try {
@@ -143,6 +158,7 @@ var EX_CATS = [
   {id:'ins',    name:'보험',    icon:'🛡',color:'#F7DC6F'},
   {id:'edu',    name:'교육비',  icon:'📚',color:'#45B7D1'},
   {id:'health', name:'의료비',  icon:'🏥',color:'#96CEB4'},
+  {id:'daily',  name:'생필품',  icon:'🧻',color:'#A3CB38'},
   {id:'other',  name:'기타지출',icon:'💸',color:'#B2BEC3'}
 ];
 var IN_CATS = [
@@ -628,14 +644,16 @@ function EditModal(props) {
     return dateObj.toISOString().split('T')[0];
   };
 
+ /* ★수정: 수정 창 상태에 세부항목(subCat) 추가 */
   var s = {
-    amt:  useState(String(tx.amount)),
-    st:   useState(tx.store),
-    cat:  useState(tx.catId),
-    mem:  useState(tx.member),
-    meth: useState(tx.method),
-    date: useState(formatDate(tx.date)), // 수정된 날짜 로직
-    del:  useState(false)
+    amt:    useState(String(tx.amount)),
+    st:     useState(tx.store),
+    cat:    useState(tx.catId),
+    subCat: useState(tx.subCat || ''), /* 추가 */
+    mem:    useState(tx.member),
+    meth:   useState(tx.method),
+    date:   useState(formatDate(tx.date)),
+    del:    useState(false)
   };
   var isI = tx.type==='income';
   var cats = isI ? IN_CATS : EX_CATS;
@@ -668,7 +686,7 @@ function EditModal(props) {
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카테고리'),
     h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:5,marginBottom:12}},
       cats.map(function(c){
-        return h('button',{key:c.id,onClick:function(){s.cat[1](c.id);},
+       return h('button',{key:c.id, onClick:function(){ s.cat[1](c.id); s.subCat[1](''); },
           style:{padding:'8px 2px',borderRadius:10,border:'none',cursor:'pointer',
             background:s.cat[0]===c.id?c.color+'33':C.faint,
             outline:s.cat[0]===c.id?'2px solid '+c.color:'none',
@@ -678,6 +696,21 @@ function EditModal(props) {
         );
       })
     ),
+/* ★추가: 내역 수정 시 세부항목 선택 UI 렌더링 ★ */
+    (!isI && s.cat[0] && SUB_CATS[s.cat[0]]) && h('div', {style:{marginBottom:12, padding:'10px', background:C.card2, borderRadius:10, border:'1px dashed '+getCat(s.cat[0]).color+'66'}},
+      h('p',{style:{color:getCat(s.cat[0]).color, fontSize:11, fontWeight:700, margin:'0 0 6px'}}, '📌 세부 항목 선택'),
+      h('div',{style:{display:'flex', flexWrap:'wrap', gap:6}},
+        SUB_CATS[s.cat[0]].map(function(sub){
+          var isSel = s.subCat[0] === sub;
+          return h('button',{key:sub, onClick:function(){s.subCat[1](s.subCat[0] === sub ? '' : sub);},
+            style:{padding:'6px 12px', borderRadius:16, cursor:'pointer', border:'none',
+              background: isSel ? getCat(s.cat[0]).color : C.faint,
+              color: isSel ? '#fff' : C.muted, fontSize:12, fontWeight:isSel?700:400, transition:'all 0.2s'
+            }}, sub);
+        })
+      )
+    ),
+
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'구성원'),
     h('div',{style:{display:'flex',gap:8,marginBottom:16}},
       MEMBERS.map(function(m){
@@ -698,7 +731,7 @@ function EditModal(props) {
         onClick:function(){
           onSave(Object.assign({},tx,{
             amount:parseInt(s.amt[0])||tx.amount,
-            store:s.st[0], catId:s.cat[0],
+             store:s.st[0], catId:s.cat[0], subCat:s.subCat[0],
             member:s.mem[0], method:s.meth[0], date:s.date[0]
           }));
         },
@@ -976,6 +1009,7 @@ function ManualIn(props) {
   var type    = useState('expense');var setType    = type[1];    type    = type[0];
   var amount  = useState('');       var setAmount  = amount[1];  amount  = amount[0];
   var catId   = useState('');       var setCatId   = catId[1];   catId   = catId[0];
+  var subCat  = useState('');       var setSubCat  = subCat[1];  subCat  = subCat[0];
   var store   = useState('');       var setStore   = store[1];   store   = store[0];
   var member  = useState('dad');    var setMember  = member[1];  member  = member[0];
   var payType = useState('');       var setPayType = payType[1]; payType = payType[0];
@@ -1002,11 +1036,16 @@ function ManualIn(props) {
     // ★ 이 부분이 수정되었습니다: 수입 탭일 때는 'income', 그 외는 'expense'로 저장
     var finalType = (type === 'income') ? 'income' : 'expense';
 
+  /* ★수정: 세부항목 선택 필수 로직 및 데이터 추가 */
+    var hasSub = !isI && SUB_CATS[catId];
+    if (hasSub && !subCat) { alert('세부 항목을 선택해주세요!'); return; }
+
     var txData = {
       id: Date.now(),
-      type: finalType, // 고정된 'expense' 대신 변수 사용
+      type: finalType,
       amount: parseInt(amount),
       catId: catId,
+      subCat: subCat, /* 세부항목 저장 */
       store: store || (isI ? '기타수입' : '미입력'),
       member: member,
       date: date,
@@ -1065,7 +1104,7 @@ isFixed && h('div',{style:{marginBottom:12}},
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px',paddingLeft:4}},isI?'💰 수입 카테고리':'💸 지출 카테고리'),
     h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}},
       cats.map(function(c){
-        return h('button',{key:c.id,onClick:function(){setCatId(c.id);},
+        return h('button',{key:c.id,onClick:function(){setCatId(c.id); setSubCat('');},
           /* ★수정: 고유색 테두리 및 그림자 부여 ★ */
           style:{padding:'9px 3px',borderRadius:10,cursor:'pointer',
             background:catId===c.id?c.color+'22':C.faint,
@@ -1076,6 +1115,20 @@ isFixed && h('div',{style:{marginBottom:12}},
           h('span',{style:{color:catId===c.id?c.color:C.muted,fontSize:9,fontWeight:600}},c.name)
         );
       })
+    ),
+/* ★수정: 카테고리 선택 시 하단에 세부 항목 버튼 렌더링 ★ */
+    (!isI && catId && SUB_CATS[catId]) && h('div', {style:{marginBottom:12, padding:'10px', background:C.card2, borderRadius:10, border:'1px dashed '+getCat(catId).color+'66'}},
+      h('p',{style:{color:getCat(catId).color, fontSize:11, fontWeight:700, margin:'0 0 6px'}}, '📌 세부 항목 선택'),
+      h('div',{style:{display:'flex', flexWrap:'wrap', gap:6}},
+        SUB_CATS[catId].map(function(sub){
+          var isSel = subCat === sub;
+          return h('button',{key:sub, onClick:function(){setSubCat(subCat === sub ? '' : sub);},
+            style:{padding:'6px 12px', borderRadius:16, cursor:'pointer', border:'none',
+              background: isSel ? getCat(catId).color : C.faint,
+              color: isSel ? '#fff' : C.muted, fontSize:12, fontWeight:isSel?700:400, transition:'all 0.2s'
+            }}, sub);
+        })
+      )
     ),
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px',paddingLeft:4}},isI?'수입처':'상호명'),
     h('input',{value:store,onChange:function(e){setStore(e.target.value);},
@@ -1865,20 +1918,55 @@ function Dashboard(props) {
         );
       })
     ),
-    byC[0] && h(GCard,{onClick:function(){setSavSht(true);},
-      style:{background:'linear-gradient(135deg,'+C.red+'22,'+C.card2+')',
-        border:'1px solid '+C.red+'44',cursor:'pointer',marginBottom:14}},
-      h('div',{style:{display:'flex',alignItems:'flex-start',gap:10}},
-        h('span',{style:{fontSize:24,flexShrink:0}},'🤖'),
-        h('div',{style:{flex:1}},
-          h('p',{style:{color:C.red,fontSize:12,fontWeight:700,margin:'0 0 4px'}},'⚠️ AI 과소비 감지 — 클릭하여 절약 제안 확인'),
-          h('p',{style:{color:C.text,fontSize:13,margin:'0 0 8px'}},byC[0].name+' 지출이 가장 높습니다'),
-          h(Bdg,{text:'절약 제안 보기 →',color:C.red})
+    /* ★수정: 기존 AI 과소비 감지 배너 및 모달 삭제 -> 뼈때리는 최고 지출 Top 5 막대 차트로 교체 ★ */
+    (function(){
+      // 1. 이번 기간 지출액을 큰 순서대로 정렬하여 상위 5개 추출
+      var top5 = exp.slice().sort(function(a,b){return b.amount - a.amount;}).slice(0,5);
+      if(top5.length === 0) return null;
+      var maxAmt = top5[0].amount; // 가장 큰 금액 기준 (100% 게이지용)
+
+      return h(GCard,{style:{marginBottom:14, border:'1px solid '+C.red+'66', background:C.card, boxShadow:'0 4px 12px '+C.red+'15'}},
+        h('div',{style:{display:'flex', alignItems:'center', gap:8, marginBottom:16}},
+          h('span',{style:{fontSize:20}}, '🚨'),
+          h('div', null,
+            h('p',{style:{color:C.red, fontSize:13, fontWeight:800, margin:'0 0 2px'}}, '지출 경고: 최고 금액 Top 5'),
+            h('p',{style:{color:C.muted, fontSize:10, margin:0}}, '큰 지출부터 줄여야 저축이 늘어납니다.')
+          )
+        ),
+        // 세로 막대 차트 영역
+        h('div', {style:{display:'flex', alignItems:'flex-end', justifyContent:'space-between', height:140, padding:'0 5px', borderBottom:'1px solid '+C.faint}},
+          top5.map(function(t, idx){
+            var cat = getCat(t.catId);
+            var pct = Math.max((t.amount / maxAmt) * 100, 5); // 최소 높이 5% 보장
+            
+            return h('div', {key:t.id, style:{display:'flex', flexDirection:'column', alignItems:'center', width:'18%', height:'100%', justifyContent:'flex-end'}},
+              // 위쪽 금액 표시
+              h('span', {style:{color:C.text, fontSize:10, fontWeight:700, marginBottom:4, whiteSpace:'nowrap'}}, fmtS(t.amount)),
+              
+              // 세로 막대기
+              h('div', {style:{
+                width:'100%', height:pct+'%', maxWidth:30,
+                background:'linear-gradient(to top, '+C.red+'33, '+C.red+')',
+                borderRadius:'6px 6px 0 0', position:'relative',
+                display:'flex', justifyContent:'center', alignItems:'flex-start', paddingTop:4
+              }},
+                // 막대기 안에 아이콘 살짝 표시
+                h('span', {style:{fontSize:12, opacity:0.8}}, cat.icon)
+              ),
+              
+              // 아래쪽 텍스트 영역 (카테고리 & 상호명)
+              h('div', {style:{height:30, marginTop:4, textAlign:'center', width:'100%'}},
+                h('p', {style:{color:C.muted, fontSize:9, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:700}}, cat.name),
+                h('p', {style:{color:C.muted, fontSize:9, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}, t.store)
+              )
+            );
+          })
         )
-      )
-    ),
-    mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}}),
-    savSht && h(SavingsModal,{txs:ftx,onClose:function(){setSavSht(false);}})
+      );
+    })(),
+
+    mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}})
+    // SavingsModal은 더 이상 호출하지 않음
   );
 }
 
@@ -1892,6 +1980,7 @@ function Analysis(props) {
   var setBudget = budget[1]; budget = budget[0];
   var editBudget = useState(false); var setEditBudget = editBudget[1]; editBudget = editBudget[0];
   var budgetInput = useState(String(budget||'')); var setBudgetInput = budgetInput[1]; budgetInput = budgetInput[0];
+  var memViewMode = useState('sub'); var setMemViewMode = memViewMode[1]; memViewMode = memViewMode[0];
   var ftx = useMemo(function(){ return fPeriod(txs, period); }, [txs, period]);
   var exp = ftx.filter(function(t){ return t.type==='expense'; });
   var inc = ftx.filter(function(t){ return t.type==='income'; });
@@ -2092,12 +2181,37 @@ h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:5,marginB
           );
         })
       ),
+      /* ★수정: 카테고리 전체 세부항목 비중 & 구성원 스위치 뷰 구현 ★ */
       (function(){
         var mem = MEMBERS[selMem];
         var memTotal = getMemCatTotal(selCat, mem.id);
         var memPct   = selCatTotal>0 ? Math.round(memTotal/selCatTotal*100) : 0;
         var memTxs   = getMemTxs(selCat, mem.id);
+        
+        // 해당 카테고리에 세부항목 데이터가 있는지 확인
+        var subCatsList = SUB_CATS[selCat] || [];
+        
         return h('div',null,
+          // 1. 선택된 카테고리의 "전체 세부항목 요약" (구성원 상관없이 이 카테고리의 전체 흐름)
+          subCatsList.length > 0 && h('div', {style:{background:C.card2, borderRadius:10, padding:'12px', marginBottom:14, border:'1px dashed '+selCatObj.color+'66'}},
+            h('p',{style:{color:selCatObj.color, fontSize:11, fontWeight:800, margin:'0 0 8px'}}, '📊 '+selCatObj.name+' 세부 항목 비중 (전체)'),
+            h('div', {style:{display:'flex', flexWrap:'wrap', gap:6}},
+              subCatsList.map(function(subName){
+                var subTotal = exp.filter(function(t){ return t.catId === selCat && t.subCat === subName; }).reduce(function(s,t){return s+t.amount;},0);
+                if(subTotal === 0) return null;
+                var subPct = selCatTotal > 0 ? Math.round(subTotal/selCatTotal*100) : 0;
+                return h('div', {key:subName, style:{background:C.faint, padding:'6px 10px', borderRadius:8, border:'1px solid '+C.border, flex:'1 1 45%'}},
+                  h('div', {style:{display:'flex', justifyContent:'space-between', marginBottom:2}},
+                    h('span', {style:{color:C.text, fontSize:11, fontWeight:600}}, subName),
+                    h('span', {style:{color:selCatObj.color, fontSize:11, fontWeight:700}}, subPct+'%')
+                  ),
+                  h('p', {style:{color:C.muted, fontSize:10, margin:0, textAlign:'right'}}, fmtS(subTotal))
+                );
+              })
+            )
+          ),
+
+          // 2. 구성원 분석 박스
           h('div',{style:{background:C.faint,borderRadius:10,padding:'10px 12px',marginBottom:10}},
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:5}},
               h('span',{style:{color:C.muted,fontSize:11}},mem.name+' · '+selCatObj.name+' 지출'),
@@ -2107,26 +2221,53 @@ h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:5,marginB
               h('div',{style:{width:memPct+'%',height:'100%',background:mem.color,borderRadius:5}})
             ),
             h('p',{style:{color:C.muted,fontSize:10,margin:'4px 0 0'}},
-              '이 카테고리 안에서 '+mem.name+' 비중 '+memPct+'%')
+              '이 카테고리 전체 중 '+mem.name+'님 비중 '+memPct+'%')
           ),
-          memTxs.length===0
+
+          // 3. 구성원 뷰 토글 버튼 (세부항목 vs 전체내역)
+          memTxs.length > 0 && h('div', {style:{display:'flex', gap:4, marginBottom:10, background:C.card2, padding:4, borderRadius:8}},
+            [{id:'sub', label:'📊 세부항목 확인'}, {id:'list', label:'📋 전체 내역 확인'}].map(function(v){
+              return h('button', {key:v.id, onClick:function(){setMemViewMode(v.id);},
+                style:{flex:1, padding:'8px 0', border:'none', borderRadius:6, cursor:'pointer',
+                  background: memViewMode===v.id ? mem.color : 'transparent',
+                  color: memViewMode===v.id ? '#fff' : C.muted, fontSize:11, fontWeight:700, transition:'all 0.2s'
+                }}, v.label);
+            })
+          ),
+
+          // 4. 내용 렌더링
+          memTxs.length === 0
             ? h('div',{style:{textAlign:'center',padding:'16px 0'}},
                 h('p',{style:{fontSize:32,margin:'0 0 6px'}},'💸'),
                 h('p',{style:{color:C.muted,fontSize:12}},'이번 기간 지출 없음'))
-            : h('div',null,
-                h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 6px'}},'거래 내역 ('+memTxs.length+'건)'),
-                memTxs.map(function(tx){
-                  return h('div',{key:tx.id,
-                    style:{display:'flex',alignItems:'center',justifyContent:'space-between',
-                      padding:'8px 10px',background:C.faint,borderRadius:8,marginBottom:4}},
-                    h('div',null,
-                      h('p',{style:{color:C.text,fontSize:12,fontWeight:600,margin:0}},tx.store),
-                      h('p',{style:{color:C.muted,fontSize:10,margin:'2px 0 0'}},tx.date+' · '+tx.method.slice(0,14))
-                    ),
-                    h('p',{style:{color:C.red,fontSize:13,fontWeight:700,margin:0}},'-'+fmt(tx.amount))
-                  );
-                })
-              )
+            : (memViewMode === 'sub' && subCatsList.length > 0)
+              ? h('div', null, // 세부항목 뷰
+                  subCatsList.map(function(subName){
+                    var mSubTotal = memTxs.filter(function(t){ return t.subCat === subName; }).reduce(function(s,t){return s+t.amount;},0);
+                    if(mSubTotal === 0) return null;
+                    return h('div', {key:subName, style:{display:'flex', justifyContent:'space-between', padding:'10px', background:C.card, borderBottom:'1px solid '+C.faint}},
+                      h('span', {style:{color:C.text, fontSize:12, fontWeight:600}}, '▪ '+subName),
+                      h('span', {style:{color:mem.color, fontSize:13, fontWeight:800}}, fmt(mSubTotal))
+                    );
+                  })
+                )
+              : h('div',null, // 전체 내역 뷰
+                  h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 6px'}},'거래 내역 ('+memTxs.length+'건)'),
+                  memTxs.map(function(tx){
+                    return h('div',{key:tx.id,
+                      style:{display:'flex',alignItems:'center',justifyContent:'space-between',
+                        padding:'8px 10px',background:C.card, border:'1px solid '+C.faint, borderRadius:8,marginBottom:4}},
+                      h('div',null,
+                        h('div', {style:{display:'flex', alignItems:'center', gap:4}},
+                          h('p',{style:{color:C.text,fontSize:12,fontWeight:600,margin:0}},tx.store),
+                          tx.subCat && h('span', {style:{fontSize:9, color:selCatObj.color, border:'1px solid '+selCatObj.color+'66', padding:'1px 4px', borderRadius:4}}, tx.subCat)
+                        ),
+                        h('p',{style:{color:C.muted,fontSize:10,margin:'2px 0 0'}},tx.date+' · '+tx.method.slice(0,14))
+                      ),
+                      h('p',{style:{color:C.red,fontSize:13,fontWeight:700,margin:0}},'-'+fmt(tx.amount))
+                    );
+                  })
+                )
         );
       })()
     ),
@@ -2331,6 +2472,8 @@ function TxList(props) {
                 h('div',{style:{textAlign:'right',flexShrink:0}},
                   h('p',{style:{color:tx.type==='income'?C.green:C.text,fontSize:14,fontWeight:800,margin:'0 0 4px'}},(tx.type==='income'?'+':'-')+fmt(tx.amount)),
                   h('span',{style:{background:cat.color+'22',color:cat.color,fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:16}},cat.name),
+                  /* ★수정: 세부항목이 있으면 태그로 표시 ★ */
+                  tx.subCat && h('span',{style:{border:'1px solid '+cat.color+'66',color:cat.color,fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,marginLeft:3}}, tx.subCat),
               tx.source==='fixed' && h('span',{style:{background:C.gold+'22',color:C.gold,fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:16,marginLeft:3}},'📌고정'),
 !selMode && h('span',{style:{color:C.muted,fontSize:11,marginLeft:4}},' ✏️')
 
@@ -2828,7 +2971,8 @@ function Settings(props) {
 // ★ 추가: 회원관리 모달 상태 ★
   var showProfile = useState(false);
   var setShowProfile = showProfile[1]; showProfile = showProfile[0];
-  var alarms = useState({newTx:true,budget:true,monthly:true,ai:true,income:false});
+  var defAlarms = {newTx:true,budget:true,monthly:true,ai:true,income:false};
+  var alarms = useState(function(){ return lsGet(LS_ALARMS, defAlarms); });
   var geminiKey = useState(lsGet(LS_GEMINI,'')); var setGeminiKey = geminiKey[1]; geminiKey = geminiKey[0];
   var hasGemini = !!geminiKey;
   var setAlarms = alarms[1]; alarms = alarms[0];
@@ -2929,8 +3073,11 @@ h(GCard,{
     ),
     modal==='invite'  && h(InviteModal,{onClose:function(){setModal(null);}}),
     modal==='export'  && h(ExportModal,{txs:txs,onClose:function(){setModal(null);}}),
-    modal==='privacy' && h(PrivacyModal,{onClose:function(){setModal(null);}}),
-    modal==='alarm'   && h(AlarmModal,{settings:alarms,onChange:function(k,v){setAlarms(Object.assign({},alarms,((function(){var o={};o[k]=v;return o;})())));},onClose:function(){setModal(null);}}),
+    modal==='privacy' && h(PrivacyModal,{onClose:function(){setModal(null);}}),/* ★수정: 알람 스위치 누를 때마다 로컬스토리지에 저장 */
+    modal==='alarm'   && h(AlarmModal,{settings:alarms,onChange:function(k,v){
+      var newAlarms = Object.assign({},alarms); newAlarms[k] = v;
+      setAlarms(newAlarms); lsSet(LS_ALARMS, newAlarms);
+    },onClose:function(){setModal(null);}}),
     modal==='version' && h(Sheet,{title:'⚡ 앱 버전',onClose:function(){setModal(null);}},
       h(GCard,{style:{textAlign:'center',marginBottom:14}},
         h('p',{style:{fontSize:48,margin:'0 0 8px'}},'📱'),
