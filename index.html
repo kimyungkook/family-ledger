@@ -1246,20 +1246,24 @@ isFixed && h('div',{style:{marginBottom:12}},
   );
 }
 
-// ★§3 수정: Gemini OCR — /v1/ → /v1beta/ (Gemini Vision 필수 경로) ★
+// ★§3 수정: Gemini OCR — 구글 최신 세대(gemini-2.5-flash) 완벽 적용 ★
 var LS_GEMINI = 'flai_gemini_key';
 
 function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
-  // ★ v1 → v1beta 수정 ★
- var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + apiKey;
-  var prompt = '이 영수증에서 정보를 추출해 JSON만 출력(설명없이):\n{"store_name":"상호명","amount":금액숫자,"date":"YYYY-MM-DD","category":"food|trans|edu|health|shop|culture|comm|util|other"}\n금액없으면0, 날짜없으면오늘날짜';
+  // 구글 신규 유저 정책에 따라, 스크린샷 목록에 있는 최신 모델인 'gemini-2.5-flash' 사용
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var prompt = '이 영수증 또는 배달앱 캡처에서 정보를 추출해 JSON만 출력(설명없이):\n{"store_name":"상호명","amount":금액숫자,"date":"YYYY-MM-DD","category":"food|trans|edu|health|shop|culture|comm|util|other"}\n금액없으면0, 날짜없으면오늘날짜';
+  
   var body = JSON.stringify({
-    contents: [{parts: [
-      {inline_data: {mime_type: mimeType||'image/jpeg', data: base64Image}},
-      {text: prompt}
-    ]}],
-    generationConfig: {temperature:0.1, maxOutputTokens:300}
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Image } }
+      ]
+    }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
   });
+  
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -1286,9 +1290,14 @@ function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
 }
 
 function testGeminiKey(apiKey, onResult) {
-  // ★ v1 → v1beta 수정 ★
- var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + apiKey;
-  var body = JSON.stringify({contents:[{parts:[{text:'hi'}]}]});
+  // 테스트 역시 구글이 허용하는 최신 모델 'gemini-2.5-flash'로 동일하게 맞춤
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var body = JSON.stringify({
+    contents: [{
+      parts: [{ text: 'API 연결 테스트입니다. 성공이라고 대답해주세요.' }]
+    }]
+  });
+  
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
