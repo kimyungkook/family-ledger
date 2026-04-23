@@ -82,10 +82,23 @@ var LS_GEMINI  = 'flai_gemini_key';
 var LS_BLACKLIST = 'flai_blacklist'; /* ★블랙리스트 저장 키 */
 if(!lsGet(LS_BLACKLIST,null)) lsSet(LS_BLACKLIST,[]); /* 초기화 */
 var LS_ALARMS  = 'flai_alarms'; /* ★수정: 알림 저장 키 추가 */
+var LS_START_DAY = 'flai_start_day'; /* ★추가: 가계부 시작일 저장 키 */
+// ★추가: 사용자가 설정한 시작일(sDay)을 기준으로 진짜 가계부의 '년/월'을 계산해 주는 요술 함수
+function getFinMonth(dateStr, sDay) {
+  var d = new Date(dateStr);
+  var y = d.getFullYear();
+  var m = d.getMonth();
+  // 거래 날짜가 시작일보다 작으면, 가계부상으로는 아직 '저번 달'임!
+  if (d.getDate() < sDay) {
+    m--;
+    if (m < 0) { m = 11; y--; }
+  }
+  return { y: y, m: m };
+}
 
 /* ★수정: 대표님 추가 요청 세부 카테고리(생필품) 반영 완료! */
 var SUB_CATS = {
-  food: ['외식', '식자재'],
+  food: ['외식', '식자재', '식대'], 
   shop: ['온라인', '오프라인', 'TV홈쇼핑'],
   culture: ['OTT', '예술공연', '취미생활', '지적및문화', '여행'],
   trans: ['주유', '버스', '택시', '지하철'],
@@ -93,8 +106,12 @@ var SUB_CATS = {
   health: ['병원', '약', '건강보조식품'],
   ins: ['아빠', '엄마', '딸', '부모님'],
   edu: ['학원', '서적', '인강', '예체능'],
-  daily: ['위생&케어용품', '세제&청소용품', '가전&가구', '주방용품', '잡화'], /* ★추가: 생필품 세부항목 */
-  other: ['편의점', '할인마트', '정비&수리']
+  daily: ['위생&케어용품', '세제&청소용품', '가전&가구', '주방용품', '잡화'],
+  other: ['편의점', '할인마트', '정비&수리'],
+  event: ['결혼', '장례', '생일'],
+  finance: ['대출이자', '원금상환'],
+  invest: ['주식', '코인', 'ISA', 'IRP', '연금저축', '저축', '예적금'], // 👈 여기에 쉼표가 빠져서 에러가 났던 것입니다! 복구 완료!
+  leisure: ['여행', '기념일', '휴가']
 };
 
 function lsGet(key, def) {
@@ -118,7 +135,6 @@ var useMemo = React.useMemo;
 var useRef = React.useRef;
 var useEffect = React.useEffect;
 
-// ★수정 1: 테마 불러오기 및 가계부 목적에 맞는 화사한 라이트 컬러 재정의 ★
 var savedTheme = localStorage.getItem('flai_theme') || 'dark';
 
 var THEME_DARK = {
@@ -128,28 +144,34 @@ var THEME_DARK = {
 };
 
 var THEME_LIGHT = {
-  bg:'#EBF0F9',         // [수정] 대표님이 원하신 화사한 스카이블루/라벤더 베이스의 아이스 블루!
-  card:'#FFFFFF',       // 순백색 카드 (데이터 가독성)
-  card2:'#F7F9FC',      // 인풋창 등 보조 박스
-  border:'#E2E8F0',     // 아주 연한 테두리
-  accent:'#5C6BC0',     // 고급스러운 소프트 인디고 (신뢰감 부여)
-  red:'#FF7675',        // 코랄 핑크 (지출)
-  green:'#00B894',      // 민트 그린 (수입)
-  gold:'#FDCB6E',       // 머스타드 골드
-  text:'#2D3748',       // 뚜렷하고 눈 편한 다크 네이비/차콜
-  muted:'#718096',      // 보조 텍스트
-  faint:'#E2E8F0'       // 비활성 배경
+  bg:'#EBF0F9',
+  card:'#FFFFFF',
+  card2:'#F7F9FC',
+  border:'#E2E8F0',
+  accent:'#5C6BC0',
+  red:'#FF7675',
+  green:'#00B894',
+  gold:'#FDCB6E',
+  text:'#2D3748',
+  muted:'#718096',
+  faint:'#E2E8F0'
 };
 
 var C = savedTheme === 'light' ? THEME_LIGHT : THEME_DARK;
 document.body.style.background = C.bg;
 document.body.style.color = C.text;
 
-var MEMBERS = [
+var INIT_MEMBERS = [
   {id:'dad',  name:'아빠', emoji:'👨', color:'#4A9EFF', role:'admin'},
   {id:'mom',  name:'엄마', emoji:'👩', color:'#FF6B9D', role:'member'},
   {id:'girl', name:'딸',   emoji:'👧', color:'#FFD700', role:'member'}
 ];
+var MEMBERS = lsGet('flai_family_members', INIT_MEMBERS);
+
+function saveMembers(newMembers) {
+  MEMBERS = newMembers;
+  lsSet('flai_family_members', newMembers);
+}
 
 var EX_CATS = [
   {id:'food',   name:'식비',    icon:'🍽',color:'#FF6B6B'},
@@ -161,17 +183,25 @@ var EX_CATS = [
   {id:'edu',    name:'교육비',  icon:'📚',color:'#45B7D1'},
   {id:'health', name:'의료비',  icon:'🏥',color:'#96CEB4'},
   {id:'daily',  name:'생필품',  icon:'🧻',color:'#A3CB38'},
+  {id:'event',  name:'경조사&행사',icon:'💌',color:'#FF9F43'},
+  {id:'finance',name:'금융',    icon:'🏦',color:'#576574'},
+  {id:'leisure',name:'여가활동',icon:'🏕️',color:'#FF9F43'},
   {id:'other',  name:'기타지출',icon:'💸',color:'#B2BEC3'}
 ];
+
 var IN_CATS = [
   {id:'salary',   name:'급여',    icon:'💰',color:'#00D4AA'},
   {id:'bonus',    name:'성과금',  icon:'🏆',color:'#FFD700'},
   {id:'sidejob',  name:'부업',    icon:'💼',color:'#74B9FF'},
-  {id:'invest',   name:'투자수익',icon:'📈',color:'#A29BFE'},
   {id:'allowance',name:'용돈',    icon:'🎁',color:'#FD79A8'},
   {id:'other_in', name:'기타수입',icon:'📥',color:'#55EFC4'}
 ];
-var ALL_CATS = EX_CATS.concat(IN_CATS);
+
+var INV_CATS = [
+  {id:'invest',   name:'투자/저축',icon:'📈',color:'#A29BFE'} 
+];
+
+var ALL_CATS = EX_CATS.concat(IN_CATS).concat(INV_CATS);
 
 var PAYMENT_TYPES = [
   {id:'credit',   label:'신용카드',  icon:'💳', needCard:true},
@@ -213,64 +243,38 @@ function srcIcon(s) {
 }
 
 function getNow() { return new Date(); }
-function fDash(txs, p) {
-  var now = getNow();
-  var y = now.getFullYear();
-  var m = now.getMonth();
-  var qStart = Math.floor(m/3)*3;
-  if(p === '이번달') {
-    return txs.filter(function(t){
-      var d=new Date(t.date);
-      return d.getFullYear()===y && d.getMonth()===m;
-    });
-  }
-  if(p === '이번분기') {
-    return txs.filter(function(t){
-      var d=new Date(t.date);
-      return d.getFullYear()===y && d.getMonth()>=qStart && d.getMonth()<=qStart+2;
-    });
-  }
-  return txs.filter(function(t){
-    return new Date(t.date).getFullYear()===y;
-  });
-}
-/* ★수정: 가계부 기준일을 매월 10일 ~ 익월 9일로 전면 개편 ★ */
-function fPeriod(txs, p) {
-  var now = getNow();
-  var curLY = now.getFullYear();
-  var curLM = now.getMonth();
-  // 오늘 날짜가 10일 미만이면, 가계부상으로는 아직 '저번 달'입니다.
-  if (now.getDate() < 10) {
-    curLM--;
-    if (curLM < 0) { curLM = 11; curLY--; }
-  }
+// 👇👇 [지운 자리에 여기서부터 복사해서 붙여넣으세요] 👇👇
+function fDash(txs, p, sDay) {
+  sDay = sDay || 1;
+  var nowFm = getFinMonth(new Date().toISOString(), sDay);
+  var curY = nowFm.y;
+  var curM = nowFm.m;
+  var curQ = Math.floor(curM / 3);
 
-  if(p === '주간') {
-    // 주간은 최근 7일의 지출을 보기 위함 (수입은 별도 환산)
-    var weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate()-6);
-    weekAgo.setHours(0,0,0,0);
-    return txs.filter(function(t){ return new Date(t.date)>=weekAgo; });
+  if (p === '이번달') {
+    return txs.filter(function(t) { var fm = getFinMonth(t.date, sDay); return fm.y === curY && fm.m === curM; });
   }
-  if(p === '월간') {
-    // 월간 데이터 추출: 거래일이 [현재 가계부 달의 10일 ~ 익월 9일] 사이에 속하는지 확인
-    return txs.filter(function(t){
-      var d = new Date(t.date);
-      var ty = d.getFullYear();
-      var tm = d.getMonth();
-      // 거래일자가 10일 미만이면 이전 달로 취급하여 검사
-      if(d.getDate() < 10) {
-        tm--;
-        if(tm < 0) { tm = 11; ty--; }
-      }
-      return ty === curLY && tm === curLM;
-    });
+  if (p === '이번분기') {
+    return txs.filter(function(t) { var fm = getFinMonth(t.date, sDay); var tQ = Math.floor(fm.m / 3); return fm.y === curY && tQ === curQ; });
   }
-  // 연간은 올해 전체
-  return txs.filter(function(t){
-    return new Date(t.date).getFullYear() === now.getFullYear();
-  });
+  // '올해'
+  return txs.filter(function(t) { var fm = getFinMonth(t.date, sDay); return fm.y === curY; });
 }
+
+function fPeriod(txs, p, sDay) {
+  sDay = sDay || 1;
+  var nowFm = getFinMonth(new Date().toISOString(), sDay);
+  
+  if (p === '주간') {
+    var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 6); weekAgo.setHours(0,0,0,0);
+    return txs.filter(function(t) { return new Date(t.date) >= weekAgo; });
+  }
+  if (p === '월간') {
+    return txs.filter(function(t) { var fm = getFinMonth(t.date, sDay); return fm.y === nowFm.y && fm.m === nowFm.m; });
+  }
+  return txs.filter(function(t) { var fm = getFinMonth(t.date, sDay); return fm.y === nowFm.y; });
+}
+// 👆👆 [여기까지 붙여넣기] 👆👆
 
 // ★수정 2: 라이트 모드일 때 예쁜 그림자(Shadow)를 주어 배경과 분리시킴 ★
 function GCard(props) {
@@ -675,7 +679,8 @@ function EditModal(props) {
     del:    useState(false)
   };
   var isI = tx.type==='income';
-  var cats = isI ? IN_CATS : EX_CATS;
+  var isInv = tx.type==='invest'; // 👈 수정할 때도 투자인지 확인!
+  var cats = isI ? IN_CATS : (isInv ? INV_CATS : EX_CATS);
   if(s.del[0]) {
     return h(Sheet,{title:'삭제 확인',onClose:onClose},
       h('div',{style:{textAlign:'center',padding:'20px 0'}},
@@ -1039,7 +1044,8 @@ function ManualIn(props) {
   var showCR  = useState(false);    var setShowCR  = showCR[1]; showCR  = showCR[0];
   var isI = type==='income';
   var isFixed = type==='fixed';
-  var cats = isI ? IN_CATS : EX_CATS;
+  var isInv = type==='invest'; // 👈 투자 상태인지 확인하는 코드 추가!
+  var cats = isI ? IN_CATS : (isInv ? INV_CATS : EX_CATS);
   function methodDisplay() {
     if(!payType) return '';
     var pt = PAYMENT_TYPES.find(function(p){return p.id===payType;});
@@ -1053,7 +1059,7 @@ function ManualIn(props) {
     if(isFixed && !fixDay) return;
     
     // ★ 이 부분이 수정되었습니다: 수입 탭일 때는 'income', 그 외는 'expense'로 저장
-    var finalType = (type === 'income') ? 'income' : 'expense';
+    var finalType = (type === 'income') ? 'income' : (type === 'invest' ? 'invest' : 'expense');
 
   /* ★수정: 세부항목 선택 필수 로직 및 데이터 추가 */
     var hasSub = !isI && SUB_CATS[catId];
@@ -1083,7 +1089,7 @@ function ManualIn(props) {
   return h('div',{style:{padding:'0 16px 100px',overflowY:'auto',height:'100vh'}},
     h(Hdr,{title:'수동 입력',onBack:onBack}),
     h('div',{style:{display:'flex',gap:8,marginBottom:18}},
-    [['expense','💸 지출',C.red],['fixed','📌 고정지출',C.gold],['income','💰 수입',C.green]].map(function(v){
+    [['expense','💸 지출',C.red],['fixed','📌 고정지출',C.gold],['income','💰 수입',C.green],['invest','📈 투자/저축','#A29BFE']].map(function(v){
     return h('button',{key:v[0],onClick:function(){setType(v[0]);setCatId('');setPayType('');setSelCard(null);},
       style:{flex:1,padding:13,borderRadius:12,border:'none',cursor:'pointer',
         background:type===v[0]?v[2]:C.faint,color:type===v[0]?'#fff':C.muted,fontSize:14,fontWeight:700}},v[1]);
@@ -1797,14 +1803,17 @@ function CaptureIn(props) {
 function Dashboard(props) {
   var txs = props.txs;
   var onNav = props.onNav;
+  var startDay = props.startDay || 1; // 👈 추가됨
   var dp = useState('이번달');    var setDp = dp[1];      dp = dp[0];
-  var mSht = useState(null);      var setMSht = mSht[1];  mSht = mSht[0];
-  var savSht = useState(false);   var setSavSht = savSht[1]; savSht = savSht[0];
-  var ftx = useMemo(function(){return fDash(txs,dp);},[txs,dp]);
+  var mSht = useState(null);      var setMSht = mSht[1];  mSht = mSht[0];  
+  // 👇 fDash에 startDay를 넣어서 호출하도록 변경 👇
+  var ftx = useMemo(function(){return fDash(txs,dp,startDay);},[txs,dp,startDay]);
   var exp = ftx.filter(function(t){return t.type==='expense';});
   var inc = ftx.filter(function(t){return t.type==='income';});
   var totE = exp.reduce(function(s,t){return s+t.amount;},0);
   var totI = inc.reduce(function(s,t){return s+t.amount;},0);
+  var inv = ftx.filter(function(t){return t.type==='invest';});
+  var totInv = inv.reduce(function(s,t){return s+t.amount;},0);
   var rate = totI>0 ? Math.round(totE/totI*100) : 0;
   var mons = dp==='이번달'?1:dp==='이번분기'?3:12;
   var byM = MEMBERS.map(function(m){
@@ -1849,9 +1858,12 @@ function Dashboard(props) {
             background:dp===p?C.accent:C.faint,color:dp===p?'#fff':C.muted,fontSize:12,fontWeight:600}},p);
       })
     ),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
-      [{l:'총 수입',v:fmt(totI),c:C.green},{l:'총 지출',v:fmt(totE),c:C.red},
-       {l:'수입대비 지출률',v:rate+'%',c:rate>85?C.red:C.gold},{l:'순 저축',v:fmt(Math.max(totI-totE,0)),c:C.accent}]
+     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
+      [{l:'총 수입',v:fmt(totI),c:C.green},
+       {l:'총 지출',v:fmt(totE),c:C.red},
+       {l:'수입대비 지출',v:rate+'%',c:rate>85?C.red:C.gold},
+       {l:'순 저축 (여유자금)',v:fmt(Math.max(totI-totE-totInv,0)),c:C.text}, 
+       {l:'📈 총 투자/자산',v:fmt(totInv),c:'#A29BFE'}] // 👈 이 카드가 추가되었습니다!
       .map(function(k){
         return h(GCard,{key:k.l,style:{padding:'12px 14px'}},
           h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 4px'}},k.l),
@@ -1899,7 +1911,92 @@ function Dashboard(props) {
         );
       })
     ),
-    h('p',{style:{color:C.muted,fontSize:12,marginBottom:8,paddingLeft:4}},'카테고리별 지출'),
+   
+    // 📈 [올해] 가로 듀얼 막대 차트 (수입/지출 분리)
+    dp === '올해' && (function(){
+      var nowY = getFinMonth(new Date().toISOString(), startDay).y;
+      var yData = [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){ return {m:m, inc:0, exp:0}; });
+      txs.forEach(function(t){
+        var fm = getFinMonth(t.date, startDay);
+        if(fm.y === nowY) {
+          if(t.type==='income') yData[fm.m].inc += t.amount;
+          if(t.type==='expense') yData[fm.m].exp += t.amount;
+        }
+      });
+      // 가장 큰 금액을 찾아서 막대 길이를 맞춥니다.
+      var maxVal = Math.max.apply(null, yData.map(function(d){ return Math.max(d.inc, d.exp); }));
+      if (maxVal === 0) maxVal = 1;
+
+      return h(GCard,{style:{marginBottom:14, padding:'16px 12px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:16}},
+          h('span',{style:{fontSize:16}},'📊'), h('p',{style:{color:C.text,fontSize:14,fontWeight:800,margin:0}},'월별 수입/지출 비교')
+        ),
+        yData.map(function(d){
+          if(d.inc===0 && d.exp===0) return null; // 데이터 없는 달은 숨김
+          var incPct = (d.inc / maxVal) * 100;
+          var expPct = (d.exp / maxVal) * 100;
+          return h('div', {key:d.m, style:{display:'flex', alignItems:'center', gap:10, marginBottom:16}},
+            h('span',{style:{width:24,color:C.muted,fontSize:11,fontWeight:700,textAlign:'right'}}, d.m+'월'),
+            h('div', {style:{flex:1, display:'flex', flexDirection:'column', gap:4}},
+              // 수입 막대
+              h('div', {style:{display:'flex', alignItems:'center', gap:6}},
+                h('div', {style:{width: Math.max(incPct, 2)+'%', height:8, background:C.green, borderRadius:4}}),
+                h('span', {style:{color:C.green, fontSize:10, fontWeight:700}}, fmtS(d.inc))
+              ),
+              // 지출 막대
+              h('div', {style:{display:'flex', alignItems:'center', gap:6}},
+                h('div', {style:{width: Math.max(expPct, 2)+'%', height:8, background:C.red, borderRadius:4}}),
+                h('span', {style:{color:C.red, fontSize:10, fontWeight:700}}, fmtS(d.exp))
+              )
+            )
+          );
+        })
+      );
+    })(),
+
+    // 📈 [이번분기] 세로 듀얼 막대 차트 (수입/지출 나란히 세우기)
+    dp === '이번분기' && (function(){
+      var nowY = getFinMonth(new Date().toISOString(), startDay).y;
+      var qData = [{q:1,inc:0,exp:0}, {q:2,inc:0,exp:0}, {q:3,inc:0,exp:0}, {q:4,inc:0,exp:0}];
+      txs.forEach(function(t){
+        var fm = getFinMonth(t.date, startDay);
+        if(fm.y === nowY) {
+          var tQ = Math.floor(fm.m / 3);
+          if(t.type==='income') qData[tQ].inc += t.amount;
+          if(t.type==='expense') qData[tQ].exp += t.amount;
+        }
+      });
+      // 가장 큰 금액을 찾아서 막대 길이를 맞춥니다.
+      var maxQVal = Math.max.apply(null, qData.map(function(d){ return Math.max(d.inc, d.exp); }));
+      if(maxQVal === 0) maxQVal = 1;
+
+      return h(GCard,{style:{marginBottom:14, padding:'16px 12px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:20}},
+          h('span',{style:{fontSize:16}},'📈'), h('p',{style:{color:C.text,fontSize:14,fontWeight:800,margin:0}},'분기별 수입/지출 비교')
+        ),
+        h('div',{style:{display:'flex',justifyContent:'space-around',alignItems:'flex-end',height:140,padding:'0 5px'}},
+          qData.map(function(d){
+            var incH = Math.max((d.inc / maxQVal) * 100, 2);
+            var expH = Math.max((d.exp / maxQVal) * 100, 2);
+            return h('div', {key:d.q, style:{display:'flex', flexDirection:'column', alignItems:'center', width:'22%'}},
+              // 상단 금액 텍스트
+              h('div', {style:{display:'flex', flexDirection:'column', alignItems:'center', marginBottom:6, gap:2}},
+                h('span', {style:{color:C.green, fontSize:9, fontWeight:800}}, fmtS(d.inc)),
+                h('span', {style:{color:C.red, fontSize:9, fontWeight:800}}, fmtS(d.exp))
+              ),
+              // 수입/지출 두 개의 막대를 나란히 세우는 박스
+              h('div', {style:{display:'flex', alignItems:'flex-end', gap:4, height:80, width:'100%', justifyContent:'center'}},
+                h('div', {style:{width:'40%', maxWidth:14, height:incH+'%', background:C.green, borderRadius:'4px 4px 0 0'}}),
+                h('div', {style:{width:'40%', maxWidth:14, height:expH+'%', background:C.red, borderRadius:'4px 4px 0 0'}})
+              ),
+              h('span',{style:{color:C.muted,fontSize:11,fontWeight:700,marginTop:8}}, d.q+'분기')
+            );
+          })
+        )
+      );
+    })(),
+
+     h('p',{style:{color:C.muted,fontSize:12,marginBottom:8,paddingLeft:4}},'카테고리별 지출'),
     h(GCard,{style:{marginBottom:14}},
       h('div',{style:{display:'flex',alignItems:'center',gap:16}},
         h(DonutChart,{data:byC,size:110}),
@@ -2520,7 +2617,12 @@ function TxList(props) {
                   )
                 ),
                 h('div',{style:{textAlign:'right',flexShrink:0}},
-                  h('p',{style:{color:tx.type==='income'?C.green:C.text,fontSize:14,fontWeight:800,margin:'0 0 4px'}},(tx.type==='income'?'+':'-')+fmt(tx.amount)),
+                  h('p',{style:{
+  color: tx.type==='income' ? C.green : (tx.type==='invest' ? '#A29BFE' : C.text),
+  fontSize:14, fontWeight:800, margin:'0 0 4px'
+}}, 
+  (tx.type==='income' ? '+' : (tx.type==='invest' ? '⮂ ' : '-')) + fmt(tx.amount)
+),
                   h('span',{style:{background:cat.color+'22',color:cat.color,fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:16}},cat.name),
                   /* ★수정: 세부항목이 있으면 태그로 표시 ★ */
                   tx.subCat && h('span',{style:{border:'1px solid '+cat.color+'66',color:cat.color,fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,marginLeft:3}}, tx.subCat),
@@ -2541,7 +2643,6 @@ function TxList(props) {
 // ══════════════════════════════════════════════════
 // ★ 회원관리 시스템 — Settings 함수 바로 위에 삽입 ★
 // ══════════════════════════════════════════════════
-
 function ProfileModal(props) {
   var onClose  = props.onClose;
   var curUser  = props.curUser;
@@ -2560,13 +2661,14 @@ function ProfileModal(props) {
   var [newPw, setNewPw] = useState('');
   var [newId, setNewId] = useState('');
 
-  // 탭 구성 (대표님 아이디 scfjhkk 일 때만 관리자 메뉴 노출)
+  // 탭 셋팅 (scfjhkk 이거나 관리자 권한을 받은 사람만 노출)
   var TABS = [
     {id:'info', label:'📋 기본정보'},
     {id:'pw',   label:'🔑 비밀번호'},
     {id:'id',   label:'🆔 아이디'}
   ];
-  if(curUser.userId === 'scfjhkk') {
+  
+  if(curUser.userId === 'scfjhkk' || (myUser && myUser.isAdmin)) {
     TABS.push({id:'admin', label:'👑 회원관리'});
     TABS.push({id:'black', label:'🚫 블랙리스트'});
   }
@@ -2618,26 +2720,36 @@ function ProfileModal(props) {
       }, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800}},'🆔 아이디 변경하기')
     ),
 
-    // 4. [관리자 모드] 회원 명부 관리
+    // 4. [관리자 모드] 회원 명부 관리 (에러 복구 완료!)
     activeTab==='admin' && h('div',null,
-      h('p',{style:{color:C.muted, fontSize:11, marginBottom:10}},'현재 가입된 전체 회원 명부입니다. (비밀번호 확인 및 강퇴 가능)'),
+      h('p',{style:{color:C.muted, fontSize:11, marginBottom:10}},'현재 가입된 전체 회원 명부입니다. (비밀번호 확인 및 강퇴/권한부여 가능)'),
       users.map(function(u){
         return h(GCard, {key:u.userId, style:{marginBottom:10, border:'1px solid '+C.border}},
           h('div',{style:{display:'flex', justifyContent:'space-between', alignItems:'center'}},
             h('div',null,
-              h('p',{style:{fontSize:14, fontWeight:800, color:C.text}}, u.name + ' (' + u.userId + ')'),
+              h('p',{style:{fontSize:14, fontWeight:800, color:C.text}}, u.name + ' (' + u.userId + ')' + (u.isAdmin ? ' 👑' : '')),
               h('p',{style:{fontSize:11, color:C.accent}}, 'PW: ' + u.pw + ' | 📱 ' + (u.phone || '미등록'))
             ),
-            h('button',{onClick:function(){
-              if(u.userId === 'scfjhkk') return alert('관리자 본인은 강퇴할 수 없습니다.');
-              if(confirm(u.name + '님을 강제 탈퇴시키고 가입을 차단(블랙리스트)할까요?')){
-                var blacks = lsGet(LS_BLACKLIST, []);
-                blacks.push({userId: u.userId, phone: u.phone, reason: '관리자 강제탈퇴'});
-                lsSet(LS_BLACKLIST, blacks);
-                lsSet(LS_USERS, users.filter(function(x){ return x.userId !== u.userId; }));
-                alert('강제 탈퇴 처리가 완료되었습니다.'); window.location.reload();
-              }
-            }, style:{padding:'6px 10px', borderRadius:8, border:'none', background:C.red, color:'#fff', fontSize:11, fontWeight:700}}, '강퇴/차단')
+            h('div',{style:{display:'flex', gap:5}},
+              h('button',{onClick:function(){
+                if(confirm(u.name + '님에게 시스템 최고 관리자 권한을 위임하시겠습니까?')){
+                  var updated = users.map(function(x){ if(x.userId === u.userId) x.isAdmin = true; return x; });
+                  lsSet(LS_USERS, updated);
+                  alert(u.name + '님이 관리자가 되었습니다.'); window.location.reload();
+                }
+              }, style:{padding:'6px 10px', borderRadius:8, border:'1px solid '+C.accent, background:'transparent', color:C.accent, fontSize:11, fontWeight:700}}, '권한부여'),
+
+              h('button',{onClick:function(){
+                if(u.userId === 'scfjhkk' || u.userId === curUser.userId) return alert('본인 또는 최고관리자는 강퇴할 수 없습니다.');
+                if(confirm(u.name + '님을 강제 탈퇴시키고 차단하시겠습니까?')){
+                  var blacks = lsGet(LS_BLACKLIST, []);
+                  blacks.push({userId: u.userId, phone: u.phone, reason: '관리자 강제탈퇴'});
+                  lsSet(LS_BLACKLIST, blacks);
+                  lsSet(LS_USERS, users.filter(function(x){ return x.userId !== u.userId; }));
+                  alert('강제 탈퇴 처리가 완료되었습니다.'); window.location.reload();
+                }
+              }, style:{padding:'6px 10px', borderRadius:8, border:'none', background:C.red, color:'#fff', fontSize:11, fontWeight:700}}, '강퇴/차단')
+            )
           )
         );
       })
@@ -2675,6 +2787,9 @@ function Settings(props) {
   var onDeleteCard = props.onDeleteCard || function(){};
   var onRegCard    = props.onRegCard    || function(){};
   var modal = useState(null); var setModal = modal[1]; modal = modal[0];
+  var startDay = props.startDay;
+  var setStartDay = props.setStartDay;
+  var editStartDay = useState(String(startDay)); var setEditStartDay = editStartDay[1]; editStartDay = editStartDay[0];
 // ★ 추가: 회원관리 모달 상태 ★
   var showProfile = useState(false);
   var setShowProfile = showProfile[1]; showProfile = showProfile[0];
@@ -2687,6 +2802,8 @@ function Settings(props) {
   var editCardData  = useState(null); var setEditCardData  = editCardData[1];  editCardData  = editCardData[0];
   var cardMgrMember = useState('dad');var setCardMgrMember = cardMgrMember[1]; cardMgrMember = cardMgrMember[0];
   var delCardConfirm= useState(null); var setDelCardConfirm= delCardConfirm[1]; delCardConfirm= delCardConfirm[0];
+  var editFam = useState(null); var setEditFam = editFam[1]; editFam = editFam[0];
+  var famTick = useState(0); var setFamTick = famTick[1]; famTick = famTick[0];
   return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
     h(Hdr,{title:'설정'}),
     h(GCard,{style:{marginBottom:14,border:'1px solid '+C.accent+'44'}},
@@ -2698,14 +2815,19 @@ function Settings(props) {
         ),
         h(Bdg,{text:'Family Premium',color:C.gold})
       ),
-      MEMBERS.map(function(m){
-        return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderTop:'1px solid '+C.faint}},
+       MEMBERS.map(function(m){
+        return h('div',{
+          key: m.id + famTick,
+          onClick: function(){ setEditFam(m); },
+          style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderTop:'1px solid '+C.faint, cursor:'pointer'}
+        },
           h(Avt,{member:m.id,size:38}),
           h('div',{style:{flex:1}},
             h('p',{style:{color:C.text,fontSize:13,fontWeight:600,margin:0}},m.name),
             h('p',{style:{color:C.muted,fontSize:11,margin:'1px 0 0'}},m.id+'@family.app')
           ),
-          m.role==='admin'?h('span',{style:{fontSize:16}},'👑'):h('span',{style:{color:C.muted,fontSize:11}},'멤버')
+          m.role==='admin'?h('span',{style:{fontSize:16}},'👑'):h('span',{style:{color:C.muted,fontSize:11}},'멤버'),
+          h('span',{style:{color:C.muted,fontSize:12, marginLeft:10}},'✏️')
         );
       }),
       h('button',{onClick:function(){setModal('invite');},
@@ -2751,6 +2873,7 @@ h(GCard,{
 ),
     [
       {icon:'🔔',label:'알림 설정',sub:'켜짐 '+onCount+'개 / 5개',id:'alarm'},
+      {icon:'📅',label:'가계부 시작일 설정',sub:'매월 '+startDay+'일 기준 (수입/지출 리셋 기준일)',id:'startDay'},
       {icon:'💳',label:'카드 관리',sub:'등록·수정·삭제 — 구성원별 카드 관리',id:'cards'},
       {icon:'🤖',label:'Gemini AI OCR 키 설정',sub:hasGemini?'✅ 설정됨 — 영수증 자동 인식 활성화':'⚠️ 미설정 — 탭하여 무료 API 키 입력',id:'gemini'},
       {icon:'📥',label:'데이터 내보내기',sub:'Excel · HTML(PDF변환) 지원',id:'export'},
@@ -2800,7 +2923,22 @@ h(GCard,{
         );
       })
     ),
-    modal==='gemini'  && h(GeminiKeyModal,{onClose:function(){setModal(null);setGeminiKey(lsGet(LS_GEMINI,''));},onSave:function(k){setGeminiKey(k);}}),
+// 👇👇 [여기에 시작일 모달 추가] 👇👇
+    modal==='startDay' && h(Sheet,{title:'📅 가계부 시작일 설정',onClose:function(){setModal(null);}},
+      h('p',{style:{color:C.muted,fontSize:12,lineHeight:1.6,marginBottom:14}},'급여일이나 카드 결제일에 맞춰\n매월 가계부가 리셋되는 기준일을 설정하세요.'),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:20}},
+        h('span',{style:{color:C.text,fontSize:14,fontWeight:700}},'매월'),
+        h('input',{value:editStartDay,onChange:function(e){
+          var v=e.target.value.replace(/\D/g,''); if(parseInt(v)>28)v='28'; setEditStartDay(v);
+        },type:'tel',maxLength:2,style:{width:70,padding:'10px',borderRadius:8,background:C.card2,border:'1px solid '+C.accent,color:C.accent,fontSize:20,fontWeight:800,textAlign:'center',outline:'none'}}),
+        h('span',{style:{color:C.text,fontSize:14,fontWeight:700}},'일 부터 시작')
+      ),
+      h('p',{style:{color:C.red,fontSize:11,marginBottom:20}},'⚠️ 29~31일은 달마다 없기도 해서 28일까지만 설정 가능합니다.'),
+      h('button',{onClick:function(){
+        var d = parseInt(editStartDay)||1; setStartDay(d); lsSet(LS_START_DAY, d); alert('기준일이 매월 '+d+'일로 변경되었습니다! 대시보드가 새로고침됩니다.'); setModal(null); window.location.reload();
+      },style:{width:'100%',padding:14,borderRadius:12,border:'none',background:C.accent,color:'#fff',fontSize:15,fontWeight:800}},'설정 저장')
+    ),
+      modal==='gemini'  && h(GeminiKeyModal,{onClose:function(){setModal(null);setGeminiKey(lsGet(LS_GEMINI,''));},onSave:function(k){setGeminiKey(k);}}),
     modal==='cards' && h(Sheet,{title:'💳 카드 관리',onClose:function(){setModal(null);}},
       h('div',null,
         h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'구성원 선택'),
@@ -2879,6 +3017,34 @@ h(GCard,{
   modal==='logout' && h(LogoutModal,{onClose:function(){setModal(null);},onLogout:onLogout}),
 
 // ★ 추가: 회원관리 모달 ★
+// 👇 가족 수정 모달 추가 👇
+    editFam && h(Sheet, {title:'👨‍👩‍👧 가족 멤버 수정', onClose:function(){setEditFam(null);}},
+      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'이름'),
+      h('input',{id:'fm_name', defaultValue:editFam.name, style:{width:'100%', padding:'10px', borderRadius:8, border:'1px solid '+C.border, marginBottom:10, background:C.card2, color:C.text}}),
+      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 5px'}},'이모티콘 (예: 👨, 🐶)'),
+      h('input',{id:'fm_emoji', defaultValue:editFam.emoji, style:{width:'100%', padding:'10px', borderRadius:8, border:'1px solid '+C.border, marginBottom:10, background:C.card2, color:C.text}}),
+      
+      h('div',{style:{display:'flex', gap:10, marginTop:10}},
+        h('button',{onClick:function(){
+          if(MEMBERS.length <= 1) return alert('최소 1명의 멤버는 있어야 합니다.');
+          if(confirm(editFam.name + ' 멤버를 정말 삭제할까요?')) {
+            var newMem = MEMBERS.filter(function(x){ return x.id !== editFam.id; });
+            saveMembers(newMem); setFamTick(famTick+1); setEditFam(null);
+          }
+        }, style:{flex:1, padding:14, borderRadius:12, border:'none', background:C.red+'22', color:C.red, fontWeight:700}}, '삭제'),
+        
+        h('button',{onClick:function(){
+          var nName = document.getElementById('fm_name').value;
+          var nEmoji = document.getElementById('fm_emoji').value;
+          var newMem = MEMBERS.map(function(x){
+            if(x.id === editFam.id) { x.name = nName; x.emoji = nEmoji; }
+            return x;
+          });
+          saveMembers(newMem); setFamTick(famTick+1); setEditFam(null); alert('수정되었습니다!');
+        }, style:{flex:2, padding:14, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:700}}, '저장하기')
+      )
+    ),
+    // 👆 여기까지 👆
 showProfile && h(ProfileModal,{
   curUser: curUser || lsGet(LS_USER,{}),
   onClose: function(){setShowProfile(false);},
@@ -2975,6 +3141,8 @@ function AuthScreen(props) {
       h('input', {value:sPhone, onChange:function(e){setSPhone(e.target.value);}, placeholder:'전화번호', style:inp('phone')}),
       h('input', {value:sEmail, onChange:function(e){setSEmail(e.target.value);}, placeholder:'이메일', style:inp('email')}),
       h('input', {value:sPw, onChange:function(e){setsPw(e.target.value);}, type:'password', placeholder:'비밀번호 (8자 이상)', style:inp('pw')}),
+      h('input', {value:sPw2, onChange:function(e){setsPw2(e.target.value);}, type:'password', placeholder:'비밀번호 확인', style:inp('pw2')}),
+      errs.pw2 && h('p', {style:{color:C.red, fontSize:11, margin:'0 0 5px'}}, errs.pw2),
       h('button', {onClick:doSignup, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.green, color:'#fff', fontWeight:800, marginTop:10}}, '가입하기')
     ),
     (mode==='findId' || mode==='findPw') && h('div', null,
@@ -3272,6 +3440,8 @@ function App() {
   var fixedExps = useState(function(){ return lsGet(LS_FIXED, []); });
   var setFixedExps = fixedExps[1]; fixedExps = fixedExps[0];
   var setCards = cards[1]; cards = cards[0];
+  var startDay = useState(function(){ return lsGet(LS_START_DAY, 1); }); // 기본값 1일
+  var setStartDay = startDay[1]; startDay = startDay[0];
 
   // ★§4 수정: Firebase 실시간 리스너 — 가족 공유 핵심 ★
   useEffect(function(){
@@ -3530,23 +3700,15 @@ function updateFixed(fx) {
     fontFamily:"'Pretendard', 'Apple SD Gothic Neo', sans-serif", /* ★옛날 폰트 삭제하고 프리텐다드 적용★ */
     maxWidth:430, margin:'0 auto', position:'relative'
   }},
-    tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:setTab}),
-    tab==='analysis'  && h(Analysis,   {txs:txs}),
-   tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:function(){setTab('dashboard');}, cards:cards, onRegCard:addCard, onUpdateCard:updateCard, onDeleteCard:deleteCard, fixedList:fixedExps, onUpdateFixed:updateFixed, onDeleteFixed:deleteFixed}),
-   tab==='list'      && h(TxList,     {txs:txs, onUpdate:updTx, onDelete:delTx, onBulkDelete:bulkDel}),
-   tab==='settings'  && h(Settings,   {
-  txs:txs, 
-  onLogout:logout, 
-  curUser:curUser,
-  cards:cards, 
-  onRegCard:addCard,
-  onUpdateCard:updateCard, 
-  onDeleteCard:deleteCard
-}),
+tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:setTab, startDay:startDay}),
+    tab==='analysis'  && h(Analysis,   {txs:txs, startDay:startDay}),
+    tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:function(){setTab('dashboard');}, cards:cards, onRegCard:addCard, onUpdateCard:updateCard, onDeleteCard:deleteCard, fixedList:fixedExps, onUpdateFixed:updateFixed, onDeleteFixed:deleteFixed}),
+    tab==='list'      && h(TxList,     {txs:txs, onUpdate:updTx, onDelete:delTx, onBulkDelete:bulkDel}),
+    tab==='settings'  && h(Settings,   {txs:txs, onLogout:logout, curUser:curUser, cards:cards, onRegCard:addCard, onUpdateCard:updateCard, onDeleteCard:deleteCard, startDay:startDay, setStartDay:setStartDay}),
     h(BNav, {active:tab, onTab:setTab}),
     toast && h(Toast, {message:toast, onHide:function(){setToast(null);}})
-  );
-}
+  ); // 👈 (복구됨) 앱 화면을 그리는 코드 닫기!
+} // 👈 (복구됨) App 함수 닫기!
 
 ReactDOM.createRoot(document.getElementById('root')).render(h(App,null));
 
