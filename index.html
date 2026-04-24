@@ -8,7 +8,11 @@
 <title>FamilyLedger AI</title>
 <style>
 /* ★수정: 프리텐다드 웹폰트 임포트 ★ */
+/* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&family=Nanum+Pen+Script&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2205@1.0/KCC-Ganpan.css');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/Hahmlet-Regular.css');
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 
@@ -136,30 +140,47 @@ var useRef = React.useRef;
 var useEffect = React.useEffect;
 
 var savedTheme = localStorage.getItem('flai_theme') || 'dark';
+var savedFont = localStorage.getItem('flai_font') || 'Pretendard';
 
+/* ★수정: 선택한 폰트를 웹사이트 전체에 가장 강력하게(important) 강제 적용하는 마법! */
+var fontStyle = document.createElement('style');
+fontStyle.innerHTML = "* { font-family: " + savedFont + ", 'Apple SD Gothic Neo', sans-serif !important; }";
+document.head.appendChild(fontStyle);
+
+// 1. 🌑 다크 모드 (세번째 사진: 네이비+네온 사이버펑크)
 var THEME_DARK = {
-  bg:'#0A0A18', card:'#12122A', card2:'#1A1A38', border:'#2A2A50',
-  accent:'#3D5AFE', red:'#E94560', green:'#00D4AA', gold:'#FFD700',
-  text:'#F0F0FF', muted:'#8888AA', faint:'#2E2E52'
+  bg: '#0A0E1A', card: '#141B2D', card2: '#1C2541', border: '#233056',
+  accent: '#00E5FF', red: '#FF007C', green: '#00E5FF', gold: '#FFD600',
+  text: '#E8ECF1', muted: '#7B8CA3', faint: '#141B2D',
+  btn: '#00E5FF', chart: ['#00E5FF', '#7C3AED', '#FF007C', '#FFD600', '#00FF9D'],
+  grad: '#7C3AED', glow: 'rgba(0,229,255,0.25)', tabActive: 'linear-gradient(135deg,#00E5FF,#7C3AED)', tabText: '#fff', navGrad: 'linear-gradient(135deg,#00E5FF,#7C3AED)'
 };
 
+// 2. 🏙️ 라이트 모드 (첫번째 사진: 하늘빛 화이트+청록)
 var THEME_LIGHT = {
-  bg:'#EBF0F9',
-  card:'#FFFFFF',
-  card2:'#F7F9FC',
-  border:'#E2E8F0',
-  accent:'#5C6BC0',
-  red:'#FF7675',
-  green:'#00B894',
-  gold:'#FDCB6E',
-  text:'#2D3748',
-  muted:'#718096',
-  faint:'#E2E8F0'
+  bg: '#EFF4FB', card: '#FFFFFF', card2: '#E4EBF5', border: '#D1D9E6',
+  accent: '#00BFA5', red: '#FF5252', green: '#00BFA5', gold: '#FFB300',
+  text: '#1A2138', muted: '#7B8794', faint: '#EFF4FB',
+  btn: '#00BFA5', chart: ['#00BFA5', '#6C5CE7', '#FF6B6B', '#FFB300', '#0984E3'],
+  grad: '#0984E3', glow: 'rgba(0,191,165,0.12)', tabActive: 'linear-gradient(135deg,#00BFA5,#0984E3)', tabText: '#fff', navGrad: 'linear-gradient(135deg,#00BFA5,#0984E3)'
 };
 
-var C = savedTheme === 'light' ? THEME_LIGHT : THEME_DARK;
+// 3. ☕ 코지 모드 (두번째 사진: 다크브라운+오렌지 카페)
+var THEME_COZY = {
+  bg: '#1A1008', card: '#2A1F14', card2: '#3D2B1F', border: '#4A3728',
+  accent: '#E8732A', red: '#FF6B35', green: '#6ABF69', gold: '#FFB347',
+  text: '#F5E6D3', muted: '#A89080', faint: '#2A1F14',
+  btn: '#E8732A', chart: ['#E8732A', '#FFB347', '#D4813B', '#8B6914', '#FF6B35'],
+  grad: '#FFB347', glow: 'rgba(232,115,42,0.25)', tabActive: 'linear-gradient(135deg,#E8732A,#FFB347)', tabText: '#fff', navGrad: 'linear-gradient(135deg,#E8732A,#FFB347)'
+};
+
+var C = savedTheme === 'light' ? THEME_LIGHT : (savedTheme === 'cozy' ? THEME_COZY : THEME_DARK);
 document.body.style.background = C.bg;
 document.body.style.color = C.text;
+
+/* ★추가: 폰트 적용 로직 */
+var savedFont = localStorage.getItem('flai_font') || 'Pretendard';
+document.body.style.fontFamily = savedFont + ", 'Apple SD Gothic Neo', sans-serif";
 
 var INIT_MEMBERS = [
   {id:'dad',  name:'아빠', emoji:'👨', color:'#4A9EFF', role:'admin'},
@@ -276,24 +297,49 @@ function fPeriod(txs, p, sDay) {
 }
 // 👆👆 [여기까지 붙여넣기] 👆👆
 
-// ★수정 2: 라이트 모드일 때 예쁜 그림자(Shadow)를 주어 배경과 분리시킴 ★
+// ★수정 2: 테마별 카드 디자인(GCard) 업그레이드 ★
 function GCard(props) {
   var children = props.children;
   var style = props.style || {};
   var onClick = props.onClick;
-  // 라이트 테마일 때만 포인트 컬러 톤의 아주 은은한 그림자 추가
-  var shadowStyle = savedTheme === 'light' ? '0 6px 16px rgba(92, 107, 192, 0.08)' : 'none';
   
+  var baseStyle = {
+    borderRadius: 16,
+    padding: 16,
+    cursor: onClick ? 'pointer' : 'default',
+    transition: 'all 0.3s ease'
+  };
+
+  // 🏙️ 라이트 모드 (Modern Fintech)
+  if (savedTheme === 'light') {
+    Object.assign(baseStyle, {
+      background: C.card,
+      border: '1px solid ' + C.border,
+      boxShadow: '0 4px 12px rgba(42, 51, 77, 0.06)'
+    });
+  } 
+ // 🔮 코지 모드 (Aurora Glow) - v2.0 정밀 수정
+  else if (savedTheme === 'cozy') {
+    Object.assign(baseStyle, {
+      background: C.card,
+      border: '1px solid ' + C.border,
+      backdropFilter: 'blur(18px)',
+      boxShadow: '0 4px 16px ' + C.glow
+    });
+  }
+ // 💎 Modern Glassmorphism - v4.0
+  else {
+    Object.assign(baseStyle, {
+      background: C.card,
+      border: '1px solid ' + C.border,
+      backdropFilter: 'blur(16px)', // 유리 효과
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 12px ' + C.glow // 부드러운 그림자
+    });
+  }
+
   return h('div', {
     onClick: onClick,
-    style: Object.assign({}, {
-      background: 'linear-gradient(135deg,'+C.card+','+C.card2+')',
-      border: '1px solid '+C.border,
-      borderRadius: 16,
-      padding: 16,
-      boxShadow: shadowStyle, /* 그림자 적용 */
-      cursor: onClick ? 'pointer' : 'default'
-    }, style)
+    style: Object.assign(baseStyle, style)
   }, children);
 }
 
@@ -872,7 +918,7 @@ function CardRegisterModal(props) {
   var color  = useState(editCard?editCard.color:'#4A9EFF');  var setColor  = color[1];  color  = color[0];
   var memId  = useState(editCard?editCard.memberId:defaultMember); var setMemId = memId[1]; memId = memId[0];
   var BANKS  = ['신한','KB국민','하나','우리','IBK기업','NH농협','카카오뱅크','토스뱅크','현대','삼성','롯데','BC'];
-  var COLORS = ['#4A9EFF','#FF6B9D','#FFD700','#00D4AA','#DDA0DD','#FF6B6B','#98D8C8','#A29BFE'];
+  var COLORS = C.chart;
   var masked = '****-****-****-'+(last4||'????');
   var memObj = getMem(memId);
   return h(Sheet,{title:isEdit?'💳 카드 수정':'💳 카드 등록',onClose:onClose},
@@ -1249,6 +1295,28 @@ isFixed && h('div',{style:{marginBottom:12}},
 // ★§3 수정: Gemini OCR — 구글 최신 세대(gemini-2.5-flash) 완벽 적용 ★
 var LS_GEMINI = 'flai_gemini_key';
 
+/* ★추가: AI 음성 및 텍스트 분석용 함수 (재무분석 & 음성인식에 사용) */
+function callGeminiText(promptText, apiKey, callback) {
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var body = JSON.stringify({
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+  });
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if(xhr.status>=200 && xhr.status<300) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var text = data.candidates[0].content.parts[0].text;
+        callback(null, text);
+      } catch(e) { callback('응답 해석 실패', null); }
+    } else { callback('서버 오류', null); }
+  };
+  xhr.onerror = function() { callback('네트워크 오류', null); };
+  xhr.send(body);
+}
 function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
   // 구글 신규 유저 정책에 따라, 스크린샷 목록에 있는 최신 모델인 'gemini-2.5-flash' 사용
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
@@ -1563,48 +1631,59 @@ function SMSIn(props) {
   ];
   var AMT_RE = /([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)원/;
   var CARD_KEYWORDS = ['카드','승인','결제','페이','Pay'];
+/* ★수정: 결제 문자 파싱을 AI(Gemini)가 똑똑하게 처리하도록 변경 */
   function parseSMS() {
     var text = sms.trim();
     if(!text) { setErrMsg('문자 내용을 입력해주세요'); return; }
-    setErrMsg('');
-    var parsed = null;
-    for(var i=0;i<PATTERNS.length;i++) {
-      var p = PATTERNS[i];
-      var m = text.match(p.re);
-      if(m) {
-        var amtStr = m[1] ? m[1].replace(/,/g,'') : '0';
-        var storeName = m[2] ? m[2].trim() : '';
-        parsed = {bank:p.bank, amount:parseInt(amtStr), store:storeName};
-        break;
-      }
-    }
-    if(!parsed) {
-      var amtMatch = text.match(AMT_RE);
-      var hasCard = CARD_KEYWORDS.some(function(k){return text.indexOf(k)>=0;});
-      if(amtMatch && hasCard) {
-        var amt = parseInt(amtMatch[1].replace(/,/g,''));
-        var bankName = '카드';
-        ['신한','KB국민','하나','우리','현대','삼성','롯데','BC','씨티','카카오','네이버','토스'].forEach(function(b){
-          if(text.indexOf(b)>=0) bankName=b+'카드';
-        });
-        var storeM = text.match(/(?:승인|결제)\s*([가-힣A-Za-z0-9]+(?:\s[가-힣A-Za-z0-9]+)?)\s*(?:[0-9,]+원)/);
-        var stName = storeM ? storeM[1].trim() : '미확인 가맹점';
-        parsed = {bank:bankName, amount:amt, store:stName};
-      }
-    }
-    if(!parsed || parsed.amount===0) {
-      setErrMsg('카드 결제 문자를 인식할 수 없습니다.\n\n아래 예시 형식으로 붙여넣어 보세요:\n[신한카드] 87,300원 승인 이마트\n또는 수동 입력으로 직접 입력하세요.');
+    
+    var apiKey = lsGet(LS_GEMINI, '');
+    if(!apiKey) {
+      setErrMsg('문자를 똑똑하게 분석하려면 [설정]에서 Gemini API 키를 먼저 등록해주세요!');
       return;
     }
-    var guessedCat = 'other';
-    var st = parsed.store.toLowerCase();
-    if(['마트','이마트','홈플러스','편의점','gs25','cu','세븐'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='food';
-    else if(['치킨','피자','짜장','배달','식당','카페','커피'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='food';
-    else if(['지하철','버스','택시','주유','km'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='trans';
-    else if(['학원','교육','도서','책'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='edu';
-    else if(['병원','의원','약국','클리닉'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='health';
-    else if(['쿠팡','11번가','마켓','shop','몰'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='shop';
-    setResult(Object.assign({},parsed,{catId:guessedCat,member:member}));
+
+    setErrMsg('🤖 AI가 문자 내용을 분석 중입니다...');
+    
+    var prompt = "다음은 카드 결제 문자야. 여기서 정보를 추출해서 반드시 JSON 형식만 출력해.\n" +
+                 "형식: {\"bank\":\"카드사명(예:신한카드)\", \"amount\":숫자금액, \"store\":\"상호명\", \"date\":\"YYYY-MM-DD\"}\n" +
+                 "문자내용:\n" + text;
+
+    callGeminiText(prompt, apiKey, function(err, res) {
+      if(err) { setErrMsg('AI 분석 실패: ' + err); return; }
+      try {
+        var cleanJson = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+        var data = JSON.parse(cleanJson);
+        
+        if(!data.amount || data.amount === 0) {
+          setErrMsg('결제 금액을 찾을 수 없습니다. 문자를 다시 확인해주세요.');
+          return;
+        }
+
+        // 카테고리 자동 분류 (AI가 못하면 여기서 보조)
+        var guessedCat = 'other';
+        var st = (data.store || '').toLowerCase();
+        if(['마트','이마트','홈플러스','편의점','gs25','cu','세븐','씨유'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='food';
+        else if(['치킨','피자','짜장','배달','식당','카페','커피'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='food';
+        else if(['지하철','버스','택시','주유','km'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='trans';
+        else if(['학원','교육','도서','책'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='edu';
+        else if(['병원','의원','약국','클리닉'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='health';
+        else if(['쿠팡','11번가','마켓','shop','몰'].some(function(k){return st.indexOf(k)>=0;})) guessedCat='shop';
+
+        var today = new Date().toISOString().split('T')[0];
+
+        setResult({
+          bank: data.bank || '카드',
+          amount: data.amount,
+          store: data.store || '미확인 가맹점',
+          catId: guessedCat,
+          member: member,
+          date: data.date || today
+        });
+        setErrMsg('');
+      } catch(e) {
+        setErrMsg('문자 형식을 이해하지 못했습니다. 수동으로 입력해주세요.');
+      }
+    });
   }
   var editRes = useState(null); var setEditRes = editRes[1]; editRes = editRes[0];
   useEffect(function(){ if(result) setEditRes(Object.assign({},result)); }, [result]);
@@ -1814,7 +1893,8 @@ function Dashboard(props) {
   var onNav = props.onNav;
   var startDay = props.startDay || 1; // 👈 추가됨
   var dp = useState('이번달');    var setDp = dp[1];      dp = dp[0];
-  var mSht = useState(null);      var setMSht = mSht[1];  mSht = mSht[0];  
+  var mSht = useState(null);      var setMSht = mSht[1];  mSht = mSht[0];
+  var guideData = useState(null); var setGuideData = guideData[1]; guideData = guideData[0];  
   // 👇 fDash에 startDay를 넣어서 호출하도록 변경 👇
   var ftx = useMemo(function(){return fDash(txs,dp,startDay);},[txs,dp,startDay]);
   var exp = ftx.filter(function(t){return t.type==='expense';});
@@ -1842,14 +1922,16 @@ function Dashboard(props) {
       h('div',{style:{display:'flex', gap:8}},
         h('div',{
           onClick: function() {
-            var newTheme = savedTheme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('flai_theme', newTheme);
-            window.location.reload(); // 테마 변경 후 즉시 적용을 위한 새로고침
+            var nextTheme = 'dark';
+            if (savedTheme === 'dark') nextTheme = 'light';
+            else if (savedTheme === 'light') nextTheme = 'cozy';
+            localStorage.setItem('flai_theme', nextTheme);
+            window.location.reload();
           },
           style:{width:38,height:38,borderRadius:'50%',background:C.faint, border:'1px solid '+C.border,
           display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,cursor:'pointer',
           boxShadow: savedTheme === 'light' ? '0 2px 5px rgba(0,0,0,0.05)' : 'none'}
-        }, savedTheme === 'light' ? '🌙' : '☀️'),
+        }, savedTheme === 'light' ? '☀️' : (savedTheme === 'cozy' ? '☕' : '🌙')),
 
         h('div',{style:{width:38,height:38,borderRadius:'50%',background:C.faint, border: savedTheme==='light'?'1px solid '+C.border:'none',
           display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,position:'relative',cursor:'pointer',
@@ -1864,7 +1946,10 @@ function Dashboard(props) {
       ['이번달','이번분기','올해'].map(function(p){
         return h('button',{key:p,onClick:function(){setDp(p);},
           style:{flex:1,padding:'8px 4px',borderRadius:20,border:'none',cursor:'pointer',
-            background:dp===p?C.accent:C.faint,color:dp===p?'#fff':C.muted,fontSize:12,fontWeight:600}},p);
+            background: dp===p ? C.tabActive : C.faint,
+            color: dp===p ? C.tabText : C.muted,
+            fontSize:12,fontWeight:700,transition:'all 0.3s'
+          }},p);
       })
     ),
      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
@@ -1879,6 +1964,52 @@ function Dashboard(props) {
           h('p',{style:{color:k.c,fontSize:17,fontWeight:800,margin:0}},k.v)
         );
       })
+    ),
+/* ★수정: AI 재무 분석 버튼 (꼬인 코드 완벽 정리본) ★ */
+    h(GCard,{
+      onClick: function(e){
+        var btn = e.currentTarget;
+        var apiKey = lsGet(LS_GEMINI, '');
+        if(!apiKey) return alert('설정에서 Gemini API 키를 먼저 등록해주세요!');
+        
+        btn.style.opacity = '0.5';
+        alert('🤖 AI가 데이터를 분석하기 시작했습니다.\n데이터 양에 따라 5~10초 정도 걸립니다. 확인을 누르고 잠시만 기다려주세요!');
+        
+       // 카테고리별 지출 데이터 수집
+        var catData = byC.slice(0,10).map(function(c){return c.name+'('+Math.round(c.value).toLocaleString()+'원)';}).join(', ');
+        // 상위 20개 지출 내역
+        var top20 = exp.slice().sort(function(a,b){return b.amount-a.amount;}).slice(0,20).map(function(t,i){return (i+1)+'.'+t.store+'('+getCat(t.catId).name+') '+Math.round(t.amount).toLocaleString()+'원 ['+t.date+']';}).join('\n');
+        // 구성원별 지출
+        var memData = byM.map(function(m){return m.name+': '+Math.round(m.amt).toLocaleString()+'원';}).join(', ');
+
+        var promptText = "너는 대한민국 최고의 재무설계사(15년 경력)야. 아래 가계부 데이터를 정밀 분석해서 JSON 형식으로만 응답해줘. 설명 텍스트 없이 순수 JSON만 출력할 것.\n\n" +
+        "응답 JSON 형식:\n" +
+        '{"score":재무건강점수(0~100),"grade":"등급(S/A/B/C/D)","summary":"한줄요약","savings_tip":"저축늘리는핵심방법(3줄이내)","top5_cuts":[{"category":"카테고리명","current":현재금액,"target":목표금액,"tip":"절약팁"}],"monthly_advice":"이번달실천사항(5줄이내)","encouragement":"응원메시지(2줄)"}\n\n' +
+        "고객 데이터:\n" +
+        "- 기간: " + dp + "\n" +
+        "- 총수입: " + totI + "원, 총지출: " + totE + "원, 투자/저축: " + totInv + "원\n" +
+        "- 저축률: " + (totI>0?Math.round((totI-totE)/totI*100):0) + "%\n" +
+        "- 카테고리별 지출: " + catData + "\n" +
+        "- 구성원별 지출: " + memData + "\n" +
+        "- 상위 20개 지출내역:\n" + top20;
+              
+        callGeminiText(promptText, apiKey, function(err, res) {
+          btn.style.opacity = '1';
+          if(err) return alert('AI 분석 실패: ' + err);
+         var aiParsed = {};
+          try { var cl=res.replace(/```json/gi,'').replace(/```/g,'').trim(); var s1=cl.indexOf('{'),e1=cl.lastIndexOf('}'); if(s1>=0&&e1>s1)cl=cl.substring(s1,e1+1); aiParsed=JSON.parse(cl); } catch(ex){ aiParsed={score:50,grade:'?',summary:res.substring(0,200),top5_cuts:[],savings_tip:'AI 분석 결과를 불러오지 못했습니다.',monthly_advice:'',encouragement:'파이팅!'}; }
+          setGuideData({ ai:aiParsed, stats:{ totI:totI, totE:totE, totInv:totInv, rate:rate, byC:byC, byM:byM, top20:exp.slice().sort(function(a,b){return b.amount-a.amount;}).slice(0,20), dp:dp } });
+        });
+      },
+      style:{marginBottom:12, cursor:'pointer', background:'linear-gradient(135deg, '+C.accent+'22, '+C.green+'22)', border:'1px solid '+C.accent+'44'}
+    },
+      h('div',{style:{display:'flex', alignItems:'center', justifyContent:'space-between'}},
+        h('div', null,
+          h('p',{style:{color:C.text, fontSize:15, fontWeight:800, margin:'0 0 2px'}}, '🤖 AI 재무 분석 및 컨설팅'),
+          h('p',{style:{color:C.muted, fontSize:11, margin:0}}, dp + ' 데이터를 바탕으로 뼈 때리는 조언 받기')
+        ),
+        h('span',{style:{fontSize:24}}, '✨')
+      )
     ),
     dp!=='이번달' && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
       h(GCard,{style:{padding:'10px 14px'}},
@@ -2089,13 +2220,189 @@ function Dashboard(props) {
         )
       );
     })(),
-
+guideData && h(ExpertGuideModal, {
+      ai: guideData.ai,
+      stats: guideData.stats,
+      onClose: function(){ setGuideData(null); }
+    }),
     mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}})
     // SavingsModal은 더 이상 호출하지 않음
   );
 }
 
 // ── Analysis — v8 원본 그대로 (카테고리 5x2 그리드 + 구성원 세부패널 포함) ──
+/* ★추가: 프리미엄 AI 재무 대시보드 v4 ★ */
+function ExpertGuideModal(props) {
+  var ai = props.ai || {};
+  var stats = props.stats || {};
+  var onClose = props.onClose;
+  var totI=stats.totI||0, totE=stats.totE||0, totInv=stats.totInv||0;
+  var byC=stats.byC||[], byM=stats.byM||[], top20=stats.top20||[], dp=stats.dp||'';
+  var savRate = totI>0 ? Math.round((totI-totE)/totI*100) : 0;
+  var score = ai.score||0;
+  var grade = ai.grade||'-';
+  var scoreColor = score>=80?C.green:score>=60?C.gold:C.red;
+  var maxCat = byC.length>0 ? byC[0].value : 1;
+  var maxMem = byM.length>0 ? Math.max.apply(null,byM.map(function(m){return m.amt;})) : 1;
+  var glw = C.glow || 'rgba(0,229,255,0.15)';
+
+  return h('div', {style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:2000,overflowY:'auto',display:'flex',justifyContent:'center'}},
+    h('div',{style:{width:'100%',maxWidth:430,padding:'16px 16px 100px'}},
+
+    // ─── 헤더 ───
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}},
+      h('div',null,
+        h('p',{style:{color:C.accent,fontSize:9,margin:0,letterSpacing:2}},'PREMIUM AI FINANCIAL REPORT'),
+        h('p',{style:{color:C.text,fontSize:18,fontWeight:900,margin:'2px 0 0'}},'AI 재무 분석')
+      ),
+      h('button',{onClick:onClose,style:{background:C.card2,border:'1px solid '+C.border,color:C.text,padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},'닫기')
+    ),
+
+    // ─── 히어로: 건강점수 + KPI ───
+    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:18,padding:20,marginBottom:14,boxShadow:'0 4px 20px '+glw}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:16}},
+        h('div',{style:{position:'relative',width:90,height:90,flexShrink:0}},
+          h('svg',{width:90,height:90,viewBox:'0 0 90 90'},
+            h('circle',{cx:45,cy:45,r:36,fill:'none',stroke:C.faint,strokeWidth:8}),
+            h('circle',{cx:45,cy:45,r:36,fill:'none',stroke:scoreColor,strokeWidth:8,
+              strokeDasharray:String(Math.round(score*2.26))+' 226',
+              strokeLinecap:'round',transform:'rotate(-90 45 45)',
+              style:{filter:'drop-shadow(0 0 6px '+scoreColor+')'}})
+          ),
+          h('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
+            h('span',{style:{fontSize:24,fontWeight:900,color:scoreColor,textShadow:'0 0 10px '+scoreColor+'66'}},score),
+            h('span',{style:{fontSize:9,fontWeight:700,color:C.muted}},grade+'등급')
+          )
+        ),
+        h('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:6}},
+          [{l:'수입',v:fmtS(totI),c:C.green,ic:'💰'},{l:'지출',v:fmtS(totE),c:C.red,ic:'💸'},{l:'저축률',v:savRate+'%',c:savRate>=30?C.green:C.gold,ic:'🏦'}].map(function(k){
+            return h('div',{key:k.l,style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:C.faint,borderRadius:8,padding:'6px 10px',boxShadow:'inset 0 0 8px '+k.c+'11'}},
+              h('span',{style:{fontSize:11,color:C.muted}},k.ic+' '+k.l),
+              h('span',{style:{fontSize:14,fontWeight:800,color:k.c}},k.v)
+            );
+          })
+        )
+      ),
+      ai.summary && h('p',{style:{color:C.text,fontSize:12,fontWeight:600,margin:'14px 0 0',padding:'10px 12px',background:'linear-gradient(135deg,'+C.accent+'11,'+C.faint+')',borderRadius:10,lineHeight:1.6,borderLeft:'3px solid '+C.accent}},
+        '🤖 '+ai.summary)
+    ),
+
+    // ─── 도넛 + 카테고리 TOP5 ───
+    h('div',{style:{display:'flex',gap:10,marginBottom:14}},
+      h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:14,width:'40%',display:'flex',flexDirection:'column',alignItems:'center',boxShadow:'0 4px 16px '+glw}},
+        h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 8px'}},'수입 vs 지출'),
+        h(DonutChart,{size:80,data:[{value:totE,color:C.red},{value:Math.max(totI-totE,0),color:C.green}]}),
+        h('div',{style:{marginTop:8,width:'100%'}},
+          [{c:C.green,l:'수입',v:fmtS(totI)},{c:C.red,l:'지출',v:fmtS(totE)},{c:C.gold,l:'저축',v:fmtS(Math.max(totI-totE,0))}].map(function(r){
+            return h('div',{key:r.l,style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:4}},
+                h('div',{style:{width:6,height:6,borderRadius:2,background:r.c,boxShadow:'0 0 4px '+r.c}}),
+                h('span',{style:{color:C.muted,fontSize:9}},r.l)
+              ),
+              h('span',{style:{color:r.c,fontSize:9,fontWeight:700}},r.v)
+            );
+          })
+        )
+      ),
+      h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:14,flex:1,boxShadow:'0 4px 16px '+glw}},
+        h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 8px'}},'카테고리 TOP 5'),
+        byC.slice(0,5).map(function(c){
+          var pct=maxCat>0?Math.round(c.value/maxCat*100):0;
+          return h('div',{key:c.id,style:{marginBottom:8}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:2}},
+              h('span',{style:{color:C.text,fontSize:10}},c.icon+c.name),
+              h('span',{style:{color:c.color,fontSize:10,fontWeight:800}},fmtS(c.value))
+            ),
+            h('div',{style:{background:C.faint,borderRadius:4,height:6,overflow:'hidden'}},
+              h('div',{style:{width:pct+'%',height:'100%',background:'linear-gradient(90deg,'+c.color+'88,'+c.color+')',borderRadius:4,boxShadow:'0 0 8px '+c.color+'44'}})
+            )
+          );
+        })
+      )
+    ),
+
+    // ─── 구성원별 지출 (세로 막대 + 글로우) ───
+    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:'16px 12px',marginBottom:14,boxShadow:'0 4px 16px '+glw}},
+      h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 10px'}},'👥 구성원별 지출'),
+      h('div',{style:{display:'flex',justifyContent:'space-around',alignItems:'flex-end',height:110}},
+        byM.map(function(m){
+          var pct=maxMem>0?Math.round(m.amt/maxMem*100):0;
+          return h('div',{key:m.id,style:{display:'flex',flexDirection:'column',alignItems:'center',flex:1}},
+            h('span',{style:{color:m.color,fontSize:10,fontWeight:800,marginBottom:3,textShadow:'0 0 6px '+m.color+'44'}},fmtS(m.amt)),
+            h('div',{style:{width:30,height:Math.max(pct*0.8,4),background:'linear-gradient(180deg,'+m.color+','+m.color+'66)',borderRadius:'6px 6px 0 0',boxShadow:'0 0 12px '+m.color+'33'}}),
+            h('span',{style:{fontSize:18,marginTop:5}},m.emoji),
+            h('span',{style:{color:C.muted,fontSize:9,marginTop:1}},m.name)
+          );
+        })
+      )
+    ),
+
+    // ─── 지출 TOP 20 ───
+    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 4px 16px '+glw}},
+      h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 10px'}},'🏆 지출 TOP 20'),
+      top20.length===0
+        ? h('p',{style:{color:C.muted,fontSize:11,textAlign:'center',padding:'16px 0'}},'데이터 없음')
+        : top20.map(function(tx,i){
+            var cat=getCat(tx.catId);
+            return h('div',{key:tx.id,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:i<top20.length-1?'1px solid '+C.faint:'none'}},
+              h('span',{style:{color:i<3?C.gold:C.muted,fontSize:11,fontWeight:900,width:18,textAlign:'center',textShadow:i<3?'0 0 6px '+C.gold+'66':'none'}},i+1),
+              h('div',{style:{width:24,height:24,borderRadius:6,background:cat.color+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},cat.icon),
+              h('div',{style:{flex:1,minWidth:0}},
+                h('p',{style:{color:C.text,fontSize:11,fontWeight:600,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store),
+                h('p',{style:{color:C.muted,fontSize:9,margin:'1px 0 0'}},tx.date+' · '+getMem(tx.member).name)
+              ),
+              h('span',{style:{color:C.red,fontSize:11,fontWeight:800,flexShrink:0}},fmtS(tx.amount))
+            );
+          })
+    ),
+
+    // ─── AI 절약 TOP5 ───
+    ai.top5_cuts&&ai.top5_cuts.length>0 && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 4px 16px '+glw}},
+      h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 10px'}},'✂️ AI 절감 제안 TOP 5'),
+      ai.top5_cuts.slice(0,5).map(function(cut,i){
+        var sv=(cut.current||0)-(cut.target||0);
+        return h('div',{key:i,style:{background:'linear-gradient(135deg,'+C.faint+','+C.card+')',borderRadius:10,padding:'10px 12px',marginBottom:6,border:'1px solid '+C.border}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
+            h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},(i+1)+'. '+(cut.category||'')),
+            sv>0&&h('span',{style:{color:C.green,fontSize:11,fontWeight:800,textShadow:'0 0 6px '+C.green+'44'}},'-'+fmtS(sv))
+          ),
+          h('div',{style:{display:'flex',gap:6,marginBottom:4}},
+            h('span',{style:{color:C.red,fontSize:10}},'현재 '+fmtS(cut.current||0)),
+            h('span',{style:{color:C.muted,fontSize:10}},'→'),
+            h('span',{style:{color:C.green,fontSize:10}},'목표 '+fmtS(cut.target||0))
+          ),
+          cut.tip && h('p',{style:{color:C.muted,fontSize:10,margin:0,lineHeight:1.5}},'💡 '+cut.tip)
+        );
+      })
+    ),
+
+    // ─── AI 저축 가이드 ───
+    ai.savings_tip && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.green+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.green+'22'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
+        h('span',{style:{fontSize:18}},'💰'),
+        h('span',{style:{color:C.green,fontSize:13,fontWeight:800}},'저축 늘리는 방법')
+      ),
+      h('p',{style:{color:C.text,fontSize:12,lineHeight:1.7,margin:0,whiteSpace:'pre-line'}},ai.savings_tip)
+    ),
+
+    // ─── 이번달 실천 ───
+    ai.monthly_advice && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.accent+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.accent+'22'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
+        h('span',{style:{fontSize:18}},'📋'),
+        h('span',{style:{color:C.accent,fontSize:13,fontWeight:800}},'이번 달 실천 사항')
+      ),
+      h('p',{style:{color:C.text,fontSize:12,lineHeight:1.7,margin:0,whiteSpace:'pre-line'}},ai.monthly_advice)
+    ),
+
+    // ─── 응원 ───
+    ai.encouragement && h('div',{style:{background:'linear-gradient(135deg,'+C.accent+'22,'+C.card+')',border:'1px solid '+C.accent+'33',borderRadius:16,padding:16,marginBottom:14,textAlign:'center',boxShadow:'0 0 16px '+C.accent+'15'}},
+      h('span',{style:{fontSize:28}},'🌟'),
+      h('p',{style:{color:C.text,fontSize:12,fontWeight:600,lineHeight:1.7,margin:'8px 0 0',whiteSpace:'pre-line'}},ai.encouragement)
+    ),
+
+    h('p',{style:{textAlign:'center',color:C.muted,fontSize:9,marginTop:16}},'Gemini AI 실제 분석 리포트')
+  ));
+}
 function Analysis(props) {
   var txs = props.txs;
   var period   = useState('월간'); var setPeriod  = period[1];   period   = period[0];
@@ -2886,7 +3193,8 @@ h(GCard,{
       {icon:'💳',label:'카드 관리',sub:'등록·수정·삭제 — 구성원별 카드 관리',id:'cards'},
       {icon:'🤖',label:'Gemini AI OCR 키 설정',sub:hasGemini?'✅ 설정됨 — 영수증 자동 인식 활성화':'⚠️ 미설정 — 탭하여 무료 API 키 입력',id:'gemini'},
       {icon:'📥',label:'데이터 내보내기',sub:'Excel · HTML(PDF변환) 지원',id:'export'},
-      {icon:'🔒',label:'개인정보 보호',sub:'암호화·저장위치·삭제방법 안내',id:'privacy'},
+     {icon:'🔒',label:'개인정보 보호',sub:'암호화·저장위치·삭제방법 안내',id:'privacy'},
+      {icon:'🎨',label:'화면 및 글꼴 설정',sub:'다크/라이트/코지 테마 & 8가지 글꼴',id:'display'},
       {icon:'⚡',label:'앱 버전 v9.0',sub:'v8 완전유지 + Firebase 실시간 공유 + Gemini v1beta 수정',id:'version'}
     ].map(function(item){
       return h(GCard,{key:item.id,onClick:function(){setModal(item.id);},style:{marginBottom:8,cursor:'pointer'}},
@@ -2913,6 +3221,29 @@ h(GCard,{
     modal==='invite'  && h(InviteModal,{onClose:function(){setModal(null);}}),
     modal==='export'  && h(ExportModal,{txs:txs,onClose:function(){setModal(null);}}),
     modal==='privacy' && h(PrivacyModal,{onClose:function(){setModal(null);}}),/* ★수정: 알람 스위치 누를 때마다 로컬스토리지에 저장 */
+/* ★추가: 테마 및 폰트 설정 팝업 */
+    modal==='display' && h(Sheet, {title:'🎨 화면 및 글꼴 설정', onClose:function(){setModal(null);}},
+      h('p',{style:{color:C.muted, fontSize:12, marginBottom:10}}, '테마 선택'),
+      h('div', {style:{display:'flex', gap:8, marginBottom:20}},
+        [{id:'dark',n:'🌙 다크'}, {id:'light',n:'☀️ 라이트'}, {id:'cozy',n:'☕ 코지(눈편안)'}].map(function(t){
+          return h('button', {key:t.id, onClick:function(){ localStorage.setItem('flai_theme', t.id); window.location.reload(); },
+            style:{flex:1, padding:12, borderRadius:10, border:savedTheme===t.id?'2px solid '+C.accent:'1px solid '+C.border, background:C.card2, color:C.text, fontWeight:700}}, t.n);
+        })
+      ),
+      h('p',{style:{color:C.muted, fontSize:12, marginBottom:10}}, '글꼴(폰트) 선택'),
+      h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:20}},
+        [
+          {id:'Pretendard', n:'기본 폰트'}, {id:'"Malgun Gothic"', n:'맑은 고딕'},
+          {id:'Dotum', n:'돋움'}, {id:'Batang', n:'바탕'},
+          {id:'"Nanum Pen Script"', n:'나눔 손글씨'}, {id:'"Gowun Dodum"', n:'고운 돋움'},
+          {id:'"Jua"', n:'주아체'}, {id:'"Hahmlet"', n:'함초롬체'}
+        ].map(function(f){
+          var curF = localStorage.getItem('flai_font') || 'Pretendard';
+          return h('button', {key:f.id, onClick:function(){ localStorage.setItem('flai_font', f.id); window.location.reload(); },
+            style:{padding:12, borderRadius:10, fontFamily:f.id, border:curF===f.id?'2px solid '+C.accent:'1px solid '+C.border, background:C.card2, color:C.text, fontSize:14}}, f.n);
+        })
+      )
+    ),
     modal==='alarm'   && h(AlarmModal,{settings:alarms,onChange:function(k,v){
       var newAlarms = Object.assign({},alarms); newAlarms[k] = v;
       setAlarms(newAlarms); lsSet(LS_ALARMS, newAlarms);
@@ -3184,7 +3515,7 @@ function BNav(props) {
           gap:3,paddingTop:8,background:'none',border:'none',cursor:'pointer',
           color:ia?C.accent:C.muted}},
         isA ? h('div',{style:{width:44,height:44,borderRadius:'50%',
-            background:'linear-gradient(135deg,'+C.accent+',#536DFE)',
+            background:C.navGrad,
             display:'flex',alignItems:'center',justifyContent:'center',
             marginTop:-20,fontSize:26,color:'#fff',lineHeight:1}},'+')
           : h('span',{style:{fontSize:20}},t.icon),
@@ -3357,6 +3688,75 @@ function FixedManager(props) {
         )
   );
 }
+/* ★추가: AI 음성 인식 컴포넌트 */
+function VoiceIn(props) {
+  var onAdd = props.onAdd;
+  var onBack = props.onBack;
+  var apiKey = lsGet(LS_GEMINI, '');
+  var isRecording = useState(false); var setIsRecording = isRecording[1]; isRecording = isRecording[0];
+  var transcript = useState('');     var setTranscript = transcript[1]; transcript = transcript[0];
+  var analyzing = useState(false);   var setAnalyzing = analyzing[1]; analyzing = analyzing[0];
+
+  function startVoice() {
+    if(!apiKey) return alert('설정에서 Gemini API 키를 먼저 등록해주세요!');
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition) return alert('이 브라우저에서는 음성 인식을 지원하지 않습니다.');
+    
+    var recognition = new SpeechRecognition();
+    recognition.lang = 'ko-KR';
+    recognition.start();
+    setIsRecording(true);
+    setTranscript('듣고 있어요... 말씀해 주세요!');
+
+    recognition.onresult = function(event) {
+      var speech = event.results[0][0].transcript;
+      setTranscript(speech);
+      setIsRecording(false);
+      analyzeSpeech(speech);
+    };
+    recognition.onerror = function() {
+      setIsRecording(false);
+      setTranscript('음성 인식에 실패했어요. 다시 시도해주세요.');
+    };
+  }
+
+  function analyzeSpeech(text) {
+    setAnalyzing(true);
+    var prompt = "다음 문장을 가계부 내역으로 바꿔서 JSON만 출력해:\n문장: '" + text + "'\n형식: {\"store_name\":\"상호명(없으면 기타)\",\"amount\":숫자금액,\"type\":\"expense 또는 income\",\"category\":\"food|trans|edu|health|shop|culture|comm|other\"}";
+    
+    callGeminiText(prompt, apiKey, function(err, res) {
+      setAnalyzing(false);
+      if(err) { setTranscript('AI 분석 실패: ' + err); return; }
+      try {
+        var cleanJson = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+        var data = JSON.parse(cleanJson);
+        if(!data.amount) { setTranscript('금액을 인식하지 못했어요. 다시 말해주세요.'); return; }
+        
+        onAdd({
+          id: Date.now(), type: data.type || 'expense', amount: data.amount,
+          catId: data.category || 'other', store: data.store_name,
+          member: 'dad', date: new Date().toISOString().split('T')[0], method: '현금', source: 'voice'
+        });
+        alert('음성으로 내역이 저장되었습니다!');
+        onBack();
+      } catch(e) { setTranscript('AI가 문장을 이해하지 못했어요. 다시 말해주세요.'); }
+    });
+  }
+
+  return h('div', {style:{padding:'0 16px 90px'}},
+    h(Hdr, {title:'🎙️ AI 음성 인식', onBack:onBack}),
+    h('div', {style:{textAlign:'center', marginTop:40}},
+      h('div', {onClick: startVoice, style:{
+        width:120, height:120, borderRadius:'50%', background: isRecording ? C.red : C.accent,
+        display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto',
+        boxShadow: isRecording ? '0 0 20px '+C.red : '0 10px 20px '+C.accent+'44', cursor:'pointer', transition:'0.3s'
+      }}, h('span', {style:{fontSize:50}}, isRecording ? '🛑' : '🎤')),
+      h('p', {style:{marginTop:30, fontSize:16, fontWeight:700, color:C.text}}, transcript || '마이크를 누르고 말씀해 주세요!'),
+      h('p', {style:{marginTop:10, fontSize:12, color:C.muted}}, '예: "이마트에서 장보기로 5만원 썼어"'),
+      analyzing && h('p', {style:{marginTop:20, color:C.green, fontWeight:800}}, '🤖 AI가 분석하고 저장하는 중...')
+    )
+  );
+}
 function AddMenu(props) {
   var onAdd        = props.onAdd;
   var onClose      = props.onClose;
@@ -3377,15 +3777,20 @@ var fixedList    = props.fixedList || [];
   });
   if(mode==='receipt') return h(ReceiptIn,{onAdd:onAdd,onBack:function(){setMode('menu');}});
   if(mode==='sms')     return h(SMSIn,{onAdd:onAdd,onBack:function(){setMode('menu');}});
-  if(mode==='capture') return h(CaptureIn,{onAdd:onAdd,onBack:function(){setMode('menu');}});
-if(mode==='fixedMgr') return h(FixedManager,{
+if(mode==='capture') return h(CaptureIn,{onAdd:onAdd,onBack:function(){setMode('menu');}});
+  
+  /* ★추가: AI 음성인식 컴포넌트 호출 */
+  if(mode==='voice') return h(VoiceIn, {onAdd:onAdd, onBack:function(){setMode('menu');}});
+
+  if(mode==='fixedMgr') return h(FixedManager,{
     fixedList:fixedList,
     onUpdate:onUpdateFixed,
     onDelete:onDeleteFixed,
     onClose:function(){setMode('menu');}
   });
- var opts = [
+var opts = [
   {id:'manual', icon:'✍️',label:'수동 입력',       desc:'직접 금액·카드 선택',      color:C.accent},
+  {id:'voice',  icon:'🎙️',label:'AI 음성 인식',    desc:'말하면 AI가 자동으로 기록해줘요',color:C.accent},
   {id:'receipt',icon:'📷',label:'영수증 촬영/선택', desc:'카메라 또는 갤러리에서 이미지 선택',color:C.green},
   {id:'sms',    icon:'💬',label:'결제 문자 파싱',   desc:'카드사 결제문자 붙여넣기 → 자동 파싱',color:C.gold},
   {id:'capture',icon:'🖼️',label:'앱 화면 캡처',    desc:'배달앱·쇼핑앱 캡처 이미지 선택',color:'#FF6B9D'},
