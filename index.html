@@ -1297,50 +1297,60 @@ var LS_GEMINI = 'flai_gemini_key';
 
 /* ★추가: AI 음성 및 텍스트 분석용 함수 (재무분석 & 음성인식에 사용) */
 function callGeminiText(promptText, apiKey, callback) {
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
   var body = JSON.stringify({
-    contents: [{ parts: [{ text: promptText }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+    model: 'llama-3.1-8b-instant',
+    messages: [{ role: 'user', content: promptText }],
+    temperature: 0.3,
+    max_tokens: 2000
   });
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = function() {
-    if(xhr.status>=200 && xhr.status<300) {
-      try {
-        var data = JSON.parse(xhr.responseText);
-        var text = data.candidates[0].content.parts[0].text;
-        callback(null, text);
-      } catch(e) { callback('응답 해석 실패', null); }
-    } else { callback('서버 오류', null); }
-  };
-  xhr.onerror = function() { callback('네트워크 오류', null); };
-  xhr.send(body);
-}
-function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
-  // 구글 신규 유저 정책에 따라, 스크린샷 목록에 있는 최신 모델인 'gemini-2.5-flash' 사용
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
-  var prompt = '이 영수증 또는 배달앱 캡처에서 정보를 추출해 JSON만 출력(설명없이):\n{"store_name":"상호명","amount":금액숫자,"date":"YYYY-MM-DD","category":"food|trans|edu|health|shop|culture|comm|util|other"}\n금액없으면0, 날짜없으면오늘날짜';
-  
-  var body = JSON.stringify({
-    contents: [{
-      parts: [
-        { text: prompt },
-        { inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Image } }
-      ]
-    }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
-  });
-  
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', url, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
   xhr.timeout = 30000;
   xhr.onload = function() {
     if(xhr.status>=200 && xhr.status<300) {
       try {
         var data = JSON.parse(xhr.responseText);
-        var text = data.candidates[0].content.parts[0].text;
+        var text = data.choices[0].message.content;
+        callback(null, text);
+      } catch(e) { callback('응답 해석 실패', null); }
+    } else {
+      var em = 'HTTP ' + xhr.status;
+      try { var ed=JSON.parse(xhr.responseText); if(ed.error) em=ed.error.message||em; } catch(e2){}
+      callback(em, null);
+    }
+  };
+  xhr.onerror = function() { callback('네트워크 오류', null); };
+  xhr.ontimeout = function() { callback('요청 시간 초과', null); };
+  xhr.send(body);
+}
+function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
+  var prompt = '이 영수증 또는 배달앱 캡처에서 정보를 추출해 JSON만 출력(설명없이):\n{"store_name":"상호명","amount":금액숫자,"date":"YYYY-MM-DD","category":"food|trans|edu|health|shop|culture|comm|util|other"}\n금액없으면0, 날짜없으면오늘날짜';
+  var body = JSON.stringify({
+    model: 'llama-3.2-90b-vision-preview',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: 'data:'+(mimeType||'image/jpeg')+';base64,'+base64Image } }
+      ]
+    }],
+    temperature: 0.1,
+    max_tokens: 300
+  });
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
+  xhr.timeout = 30000;
+  xhr.onload = function() {
+    if(xhr.status>=200 && xhr.status<300) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var text = data.choices[0].message.content;
         text = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
         var s=text.indexOf('{'), e=text.lastIndexOf('}');
         if(s>=0&&e>s) text=text.slice(s,e+1);
@@ -1352,32 +1362,30 @@ function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
       callback(em, null);
     }
   };
-  xhr.onerror = function() { callback('CORS_ERROR', null); };
-  xhr.ontimeout = function() { callback('TIMEOUT', null); };
+  xhr.onerror = function() { callback('네트워크 오류', null); };
+  xhr.ontimeout = function() { callback('요청 시간 초과', null); };
   xhr.send(body);
 }
 
 function testGeminiKey(apiKey, onResult) {
-  // 테스트 역시 구글이 허용하는 최신 모델 'gemini-2.5-flash'로 동일하게 맞춤
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
   var body = JSON.stringify({
-    contents: [{
-      parts: [{ text: 'API 연결 테스트입니다. 성공이라고 대답해주세요.' }]
-    }]
+    model: 'llama-3.1-8b-instant',
+    messages: [{ role: 'user', content: 'hi' }],
+    max_tokens: 10
   });
-  
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
   xhr.timeout = 15000;
   xhr.onload = function() {
     if(xhr.status>=200 && xhr.status<300) {
-      try{
+      try {
         var d=JSON.parse(xhr.responseText);
-        if(d.candidates&&d.candidates[0]) onResult('success','');
-        else if(d.error) onResult('error', d.error.message||'API 오류');
-        else onResult('error','알 수 없는 오류');
-      }catch(e){onResult('error','응답 파싱 오류');}
+        if(d.choices && d.choices[0]) onResult('success','');
+        else onResult('error','알 수 없는 응답');
+      } catch(e){ onResult('error','응답 파싱 오류'); }
     } else {
       var em='HTTP '+xhr.status;
       try{var ed=JSON.parse(xhr.responseText);if(ed.error)em=ed.error.message;}catch(e2){}
@@ -1411,7 +1419,7 @@ function GeminiKeyModal(props) {
     onSave(key.trim());
     onClose();
   }
-  return h(Sheet, {title:'🔑 Gemini AI OCR 설정', onClose:onClose},
+  return h(Sheet, {title:'🔑 AI API 키 설정 (Groq)', onClose:onClose},
     h('div',{style:{background:C.accent+'11',border:'1px solid '+C.accent+'33',borderRadius:12,padding:'12px 14px',marginBottom:14}},
       h('p',{style:{color:C.accent,fontSize:12,fontWeight:700,margin:'0 0 6px'}},'무료 API 키 발급 방법'),
       h('p',{style:{color:C.muted,fontSize:12,margin:0,lineHeight:1.8}},
@@ -1420,14 +1428,15 @@ function GeminiKeyModal(props) {
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'Gemini API 키 (AIza...로 시작)'),
     h('input',{
       value:key, onChange:function(e){setKey(e.target.value);setStatus('');},
-      placeholder:'AIzaSy...', type:'text', autoCapitalize:'none', autoCorrect:'off',
+      placeholder:'gsk...', type:'text', autoCapitalize:'none', autoCorrect:'off',
       style:{width:'100%',padding:'12px 14px',borderRadius:10,background:C.card2,
         border:'1px solid '+C.border,color:C.text,fontSize:13,
         margin:'0 0 10px',boxSizing:'border-box',outline:'none',fontFamily:'monospace'}
     }),
     status==='success' && h('div',{style:{background:C.green+'22',border:'1px solid '+C.green+'44',borderRadius:8,padding:'10px 12px',marginBottom:10}},
-      h('p',{style:{color:C.green,fontSize:12,fontWeight:700,margin:'0 0 4px'}},'✅ API 키 정상 확인!'),
-      h('p',{style:{color:C.muted,fontSize:11,margin:0}},'저장 버튼을 눌러주세요.')
+      h('p',{style:{color:C.accent,fontSize:12,fontWeight:700,margin:'0 0 6px'}},'무료 Groq API 키 발급 방법'),
+      h('p',{style:{color:C.muted,fontSize:12,margin:0,lineHeight:1.8}},
+        '① console.groq.com 접속\n② 구글/GitHub 계정으로 로그인\n③ 좌측 [API Keys] 클릭\n④ [Create API Key] → 키 복사\n⑤ 아래 붙여넣기 → 저장\n\n✅ 완전 무료 (분당 30회, 일 14,400회)')
     ),
     status==='cors' && h('div',{style:{background:C.gold+'22',border:'1px solid '+C.gold+'44',borderRadius:8,padding:'10px 12px',marginBottom:10}},
       h('p',{style:{color:C.gold,fontSize:12,fontWeight:700,margin:'0 0 6px'}},'⚠️ 로컬 파일 CORS 제한 감지'),
@@ -1454,9 +1463,9 @@ function GeminiKeyModal(props) {
           color:'#fff',fontSize:13,fontWeight:700}},'💾 저장')
     ),
     h('p',{style:{color:C.gold,fontSize:11,textAlign:'center',fontWeight:600,margin:'0 0 4px'}},
-      '※ OCR 기능은 HTTPS 웹서버에서 정상 작동합니다'),
+      '※ Groq AI로 영수증 인식·재무분석·음성인식 모두 작동합니다'),
     h('p',{style:{color:C.faint,fontSize:10,textAlign:'center',lineHeight:1.6}},
-      '키는 이 기기에만 저장 | 무료: 분당 15회, 일 1,500회')
+      '키는 이 기기에만 저장 | Groq 무료: 분당 30회, 일 14,400회')
   );
 }
 
@@ -3191,7 +3200,7 @@ h(GCard,{
       {icon:'🔔',label:'알림 설정',sub:'켜짐 '+onCount+'개 / 5개',id:'alarm'},
       {icon:'📅',label:'가계부 시작일 설정',sub:'매월 '+startDay+'일 기준 (수입/지출 리셋 기준일)',id:'startDay'},
       {icon:'💳',label:'카드 관리',sub:'등록·수정·삭제 — 구성원별 카드 관리',id:'cards'},
-      {icon:'🤖',label:'Gemini AI OCR 키 설정',sub:hasGemini?'✅ 설정됨 — 영수증 자동 인식 활성화':'⚠️ 미설정 — 탭하여 무료 API 키 입력',id:'gemini'},
+      {icon:'🤖',label:'AI API 키 설정 (Groq)',sub:hasGemini?'✅ Groq 연결됨 — OCR·재무분석·음성 활성화':'⚠️ 미설정 — 탭하여 무료 Groq API 키 입력',id:'gemini'},
       {icon:'📥',label:'데이터 내보내기',sub:'Excel · HTML(PDF변환) 지원',id:'export'},
      {icon:'🔒',label:'개인정보 보호',sub:'암호화·저장위치·삭제방법 안내',id:'privacy'},
       {icon:'🎨',label:'화면 및 글꼴 설정',sub:'다크/라이트/코지 테마 & 8가지 글꼴',id:'display'},
