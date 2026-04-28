@@ -1488,7 +1488,7 @@ isFixed && h('div',{style:{marginBottom:12}},
         background:amount&&catId&&payType?'linear-gradient(135deg,'+(isI?C.green:C.accent)+','+(isI?'#00F5C4':'#536DFE')+')':C.faint,
         color:amount&&catId&&payType?'#fff':C.muted,fontSize:16,fontWeight:800}},
       isFixed?'📌 고정지출 등록 ✓':isI?'💰 수입 저장 ✓':'💸 지출 저장 ✓'),
-    showCS && h(CardSelectModal,{
+showCS && h(CardSelectModal,{
       cards:registeredCards,
       memberId:member,
       payType:payType,
@@ -1496,8 +1496,12 @@ isFixed && h('div',{style:{marginBottom:12}},
       onAddCard:function(){setShowCS(false);setEditCardData(null);setShowCR(true);},
       onEditCard:function(card){setShowCS(false);setEditCardData(card);setShowCR(true);},
       onDelCard:function(cardId){
-        onDeleteCard(cardId);
-        if(selCard&&selCard.id===cardId){setSelCard(null);setPayType('');}
+        // 1. 직접 로컬 스토리지에 접근하여 해당 카드 삭제
+        var currentCards = lsGet(LS_CARDS, INIT_CARDS);
+        var updated = currentCards.filter(function(c){ return c.id !== cardId; });
+        lsSet(LS_CARDS, updated);
+        alert('카드가 삭제되었습니다.');
+        window.location.reload();
       },
       onClose:function(){setShowCS(false);}
     }),
@@ -1505,11 +1509,18 @@ isFixed && h('div',{style:{marginBottom:12}},
       editCard:editCardData,
       defaultMember:member,
       onSave:function(card){
-        if(editCardData) onUpdateCard(card);
-        else onRegisterCard(card);
-        setShowCR(false);
-        setShowCS(true);
-        setEditCardData(null);
+        // 2. 직접 로컬 스토리지에 접근하여 수정 및 등록 처리
+        var currentCards = lsGet(LS_CARDS, INIT_CARDS);
+        if(editCardData) {
+          var updated = currentCards.map(function(c){ return c.id === card.id ? card : c; });
+          lsSet(LS_CARDS, updated);
+          alert('카드가 성공적으로 수정되었습니다.');
+        } else {
+          var added = [card].concat(currentCards);
+          lsSet(LS_CARDS, added);
+          alert('카드가 성공적으로 등록되었습니다.');
+        }
+        window.location.reload();
       },
       onClose:function(){setShowCR(false);setEditCardData(null);}
     })
@@ -4012,10 +4023,22 @@ function Settings(props) {
       h('button',{onClick:function(){setEditCardData(null);setModal('addCard');}, style:{width:'100%',marginTop:12,padding:11,borderRadius:10, border:'1px dashed '+C.accent+'66',background:C.accent+'11', color:C.accent,fontSize:13,fontWeight:600,cursor:'pointer'}}, '+ 카드 새로 등록하기')
     ),
 
-    /* ★ 카드 등록 모달 연결 */
+   /* ★ 카드 등록 모달 연결 */
     modal==='addCard' && h(CardRegisterModal, {
       defaultMember: cardMgrMember,
-      onSave: function(newCard){ var n=[newCard].concat(cards); setCards(n); lsSet(LS_CARDS,n); setModal('cards'); },
+      onSave: function(newCard){ 
+        // 1. 로컬 스토리지에서 최신 카드 목록을 가져옵니다.
+        var currentCards = lsGet(LS_CARDS, INIT_CARDS); 
+        // 2. 새로운 카드를 배열의 맨 앞에 추가합니다.
+        var n = [newCard].concat(currentCards); 
+        // 3. 로컬 스토리지에 저장합니다.
+        lsSet(LS_CARDS, n); 
+        // 4. 모달창을 이전 '카드 관리' 창으로 되돌립니다(닫힘 효과).
+        setModal('cards'); 
+        // 5. App 전역 상태(AddMenu 결제수단 등)에 새 카드가 즉시 갱신되도록 리로드합니다.
+        alert('카드가 성공적으로 등록되었습니다.');
+        window.location.reload(); 
+      },
       onClose: function(){ setModal('cards'); }
     }),
 
