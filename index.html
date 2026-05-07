@@ -3249,8 +3249,22 @@ function AlarmModal(props) {
           h('p',{style:{color:C.text,fontSize:14,fontWeight:600,margin:'0 0 2px'}},item.label),
           h('p',{style:{color:C.muted,fontSize:11,margin:0}},item.desc)
         ),
-        h('div',{
-          onClick:function(){onChange(item.key, !settings[item.key]);},
+         h('div',{
+          onClick:function(){
+            // ★ 추가: 실제 기기 알림 권한 묻기
+            if (!settings[item.key] && 'Notification' in window) {
+              Notification.requestPermission().then(function(perm){
+                if(perm === 'granted') {
+                  onChange(item.key, true);
+                  new Notification('알람 권한 설정 완료', {body: item.label + '이(가) 활성화되었습니다.', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+                } else {
+                  alert('기기 설정에서 웹 알림 권한을 허용해야 실제 알림이 울립니다.');
+                }
+              });
+            } else {
+              onChange(item.key, !settings[item.key]);
+            }
+          },
           style:{width:44,height:24,borderRadius:12,background:settings[item.key]?C.green:C.faint, position:'relative',cursor:'pointer',flexShrink:0}
         },
           h('div',{style:{width:18,height:18,borderRadius:'50%',background:'#fff', position:'absolute',top:3,left:settings[item.key]?23:3}})
@@ -6775,9 +6789,55 @@ function App() {
   var dupModal  = useState(null);          var setDupModal  = dupModal[1];  dupModal  = dupModal[0];
   var pendingTx = useState(null);          var setPendingTx = pendingTx[1]; pendingTx = pendingTx[0];
 
+  // ★ 추가: 알림 무한반복을 막기 위한 방어벽
+  var isFirstLoad = useRef(true);
+  var prevTxCount = useRef(0);
+
   useEffect(function(){
     var r = fbRef('txs'); if(!r) return;
-    r.on('value', function(snap){ var data = snap.val(); if(data){ var arr = Object.values(data).sort(function(a,b){ return new Date(b.date)-new Date(a.date); }); setTxs(arr); lsSet(LS_TXS, arr); } });
+    r.on('value', function(snap){ 
+      var data = snap.val(); 
+      if(data){ 
+        var arr = Object.values(data).sort(function(a,b){ return new Date(b.date)-new Date(a.date); }); 
+        
+        // ★★★ [실제 휴대폰 네이티브 알림 시스템] (기존 로직 침범 0%) ★★★
+        if(!isFirstLoad.current && arr.length > prevTxCount.current) {
+          var alarms = lsGet('flai_alarms', {newTx:true, budget:true, income:false});
+          var newTx = arr[0]; // 방금 막 들어온 새 데이터
+          
+          if('Notification' in window && Notification.permission === 'granted') {
+            // 1. 수입 발생 알림
+            if(newTx.type === 'income' && alarms.income) {
+              new Notification('💰 수입 발생', {body: newTx.store + '에서 ' + (newTx.amount||0).toLocaleString() + '원이 입금되었습니다.', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+            }
+            // 2. 새로운 지출 발생 알림
+            if(newTx.type === 'expense' && alarms.newTx) {
+              var memObj = MEMBERS.find(function(m){return m.id===newTx.member}) || {name:'가족'};
+              new Notification('💸 결제 알림 (by '+memObj.name+')', {body: newTx.store + '에서 ' + (newTx.amount||0).toLocaleString() + '원 사용', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+              
+              // 3. 예산 80% 초과 감지 및 경고 알림
+              if(alarms.budget) {
+                var budgetSet = lsGet('flai_budget', 0);
+                if(budgetSet > 0) {
+                  var curMonth = new Date().toISOString().slice(0,7);
+                  var curTotE = arr.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
+                  // 이번 결제로 인해 예산 80% 선을 처음 돌파했을 때 딱 한 번만!
+                  if(curTotE >= budgetSet * 0.8 && (curTotE - newTx.amount) < budgetSet * 0.8) {
+                    new Notification('🚨 예산 경고', {body: '이번 달 지출이 예산의 80%를 돌파했습니다! (현재 ' + curTotE.toLocaleString() + '원)', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+                  }
+                }
+              }
+            }
+          }
+        }
+        isFirstLoad.current = false;
+        prevTxCount.current = arr.length;
+        // ★★★ [알림 시스템 끝] ★★★
+
+        setTxs(arr); 
+        lsSet(LS_TXS, arr); 
+      } 
+    });
     var rf = fbRef('fixed'); if(rf) rf.on('value', function(snap){ var data = snap.val(); if(data){ var arr = Object.values(data); setFixedExps(arr); lsSet(LS_FIXED, arr); } });
   }, []);
 
