@@ -4,8 +4,100 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="FamilyLedger AI"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="가계부"/>
+<meta name="theme-color" content="#0A0E27"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <title>FamilyLedger AI</title>
+<script>
+// ★★★ [앱 아이콘 설정] — 아이콘 변경시 drawAppIcon 함수만 수정 ★★★
+(function(){
+  function drawAppIcon(ctx, s) {
+    var r = s/192;
+    ctx.fillStyle = '#0A0E27';
+    roundRect(ctx, 0, 0, s, s, 42*r); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 1.2*r;
+    roundRect(ctx, 0, 0, s, s, 42*r); ctx.stroke();
+    ctx.fillStyle = '#101C3A'; ctx.strokeStyle = 'rgba(0,229,255,0.4)'; ctx.lineWidth = 0.8*r;
+    roundRect(ctx, 45*r, 32*r, 96*r, 120*r, 7*r); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#0C1530'; ctx.strokeStyle = '#00E5FF'; ctx.lineWidth = 1.2*r;
+    roundRect(ctx, 39*r, 26*r, 96*r, 120*r, 7*r); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,229,255,0.08)';
+    roundRect(ctx, 49*r, 34*r, 76*r, 14*r, 3*r); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,229,255,0.5)'; ctx.lineWidth = 1*r;
+    ctx.beginPath(); ctx.moveTo(54*r,41*r); ctx.lineTo(96*r,41*r); ctx.stroke();
+    drawCheck(ctx, 54*r, 58*r, r, '#7BF5A5');
+    ctx.strokeStyle = 'rgba(0,229,255,0.35)'; ctx.lineWidth = 0.8*r;
+    ctx.beginPath(); ctx.moveTo(70*r,58*r); ctx.lineTo(104*r,58*r); ctx.stroke();
+    ctx.fillStyle = '#7BF5A5'; ctx.font = (10*r)+'px monospace';
+    ctx.textAlign = 'right'; ctx.fillText('+850', 122*r, 62*r);
+    drawCheck(ctx, 54*r, 74*r, r, '#7BF5A5');
+    ctx.strokeStyle = 'rgba(0,229,255,0.35)'; ctx.lineWidth = 0.8*r;
+    ctx.beginPath(); ctx.moveTo(70*r,74*r); ctx.lineTo(100*r,74*r); ctx.stroke();
+    ctx.fillStyle = '#FF6B9D'; ctx.font = (10*r)+'px monospace';
+    ctx.textAlign = 'right'; ctx.fillText('-320', 122*r, 78*r);
+    drawCheck(ctx, 54*r, 90*r, r, '#7BF5A5');
+    ctx.strokeStyle = 'rgba(0,229,255,0.35)'; ctx.lineWidth = 0.8*r;
+    ctx.beginPath(); ctx.moveTo(70*r,90*r); ctx.lineTo(108*r,90*r); ctx.stroke();
+    ctx.fillStyle = '#FF6B9D'; ctx.font = (10*r)+'px monospace';
+    ctx.textAlign = 'right'; ctx.fillText('-150', 122*r, 94*r);
+    ctx.fillStyle = 'rgba(0,229,255,0.06)';
+    roundRect(ctx, 49*r, 112*r, 76*r, 14*r, 3*r); ctx.fill();
+    ctx.fillStyle = 'rgba(0,229,255,0.6)'; ctx.font = (9*r)+'px monospace';
+    ctx.textAlign = 'right'; ctx.fillText('+380', 120*r, 123*r);
+    ctx.fillStyle = '#00E5FF';
+    ctx.beginPath(); ctx.arc(142*r, 136*r, 25*r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#0A0E27';
+    ctx.beginPath(); ctx.arc(142*r, 136*r, 20*r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#00E5FF'; ctx.font = 'bold '+(22*r)+'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('W', 142*r, 137*r); ctx.textBaseline = 'alphabetic';
+    var dots = [['#FF6B9D',53*r,18*r],['#00E5FF',66*r,14*r],['#FFD700',79*r,18*r]];
+    dots.forEach(function(d){ ctx.fillStyle=d[0]; ctx.beginPath(); ctx.arc(d[1],d[2],5*r,0,Math.PI*2); ctx.fill(); });
+  }
+  function drawCheck(ctx, x, y, r, color) {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.8*r; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+4*r,y+4*r); ctx.lineTo(x+10*r,y-4*r); ctx.stroke();
+  }
+  function roundRect(ctx, x, y, w, h, rad) {
+    ctx.beginPath(); ctx.moveTo(x+rad,y); ctx.lineTo(x+w-rad,y);
+    ctx.arcTo(x+w,y,x+w,y+rad,rad); ctx.lineTo(x+w,y+h-rad);
+    ctx.arcTo(x+w,y+h,x+w-rad,y+h,rad); ctx.lineTo(x+rad,y+h);
+    ctx.arcTo(x,y+h,x,y+h-rad,rad); ctx.lineTo(x,y+rad);
+    ctx.arcTo(x,y,x+rad,y,rad); ctx.closePath();
+  }
+  function generateIcon(size) {
+    var c = document.createElement('canvas'); c.width = size; c.height = size;
+    var ctx = c.getContext('2d'); drawAppIcon(ctx, size); return c.toDataURL('image/png');
+  }
+  window.addEventListener('DOMContentLoaded', function(){
+    try {
+      var icon192 = generateIcon(192);
+      var icon512 = generateIcon(512);
+      var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = icon192;
+      document.head.appendChild(fav);
+      var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
+      document.head.appendChild(apple);
+      var manifest = {
+        name: 'FamilyLedger AI 가계부',
+        short_name: '가계부',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#0A0E27',
+        theme_color: '#00E5FF',
+        orientation: 'portrait',
+        icons: [
+          { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+      var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(blob);
+      document.head.appendChild(mLink);
+    } catch(e) { console.warn('[PWA아이콘]', e); }
+  });
+})();
+</script>
 <style>
 /* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -123,6 +215,7 @@ var LS_GEMINI  = 'flai_gemini_key';
 var LS_BLACKLIST = 'flai_blacklist'; /* ★블랙리스트 저장 키 */
 if(!lsGet(LS_BLACKLIST,null)) lsSet(LS_BLACKLIST,[]); /* 초기화 */
 var LS_ALARMS  = 'flai_alarms'; /* ★수정: 알림 저장 키 추가 */
+var LS_MEMOS   = 'flai_cal_memos'; /* ★달력 메모 저장 키 */
 var LS_ASSETS  = 'flai_assets'; // 자산 관리 키 추가
 var LS_START_DAY = 'flai_start_day'; /* ★추가: 가계부 시작일 저장 키 */
 var LS_GOALS = 'flai_goals';   // 가족 목표 저장소
@@ -1659,7 +1752,7 @@ function ManualIn(props) {
    h(GCard,{style:{marginBottom:12,textAlign:'center',border:'1px solid '+(isFixed?C.gold+'44':isI?C.green+'44':C.red+'44')}},
   h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},isI?'수입 금액':'지출 금액'),
 
-      h('input',{value:amount,onChange:function(e){setAmount(e.target.value.replace(/\D/g,''));},
+     h('input',{value:amount ? parseInt(amount).toLocaleString() : '',onChange:function(e){setAmount(e.target.value.replace(/[^\d]/g,''));},
         placeholder:'0',type:'tel',
         style:{background:'none',border:'none',outline:'none',fontSize:36,fontWeight:900,
           color:isI?C.green:C.red,width:'100%',textAlign:'center'}}),
@@ -1989,7 +2082,7 @@ function callGeminiOCR(base64Image, mimeType, apiKey, callback) {
 
   /* ── 3. 순차 분석 엔진 (Fallback) ── */
   var providers = [
-  { name: 'Gemini', type: 'google', url: 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=' + googleKey },
+  { name: 'Gemini', type: 'google', url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + googleKey },
   
   { name: 'Groq', type: 'groq', url: 'https://api.groq.com/openai/v1/chat/completions', key: groqKey },
   { name: 'OpenRouter', type: 'openrouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: openRouterKey }
@@ -2535,9 +2628,9 @@ function startAnalyzeAll() {
                     color:C.text,fontSize:12,marginBottom:5,outline:'none',
                     boxSizing:'border-box'}}),
                 h('div',{style:{display:'flex',gap:5,marginBottom:5}},
-                  h('input',{value:item.amount,
+                  h('input',{value:item.amount ? parseInt(item.amount).toLocaleString() : '',
                     disabled:item.status==='saved',
-                    onChange:function(e){updateItem(item.id,{amount:e.target.value.replace(/\D/g,'')});},
+                    onChange:function(e){updateItem(item.id,{amount:e.target.value.replace(/[^\d]/g,'')});},
                     placeholder:'금액', type:'tel',
                     style:{flex:1,padding:'6px 8px',borderRadius:6,
                       background:C.faint,border:'1px solid '+C.border,
@@ -2744,11 +2837,18 @@ function SMSIn(props) {
           if(!matched && isCVS)  { data.category = 'other'; data.sub_category = '편의점'; matched = true; }
         }
 
+        // ★ 날짜 형식 보정 (MM/DD, MM-DD → YYYY-MM-DD)
+        var parsedDate = data.date || '';
+        if(parsedDate && parsedDate.length <= 5) {
+          var dp = parsedDate.replace(/\//g,'-').split('-');
+          parsedDate = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
+        }
+        if(!parsedDate || parsedDate.length < 8) parsedDate = new Date().toISOString().split('T')[0];
         setResult({
           bank: data.bank || '카드', amount: data.amount, store: data.store || '미확인 가맹점',
           catId: data.category || 'other',
-          subCat: data.sub_category || '', /* ★소분류 AI 데이터 매핑 */
-          member: member, date: data.date || new Date().toISOString().split('T')[0]
+          subCat: data.sub_category || '',
+          member: member, date: parsedDate
         });
         setErrMsg('');
       } catch(e) { setErrMsg('문자 형식을 이해하지 못했습니다. 수동으로 입력해주세요.'); }
@@ -2773,7 +2873,7 @@ function SMSIn(props) {
             h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'상호명'),
             h('input',{value:editRes.store,onChange:function(e){setEditRes(Object.assign({},editRes,{store:e.target.value}));}, style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.text,fontSize:13,marginBottom:10,outline:'none'}}),
             h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'금액'),
-            h('input',{value:String(editRes.amount),onChange:function(e){setEditRes(Object.assign({},editRes,{amount:parseInt(e.target.value.replace(/\D/g,''))||0}));}, type:'tel', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.red,fontSize:20,fontWeight:800,marginBottom:10,outline:'none'}}),
+            h('input',{value:editRes.amount ? parseInt(editRes.amount).toLocaleString() : '',onChange:function(e){setEditRes(Object.assign({},editRes,{amount:parseInt(e.target.value.replace(/[^\d]/g,''))||0}));}, type:'tel', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.red,fontSize:20,fontWeight:800,marginBottom:10,outline:'none'}}),
             h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카테고리'),
             h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}},
               EX_CATS.map(function(c){
@@ -2804,7 +2904,7 @@ function SMSIn(props) {
             h('button',{onClick:function(){setResult(null);setSms('');}, style:{padding:14,borderRadius:12,border:'1px solid '+C.border,background:C.card2,color:C.muted,fontSize:14,fontWeight:700,cursor:'pointer'}},'다시 입력'),
             h('button',{onClick:function(){
                 if(!editRes.amount) return;
-                onAdd({id:Date.now(),type:'expense',amount:editRes.amount,catId:editRes.catId, subCat:editRes.subCat, store:editRes.store,member:editRes.member, date:new Date().toISOString().split('T')[0],method:result.bank,source:'sms'}, false);
+                onAdd({id:Date.now(),type:'expense',amount:editRes.amount,catId:editRes.catId, subCat:editRes.subCat, store:editRes.store,member:editRes.member, date:editRes.date || new Date().toISOString().split('T')[0],method:result.bank,source:'sms'}, false);
               }, style:{padding:14,borderRadius:12,border:'none',cursor:'pointer', background:'linear-gradient(135deg,'+C.accent+',#536DFE)',color:'#fff',fontSize:14,fontWeight:700} },'저장하기 ✓')
           )
         )
@@ -2917,7 +3017,20 @@ function CaptureIn(props) {
         setEditAmt(result.amount ? String(result.amount) : '');
         setEditCat(result.category || 'food');
         setEditSubCat(result.sub_category || '');
-        if(result.date && result.date.length === 10) setEditDate(result.date);
+        // ★ 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
+        if(result.date) {
+          var rd = String(result.date).replace(/\//g,'-');
+          if(rd.length <= 5) {
+            var dp = rd.split('-');
+            rd = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
+          }
+          if(rd.length === 10) {
+            var ry = parseInt(rd.split('-')[0]);
+            var cy = new Date().getFullYear();
+            if(ry < cy) rd = cy + rd.substring(4);
+          }
+          setEditDate(rd);
+        }
         setStep(3);
       });
     };
@@ -2969,7 +3082,7 @@ function CaptureIn(props) {
         h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'상호명 / 주문처'),
         h('input',{value:editSt,onChange:function(e){setEditSt(e.target.value);}, placeholder:'예: 맘스터치, 마켓컬리', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.text,fontSize:13,marginBottom:10,outline:'none'}}),
         h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'결제 금액'),
-        h('input',{value:editAmt,onChange:function(e){setEditAmt(e.target.value.replace(/\D/g,''));}, placeholder:'금액 입력',type:'tel', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.red,fontSize:20,fontWeight:800,marginBottom:10,outline:'none'}}),
+       h('input',{value:editAmt ? parseInt(editAmt).toLocaleString() : '',onChange:function(e){setEditAmt(e.target.value.replace(/[^\d]/g,''));}, placeholder:'금액 입력',type:'tel', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.red,fontSize:20,fontWeight:800,marginBottom:10,outline:'none'}}),
         h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'날짜'),
         h('input',{type:'date',value:editDate,onChange:function(e){setEditDate(e.target.value);}, style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.text,fontSize:13,marginBottom:10,outline:'none'}}),
         h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카테고리'),
@@ -3560,30 +3673,64 @@ function Dashboard(props) {
             return;
           }
           setIsAnl(true);
-          var catData = byC.slice(0,10).map(function(c){
-            return c.name+'('+Math.round(c.value).toLocaleString()+'원)';
-          }).join(', '); 
-          var currentCategoryData = byC.map(function(c){ 
-            return { 
-              category: c.name, 
-              id: c.id, 
-              amount: c.value, 
-              daily_avg: Math.round(c.value / pacingGuide.daysElapsed) 
-            }; 
+          // 1. 요일별 지출 패턴 계산
+          var daysArr = ['일','월','화','수','목','금','토'];
+          var dayData = { 일:0, 월:0, 화:0, 수:0, 목:0, 금:0, 토:0 };
+          exp.forEach(function(t){ var d = new Date(t.date).getDay(); dayData[daysArr[d]] += t.amount; });
+          
+          // 2. 고정비 vs 변동비 자동 계산 (보험, 교육, 통신, 관리, 금융을 고정비로 간주)
+          var fixedIds = ['ins', 'edu', 'comm', 'util', 'finance'];
+          var fixedAmt = 0; var varAmt = 0;
+          var fixedNames = []; var varNames = [];
+          exp.forEach(function(t){
+            if(fixedIds.includes(t.catId) || (t.memo && t.memo.includes('정기'))) {
+              fixedAmt += t.amount;
+              if(!fixedNames.includes(getCat(t.catId).name)) fixedNames.push(getCat(t.catId).name);
+            } else {
+              varAmt += t.amount;
+              if(!varNames.includes(getCat(t.catId).name)) varNames.push(getCat(t.catId).name);
+            }
           });
-          var promptText = "당신은 재무 전문가입니다. 다음 데이터를 분석하여 JSON 형식으로만 응답하세요.\n\n" +
-            "데이터:\n" +
-            "- 카테고리별 지출: " + JSON.stringify(currentCategoryData) + "\n" +
-            "- 총 지출: " + totE + "원\n" +
-            "- 총 수입: " + totI + "원\n\n" +
-            "JSON 형식 (다른 텍스트 절대 포함 금지):\n" +
+
+          // 3. 자주 반복되는 지출 (빈도수 TOP 5 추출)
+          var storeCount = {};
+          exp.forEach(function(t){
+            var n = t.store; if(!n) return;
+            if(!storeCount[n]) storeCount[n] = {name: n, count: 0, amount: 0};
+            storeCount[n].count++;
+            storeCount[n].amount += t.amount;
+          });
+          var topFreq = Object.values(storeCount).sort(function(a,b){return b.count - a.count;}).slice(0,5);
+
+          // 4. 새로운 맞춤형 AI 프롬프트 (대표님 지시사항 완벽 반영)
+          var promptText = "당신은 최고의 데이터 기반 재무 분석 AI입니다. 사용자의 실제 데이터를 바탕으로 구체적이고 현실적인 컨설팅을 제공하세요. 기계적이고 뻔한 소리는 금지합니다.\n\n" +
+            "[실제 결제 데이터]\n" +
+            "- 총 수입: " + totI + "원, 총 지출: " + totE + "원\n" +
+            "- 고정비(보험/교육 등 절감불가): " + fixedAmt + "원 (" + fixedNames.slice(0,3).join(', ') + ")\n" +
+            "- 변동비(식비/쇼핑 등 조절가능): " + varAmt + "원 (" + varNames.slice(0,3).join(', ') + ")\n" +
+            "- 요일별 지출액: " + JSON.stringify(dayData) + "\n" +
+            "- 다빈도 결제처 TOP 5 (자주 간 곳): " + JSON.stringify(topFreq) + "\n" +
+            "- 기준 가이드: 식비 기준 30만원, 교통비 기준 9만원. 이 기준과 실제 지출을 비교하여 잘했으면 칭찬하고, 초과했으면 경고하세요.\n" +
+            "- 카테고리별 지출액: " + JSON.stringify(byC.map(function(c){return {name:c.name, amount:c.value};})) + "\n\n" +
+            "[응답 형식 (반드시 아래 JSON 형태만 출력, 다른 설명 금지)]\n" +
             "{\n" +
-            '  "score": 점수(0-100),\n' +
-            '  "grade": "등급(S/A/B/C)",\n' +
-            '  "summary": "한줄 요약",\n' +
-            '  "top5_cuts": [{category:"카테고리",current:현재금액,target:목표금액,tip:"조언"}],\n' +
-            '  "savings_tip": "저축 방법",\n' +
-            '  "monthly_advice": "실천사항"\n' +
+            '  "score": 78,\n' +
+            '  "grade": "B+등급",\n' +
+            '  "summary_text": "수입 대비 저축률 32%, 양호한 상태입니다",\n' +
+            '  "fixed_expense": ' + fixedAmt + ',\n' +
+            '  "variable_expense": ' + varAmt + ',\n' +
+            '  "fixed_desc": "보험, 교육 등 고정성 지출",\n' +
+            '  "variable_desc": "식비, 쇼핑 등 변동성 지출",\n' +
+            '  "day_pattern": {"일":0, "월":0, "화":0, "수":0, "목":0, "금":0, "토":0},\n' +
+            '  "day_summary": "주말(토/일) 지출이 평일 대비 2배 높습니다.",\n' +
+            '  "budget_analysis": [\n' +
+            '    {"name": "식비", "used": 실제금액, "target": 300000, "comment": "기준치 이하라면 칭찬멘트, 초과면 경고멘트 작성", "isGood": true},\n' +
+            '    {"name": "교통비", "used": 실제금액, "target": 90000, "comment": "주유 몇 회 등 구체적 멘트 작성", "isGood": false}\n' +
+            '  ],\n' +
+            '  "top_freq": [{"name":"편의점", "count":12, "amount":58000}],\n' +
+            '  "consulting_text": "데이터에 기반한 3문단 이상의 구체적 조언. (예: 식비를 잘 아꼈습니다. 다만 편의점 결제가 12회나 됩니다... 고정비는 잘 유지중입니다 등)",\n' +
+            '  "good_points": ["식비를 기준 대비 절약", "건강한 소비 습관"],\n' +
+            '  "next_goals": ["편의점 방문 12회 -> 8회로 줄이기 (월 2만원 절약)"]\n' +
             "}";
           var xhr = new XMLHttpRequest();
           xhr.open('POST', 'https://api.groq.com/openai/v1/chat/completions', true);
@@ -3962,241 +4109,174 @@ function Dashboard(props) {
         if(detailType === 'income') return t.type === 'income';
         return t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund';
       }),
-      dateLabel: getAnalysisDateLabel(),
+      dateLabel: getDateLabel(),
       onClose: function(){ setDetailType(null); }
     })
   );
 }
 
 function ExpertGuideModal(props) {
-  // ★ 스위치 안전한 위치 배치 (TOP 20 아코디언용)
-  var top20State = useState(false); var isTop20Open = top20State[0]; var setIsTop20Open = top20State[1];
-
   var ai = props.ai || {};
   var stats = props.stats || {};
   var onClose = props.onClose;
-  var totI=stats.totI||0, totE=stats.totE||0, totInv=stats.totInv||0;
-  var byC=stats.byC||[], byM=stats.byM||[], top20=stats.top20||[], dp=stats.dp||'';
+  
+  var totI=stats.totI||0, totE=stats.totE||0;
   var savRate = totI>0 ? Math.round((totI-totE)/totI*100) : 0;
   var score = ai.score||0;
   var grade = ai.grade||'-';
   var scoreColor = score>=80?C.green:score>=60?C.gold:C.red;
-  var maxCat = byC.length>0 ? byC[0].value : 1;
-  var maxMem = byM.length>0 ? Math.max.apply(null,byM.map(function(m){return m.amt;})) : 1;
-  var glw = C.glow || 'rgba(0,229,255,0.15)';
+
+  var activeTab = useState('month'); var setActiveTab = activeTab[1]; activeTab = activeTab[0];
 
   return h('div', {style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:2000,overflowY:'auto',display:'flex',justifyContent:'center'}},
     h('div',{style:{width:'100%',maxWidth:430,padding:'16px 16px 100px'}},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}},
-      h('div',null,
-        h('p',{style:{color:C.accent,fontSize:9,margin:0,letterSpacing:2}},'PREMIUM AI FINANCIAL REPORT'),
-        h('p',{style:{color:C.text,fontSize:18,fontWeight:900,margin:'2px 0 0'}},'AI 재무 분석')
+      
+      // 상단 헤더
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}},
+        h('div',null,
+          h('p',{style:{color:C.accent,fontSize:9,margin:0,letterSpacing:2}},'PREMIUM AI FINANCIAL REPORT'),
+          h('p',{style:{color:C.text,fontSize:20,fontWeight:900,margin:'2px 0 0'}},'AI 재무 컨설팅')
+        ),
+        h('button',{onClick:onClose,style:{background:'transparent',border:'1px solid '+C.border,color:C.muted,padding:'8px 16px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},'닫기')
       ),
-      h('button',{onClick:onClose,style:{background:C.card2,border:'1px solid '+C.border,color:C.text,padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},'닫기')
-    ),
 
-    // 1. 대표님이 요청하신 원본 상단 점수판 로직 (완벽 보존)
-    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:18,padding:20,marginBottom:14,boxShadow:'0 4px 20px '+glw}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:16}},
-        h('div',{style:{position:'relative',width:90,height:90,flexShrink:0}},
-          h('svg',{width:90,height:90,viewBox:'0 0 90 90'},
-            h('circle',{cx:45,cy:45,r:36,fill:'none',stroke:C.faint,strokeWidth:8}),
-            h('circle',{cx:45,cy:45,r:36,fill:'none',stroke:scoreColor,strokeWidth:8,
-              strokeDasharray:String(Math.round(score*2.26))+' 226',
-              strokeLinecap:'round',transform:'rotate(-90 45 45)',
-              style:{filter:'drop-shadow(0 0 6px '+scoreColor+')'}})
+      // 탭 메뉴 (디자인용)
+      h('div',{style:{display:'flex',background:C.card2,borderRadius:8,padding:4,marginBottom:16}},
+        h('button',{onClick:function(){setActiveTab('month');}, style:{flex:1,padding:'10px 0',borderRadius:6,border:'none',background:activeTab==='month'?C.accent:'transparent',color:activeTab==='month'?'#fff':C.muted,fontWeight:700,fontSize:13,transition:'0.3s'}},'이번 달'),
+        h('button',{onClick:function(){setActiveTab('total');}, style:{flex:1,padding:'10px 0',borderRadius:6,border:'none',background:activeTab==='total'?C.accent:'transparent',color:activeTab==='total'?'#fff':C.muted,fontWeight:700,fontSize:13,transition:'0.3s'}},'누적 분석')
+      ),
+
+      // 1. 점수판 및 가계 요약
+      h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
+        h('p',{style:{color:C.muted,fontSize:11,marginBottom:12}}, stats.dp + ' 가계 건강지수'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:20}},
+          h('div',{style:{position:'relative',width:80,height:80,flexShrink:0}},
+            h('svg',{width:80,height:80,viewBox:'0 0 90 90'},
+              h('circle',{cx:45,cy:45,r:38,fill:'none',stroke:C.faint,strokeWidth:6}),
+              h('circle',{cx:45,cy:45,r:38,fill:'none',stroke:scoreColor,strokeWidth:6,strokeDasharray:String(Math.round(score*2.38))+' 238',strokeLinecap:'round',transform:'rotate(-90 45 45)'})
+            ),
+            h('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
+              h('span',{style:{fontSize:24,fontWeight:900,color:C.text}},score),
+              h('span',{style:{fontSize:9,fontWeight:700,color:C.muted}},grade)
+            )
           ),
-          h('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
-            h('span',{style:{fontSize:24,fontWeight:900,color:scoreColor,textShadow:'0 0 10px '+scoreColor+'66'}},score),
-            h('span',{style:{fontSize:9,fontWeight:700,color:C.muted}},grade+'등급')
+          h('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:8}},
+            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'수입'), h('span',{style:{color:C.green,fontWeight:800,fontSize:14}},fmtS(totI)) ),
+            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'지출'), h('span',{style:{color:C.red,fontWeight:800,fontSize:14}},fmtS(totE)) ),
+            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'저축률'), h('span',{style:{color:C.gold,fontWeight:800,fontSize:14}},savRate+'%') )
           )
         ),
-        h('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:6}},
-          [{l:'수입',v:fmtS(totI),c:C.green,ic:'💰'},{l:'지출',v:fmtS(totE),c:C.red,ic:'💸'},{l:'저축률',v:savRate+'%',c:savRate>=30?C.green:C.gold,ic:'🏦'}].map(function(k){
-            return h('div',{key:k.l,style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:C.faint,borderRadius:8,padding:'6px 10px',boxShadow:'inset 0 0 8px '+k.c+'11'}},
-              h('span',{style:{fontSize:11,color:C.muted}},k.ic+' '+k.l),
-              h('span',{style:{fontSize:14,fontWeight:800,color:k.c}},k.v)
+        ai.summary_text && h('div',{style:{marginTop:14,padding:'10px 12px',background:C.green+'15',border:'1px solid '+C.green+'44',borderRadius:8,display:'flex',alignItems:'center',gap:8}},
+          h('span',{style:{color:C.green,fontSize:14}},'✉️'),
+          h('span',{style:{color:C.green,fontSize:12,fontWeight:600}}, ai.summary_text)
+        )
+      ),
+
+      // 2. 고정비 vs 변동비 비율
+      h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'▣'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'고정비 vs 변동비') ),
+        h('div',{style:{display:'flex',gap:8,marginBottom:12}},
+          h('div',{style:{flex:1,background:C.card2,padding:12,borderRadius:8}},
+            h('p',{style:{color:C.muted,fontSize:10,marginBottom:4}},'고정비 (자동감지)'),
+            h('p',{style:{color:C.gold,fontSize:16,fontWeight:800,margin:0}},fmtS(ai.fixed_expense||0)),
+            h('p',{style:{color:C.muted,fontSize:9,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},ai.fixed_desc||'보험, 교육 등')
+          ),
+          h('div',{style:{flex:1,background:C.card2,padding:12,borderRadius:8}},
+            h('p',{style:{color:C.muted,fontSize:10,marginBottom:4}},'변동비 (조절가능)'),
+            h('p',{style:{color:C.accent,fontSize:16,fontWeight:800,margin:0}},fmtS(ai.variable_expense||0)),
+            h('p',{style:{color:C.muted,fontSize:9,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},ai.variable_desc||'식비, 쇼핑 등')
+          )
+        ),
+        (function(){
+           var f = ai.fixed_expense||0; var v = ai.variable_expense||0; var t = f+v;
+           var fp = t>0 ? Math.round(f/t*100) : 0;
+           return h('div',null,
+             h('div',{style:{display:'flex',height:6,borderRadius:3,overflow:'hidden',marginBottom:6}},
+               h('div',{style:{width:fp+'%',background:C.gold}}), h('div',{style:{flex:1,background:C.accent}})
+             ),
+             h('div',{style:{display:'flex',justifyContent:'space-between'}},
+               h('span',{style:{color:C.gold,fontSize:10}},fp+'% 고정'), h('span',{style:{color:C.accent,fontSize:10}},(100-fp)+'% 변동')
+             )
+           );
+        })()
+      ),
+
+      // 3. 요일별 지출 패턴 막대그래프
+      ai.day_pattern && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'📊'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'요일별 지출 패턴') ),
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',height:80,marginBottom:8,padding:'0 5px'}},
+          ['일','월','화','수','목','금','토'].map(function(d){
+            var amt = ai.day_pattern[d] || 0;
+            var maxD = Math.max.apply(null, Object.values(ai.day_pattern));
+            var hPct = maxD > 0 ? (amt/maxD*100) : 0;
+            var isWknd = (d==='토'||d==='일');
+            return h('div',{key:d,style:{display:'flex',flexDirection:'column',alignItems:'center',width:'12%'}},
+              h('div',{style:{width:'100%',height:hPct+'%',minHeight:5,background:isWknd?'#FF6B9D':'#3E7B8A',borderRadius:'4px 4px 0 0',transition:'height 0.5s'}}),
+              h('span',{style:{color:isWknd?C.gold:C.muted,fontSize:10,marginTop:6}},d)
             );
           })
+        ),
+        ai.day_summary && h('div',{style:{padding:'8px 12px',background:C.card2,border:'1px solid '+C.faint,borderRadius:8,display:'flex',alignItems:'center',gap:8}},
+          h('span',{style:{color:'#FF6B9D',fontSize:12}},'✉️'), h('span',{style:{color:C.text,fontSize:11,fontWeight:600}},ai.day_summary)
         )
       ),
-      ai.summary && h('p',{style:{color:C.text,fontSize:12,fontWeight:600,margin:'14px 0 0',padding:'10px 12px',background:'linear-gradient(135deg,'+C.accent+'11,'+C.faint+')',borderRadius:10,lineHeight:1.6,borderLeft:'3px solid '+C.accent}}, '🧬 '+ai.summary)
-    ),
 
-    // 2. 지출 페이스 분석 (완벽 보존)
-    ai.pacing_guide && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.gold+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.gold+'22'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-        h('span',{style:{fontSize:18}},'⏳'),
-        h('span',{style:{color:C.gold,fontSize:13,fontWeight:800}},'이번 ' + ai.pacing_guide.periodLabel + ' 지출 페이스 분석')
-      ),
-      h('div',{style:{background:C.faint,borderRadius:10,padding:'10px 12px',marginBottom:10}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
-          h('span',{style:{color:C.muted,fontSize:11}},'남은 기간'),
-          h('span',{style:{color:C.text,fontSize:13,fontWeight:700}},ai.pacing_guide.remaining_days+'일')
-        ),
-        h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
-          h('span',{style:{color:C.muted,fontSize:11}},'일 평균 지출'),
-          h('span',{style:{color:C.red,fontSize:13,fontWeight:700}},fmt(ai.pacing_guide.daily_avg_expense))
-        ),
-        h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
-          h('span',{style:{color:C.muted,fontSize:11}},'예상 총 지출'),
-          h('span',{style:{color:C.red,fontSize:13,fontWeight:700}},fmt(ai.pacing_guide.projected_total_expense))
-        ),
-        h('div',{style:{display:'flex',justifyContent:'space-between'}},
-          h('span',{style:{color:C.muted,fontSize:11}},'예산 대비 예측'),
-          h('span',{style:{color:ai.pacing_guide.projection_vs_budget_pct > 90 ? C.red : C.green,fontSize:13,fontWeight:700}},ai.pacing_guide.projection_vs_budget_pct+'%')
-        )
-      ),
-      ai.pacing_guide.asset_depletion_tip && h('p',{style:{color:C.muted,fontSize:10,lineHeight:1.5,margin:0}},'💡 '+ai.pacing_guide.asset_depletion_tip)
-    ),
-
-    // 3. 카테고리별 전월 대비 분석 (완벽 보존)
-    ai.category_analysis && ai.category_analysis.length > 0 && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.accent+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.accent+'22'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-        h('span',{style:{fontSize:18}},'📈'),
-        h('span',{style:{color:C.accent,fontSize:13,fontWeight:800}},'카테고리별 전월 대비 분석')
-      ),
-      ai.category_analysis.map(function(catAn,i){
-        var isOver = catAn.status === '오버';
-        var statusColor = isOver ? C.red : C.green;
-        return h('div',{key:i,style:{background:'linear-gradient(135deg,'+(isOver?C.red+'11':C.green+'11')+','+C.faint+')',borderRadius:10,padding:'10px 12px',marginBottom:6,border:'1px solid '+(isOver?C.red+'44':C.green+'44')}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
-            h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},catAn.category),
-            h('span',{style:{color:statusColor,fontSize:11,fontWeight:800,textShadow:'0 0 6px '+statusColor+'44'}},catAn.change_percent+'% '+catAn.status)
-          ),
-          h('div',{style:{display:'flex',gap:6,marginBottom:4}},
-            h('span',{style:{color:C.muted,fontSize:10}},'현재 '+fmt(catAn.current_amount)),
-            h('span',{style:{color:C.muted,fontSize:10}},'vs'),
-            h('span',{style:{color:C.muted,fontSize:10}},'이전 평균 '+fmt(catAn.previous_average))
-          ),
-          catAn.comment && h('p',{style:{color:C.muted,fontSize:10,margin:0,lineHeight:1.5}},'💡 '+catAn.comment)
-        );
-      })
-    ),
-
-    // 4. 수입 vs 지출 & 카테고리 TOP 5 (완벽 보존)
-    h('div',{style:{display:'flex',gap:10,marginBottom:14}},
-      h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:14,width:'40%',display:'flex',flexDirection:'column',alignItems:'center',boxShadow:'0 4px 16px '+glw}},
-        h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 8px'}},'수입 vs 지출'),
-        h(DonutChart,{size:80,data:[{value:totE,color:C.red},{value:Math.max(totI-totE,0),color:C.green}]}),
-        h('div',{style:{marginTop:8,width:'100%'}},
-          [{c:C.green,l:'수입',v:fmtS(totI)},{c:C.red,l:'지출',v:fmtS(totE)},{c:C.gold,l:'저축',v:fmtS(Math.max(totI-totE,0))}].map(function(r){
-            return h('div',{key:r.l,style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}},
-              h('div',{style:{display:'flex',alignItems:'center',gap:4}},
-                h('div',{style:{width:6,height:6,borderRadius:2,background:r.c,boxShadow:'0 0 4px '+r.c}}),
-                h('span',{style:{color:C.muted,fontSize:9}},r.l)
-              ),
-              h('span',{style:{color:r.c,fontSize:9,fontWeight:700}},r.v)
-            );
-          })
-        )
-      ),
-      h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:14,flex:1,boxShadow:'0 4px 16px '+glw}},
-        h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 8px'}},'카테고리 TOP 5'),
-        byC.slice(0,5).map(function(c){
-          var pct=maxCat>0?Math.round(c.value/maxCat*100):0;
-          return h('div',{key:c.id,style:{marginBottom:8}},
-            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:2}},
-              h('span',{style:{color:C.text,fontSize:10}},c.icon+c.name),
-              h('span',{style:{color:c.color,fontSize:10,fontWeight:800}},fmtS(c.value))
+      // 4. 기준 대비 분석 (프로그레스 바)
+      ai.budget_analysis && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:16}}, h('span',{style:{color:C.accent}},'🎯'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'기준 대비 분석 (변동비만)') ),
+        ai.budget_analysis.map(function(b, idx){
+          var pct = b.target > 0 ? Math.round((b.used / b.target) * 100) : 0;
+          var barColor = b.isGood ? C.green : C.red;
+          return h('div',{key:idx, style:{marginBottom:16}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
+              h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},b.name),
+              h('span',{style:{color:barColor,fontSize:12,fontWeight:700}},fmtS(b.used) + ' / 기준 ' + fmtS(b.target))
             ),
-            h('div',{style:{background:C.faint,borderRadius:4,height:6,overflow:'hidden'}},
-              h('div',{style:{width:pct+'%',height:'100%',background:'linear-gradient(90deg,'+c.color+'88,'+c.color+')',borderRadius:4,boxShadow:'0 0 8px '+c.color+'44'}})
+            h('div',{style:{height:6,background:C.card2,borderRadius:3,marginBottom:8}},
+              h('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:barColor,borderRadius:3}})
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+              h('span',{style:{color:barColor,fontSize:12}},'✉️'),
+              h('span',{style:{color:C.text,fontSize:11,fontWeight:600}},b.comment)
             )
           );
         })
-      )
-    ),
+      ),
 
-    // 5. 구성원별 지출 (완벽 보존)
-    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:'16px 12px',marginBottom:14,boxShadow:'0 4px 16px '+glw}},
-      h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 10px'}},'👥 구성원별 지출'),
-      h('div',{style:{display:'flex',justifyContent:'space-around',alignItems:'flex-end',height:110}},
-        byM.map(function(m){
-          var pct=maxMem>0?Math.round(m.amt/maxMem*100):0;
-          return h('div',{key:m.id,style:{display:'flex',flexDirection:'column',alignItems:'center',flex:1}},
-            h('span',{style:{color:m.color,fontSize:10,fontWeight:800,marginBottom:3,textShadow:'0 0 6px '+m.color+'44'}},fmtS(m.amt)),
-            h('div',{style:{width:30,height:Math.max(pct*0.8,4),background:'linear-gradient(180deg,'+m.color+','+m.color+'66)',borderRadius:'6px 6px 0 0',boxShadow:'0 0 12px '+m.color+'33'}}),
-            h('span',{style:{fontSize:18,marginTop:5}},m.emoji),
-            h('span',{style:{color:C.muted,fontSize:9,marginTop:1}},m.name)
+      // 5. 자주 반복되는 지출 (단골집 분석)
+      ai.top_freq && ai.top_freq.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'🔄'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'자주 반복되는 지출 TOP 5') ),
+        ai.top_freq.map(function(f, idx){
+          return h('div',{key:idx,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:C.card2,borderRadius:8,marginBottom:6}},
+            h('div',null, h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},f.name), h('span',{style:{color:C.muted,fontSize:10,marginLeft:6}},f.count+'회') ),
+            h('span',{style:{color:'#FF6B9D',fontSize:12,fontWeight:700}},fmtS(f.amount))
           );
         })
+      ),
+
+      // 6. AI 텍스트 컨설팅 (진짜 뇌가 분석한 결과)
+      ai.consulting_text && h('div',{style:{background:C.card,border:'1px solid '+C.accent+'44',borderRadius:16,padding:20,marginBottom:14,boxShadow:'0 0 15px '+C.accent+'11'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'🧠'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'AI 맞춤 컨설팅') ),
+        h('div',{style:{color:C.text,fontSize:13,lineHeight:1.7,whiteSpace:'pre-line'}}, ai.consulting_text) // AI가 길게 써준 멘트가 그대로 출력됩니다.
+      ),
+
+      // 7. 잘한 점 리스트
+      ai.good_points && ai.good_points.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.green+'44',borderRadius:16,padding:16,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}}, h('span',{style:{color:C.green}},'✅'), h('p',{style:{color:C.green,fontSize:13,fontWeight:800,margin:0}},'이번 달 잘한 점') ),
+        ai.good_points.map(function(gp, idx){
+          return h('p',{key:idx,style:{color:C.text,fontSize:12,marginBottom:6,lineHeight:1.5}}, (idx+1)+'. '+gp);
+        })
+      ),
+
+      // 8. 다음 달 목표 리스트
+      ai.next_goals && ai.next_goals.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.gold+'44',borderRadius:16,padding:16,marginBottom:14}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}}, h('span',{style:{color:C.gold}},'🎯'), h('p',{style:{color:C.gold,fontSize:13,fontWeight:800,margin:0}},'다음 달 실천 목표') ),
+        ai.next_goals.map(function(ng, idx){
+          return h('p',{key:idx,style:{color:C.text,fontSize:12,marginBottom:6,lineHeight:1.5}}, (idx+1)+'. '+ng);
+        })
       )
-    ),
-
-    // 6. ★ 지출 TOP 20 (안전망 적용 아코디언) ★
-    h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 4px 16px '+glw}},
-      h('div', {
-        onClick: function() { setIsTop20Open(!isTop20Open); },
-        style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', paddingBottom: isTop20Open ? 12 : 0 }
-      },
-        h('p',{style:{color:C.muted,fontSize:10,fontWeight:700,margin:0}},'🏆 지출 TOP 20'),
-        h('div', {style:{display:'flex', alignItems:'center', gap:6}},
-          h('span', {style:{color:C.muted, fontSize:9}}, isTop20Open ? '접기' : '전체보기'),
-          h('span',{style:{color:C.accent,fontSize:12,transform:isTop20Open?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.3s ease'}},'▶')
-        )
-      ),
-      isTop20Open ? h('div', {style:{borderTop:'1px solid '+C.faint, paddingTop:8}},
-        top20.length===0
-          ? h('p',{style:{color:C.muted,fontSize:11,textAlign:'center',padding:'16px 0'}},'데이터 없음')
-          : h('div', null, 
-              top20.map(function(tx,i){
-                var cat=getCat(tx.catId);
-                return h('div',{key:tx.id,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:i<top20.length-1?'1px solid '+C.faint:'none'}},
-                  h('span',{style:{color:i<3?C.gold:C.muted,fontSize:11,fontWeight:900,width:18,textAlign:'center',textShadow:i<3?'0 0 6px '+C.gold+'66':'none'}},i+1),
-                  h('div',{style:{width:24,height:24,borderRadius:6,background:cat.color+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},cat.icon),
-                  h('div',{style:{flex:1,minWidth:0}},
-                    h('p',{style:{color:C.text,fontSize:11,fontWeight:600,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store),
-                    h('p',{style:{color:C.muted,fontSize:9,margin:'1px 0 0'}},tx.date+' · '+getMem(tx.member).name)
-                  ),
-                  h('span',{style:{color:C.red,fontSize:11,fontWeight:800,flexShrink:0}},fmtS(tx.amount))
-                );
-              })
-            )
-      ) : null
-    ),
-
-    // 7. AI 절감 제안 TOP 5 (완벽 보존)
-    ai.top5_cuts&&ai.top5_cuts.length>0 && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.border,borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 4px 16px '+glw}},
-      h('p',{style:{color:C.muted,fontSize:9,fontWeight:700,margin:'0 0 10px'}},'✂️ AI 절감 제안 TOP 5'),
-      ai.top5_cuts.slice(0,5).map(function(cut,i){
-        var sv=(cut.current||0)-(cut.target||0);
-        return h('div',{key:i,style:{background:'linear-gradient(135deg,'+C.faint+','+C.card+')',borderRadius:10,padding:'10px 12px',marginBottom:6,border:'1px solid '+C.border}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
-            h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},(i+1)+'. '+(cut.category||'')),
-            sv>0&&h('span',{style:{color:C.green,fontSize:11,fontWeight:800,textShadow:'0 0 6px '+C.green+'44'}},'-'+fmtS(sv))
-          ),
-          h('div',{style:{display:'flex',gap:6,marginBottom:4}},
-            h('span',{style:{color:C.red,fontSize:10}},'현재 '+fmtS(cut.current||0)),
-            h('span',{style:{color:C.muted,fontSize:10}},'→'),
-            h('span',{style:{color:C.green,fontSize:10}},'목표 '+fmtS(cut.target||0))
-          ),
-          cut.tip && h('p',{style:{color:C.muted,fontSize:10,margin:0,lineHeight:1.5}},'💡 '+cut.tip)
-        );
-      })
-    ),
-
-    // 8. 저축 늘리는 방법 & 실천사항 등 (완벽 보존)
-    ai.savings_tip && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.green+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.green+'22'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-        h('span',{style:{fontSize:18}},'💰'),
-        h('span',{style:{color:C.green,fontSize:13,fontWeight:800}},'저축 늘리는 방법')
-      ),
-      h('p',{style:{color:C.text,fontSize:12,lineHeight:1.7,margin:0,whiteSpace:'pre-line'}},ai.savings_tip)
-    ),
-    ai.monthly_advice && h('div',{style:{background:'linear-gradient(145deg,'+C.card+','+C.card2+')',border:'1px solid '+C.accent+'44',borderRadius:16,padding:16,marginBottom:14,boxShadow:'0 0 12px '+C.accent+'22'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-        h('span',{style:{fontSize:18}},'📋'),
-        h('span',{style:{color:C.accent,fontSize:13,fontWeight:800}},'이번 달 실천 사항')
-      ),
-      h('p',{style:{color:C.text,fontSize:12,lineHeight:1.7,margin:0,whiteSpace:'pre-line'}},ai.monthly_advice)
-    ),
-    ai.encouragement && h('div',{style:{background:'linear-gradient(135deg,'+C.accent+'22,'+C.card+')',border:'1px solid '+C.accent+'33',borderRadius:16,padding:16,marginBottom:14,textAlign:'center',boxShadow:'0 0 16px '+C.accent+'15'}},
-      h('span',{style:{fontSize:28}},'🌟'),
-      h('p',{style:{color:C.text,fontSize:12,fontWeight:600,lineHeight:1.7,margin:'8px 0 0',whiteSpace:'pre-line'}},ai.encouragement)
-    ),
-    h('p',{style:{textAlign:'center',color:C.muted,fontSize:9,marginTop:16}},'Gemini AI 실제 분석 리포트')
-  ));
+    )
+  );
 }
 
 function Analysis(props) {
@@ -4576,6 +4656,566 @@ h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:5,marginB
   );
 }
 
+// ★★★ [신규] 달력 메뉴 — CalendarView ★★★
+function CalendarView(props) {
+  var txs = props.txs;
+  var startDay = props.startDay || 1;
+
+  var now = new Date();
+  var cyState = useState(now.getFullYear()); var calYear = cyState[0]; var setCalYear = cyState[1];
+  var cmState = useState(now.getMonth() + 1); var calMonth = cmState[0]; var setCalMonth = cmState[1];
+  var sdState = useState(null); var selDate = sdState[0]; var setSelDate = sdState[1];
+  var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
+
+  var dayLabels = ['일','월','화','수','목','금','토'];
+  var firstDow = new Date(calYear, calMonth - 1, 1).getDay();
+  var lastDate = new Date(calYear, calMonth, 0).getDate();
+  var prevLastDate = new Date(calYear, calMonth - 1, 0).getDate();
+
+  var cells = [];
+  var totalCells = Math.ceil((firstDow + lastDate) / 7) * 7;
+  for (var i = 0; i < totalCells; i++) {
+    var dayNum = i - firstDow + 1;
+    if (dayNum < 1) { cells.push({ day: prevLastDate + dayNum, inMonth: false }); }
+    else if (dayNum > lastDate) { cells.push({ day: dayNum - lastDate, inMonth: false }); }
+    else { cells.push({ day: dayNum, inMonth: true }); }
+  }
+
+  var dayMap = useMemo(function() {
+    var map = {};
+    var prefix = calYear + '-' + String(calMonth).padStart(2, '0');
+    txs.forEach(function(tx) {
+      if (!tx.date || tx.date.substring(0, 7) !== prefix) return;
+      var d = tx.date;
+      if (!map[d]) map[d] = { income: 0, expense: 0, incCnt: 0, expCnt: 0, txs: [] };
+      if (tx.type === 'income') { map[d].income += tx.amount; map[d].incCnt++; }
+      else { map[d].expense += tx.amount; map[d].expCnt++; }
+      map[d].txs.push(tx);
+    });
+    return map;
+  }, [txs, calYear, calMonth]);
+
+  var monthTotals = useMemo(function() {
+    var inc = 0, exp = 0, incC = 0, expC = 0;
+    Object.keys(dayMap).forEach(function(k) {
+      inc += dayMap[k].income; exp += dayMap[k].expense;
+      incC += dayMap[k].incCnt; expC += dayMap[k].expCnt;
+    });
+    return { income: inc, expense: exp, incCnt: incC, expCnt: expC };
+  }, [dayMap]);
+
+  function prevMonth() {
+    if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12); }
+    else { setCalMonth(calMonth - 1); }
+    setSelDate(null);
+  }
+  function nextMonth() {
+    if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1); }
+    else { setCalMonth(calMonth + 1); }
+    setSelDate(null);
+  }
+  function prevYear() { setCalYear(calYear - 1); setSelDate(null); }
+  function nextYear() { setCalYear(calYear + 1); setSelDate(null); }
+
+  var selTxs = selDate && dayMap[selDate] ? dayMap[selDate].txs.sort(function(a,b) { return new Date(b.date) - new Date(a.date); }) : [];
+  var selInc = selDate && dayMap[selDate] ? dayMap[selDate].income : 0;
+  var selExp = selDate && dayMap[selDate] ? dayMap[selDate].expense : 0;
+  var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+  function makeDateStr(day) {
+    return calYear + '-' + String(calMonth).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+
+  var glw = C.glow || 'rgba(0,229,255,0.15)';
+
+  return h('div', {style:{padding:'16px 16px 95px', maxWidth:430, margin:'0 auto'}},
+    h(Hdr, {title:'📅 달력'}),
+
+    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:12, marginBottom:8}},
+      h('button', {onClick:prevYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '◀'),
+      h('span', {style:{color:C.text, fontSize:18, fontWeight:800, minWidth:80, textAlign:'center'}}, calYear + '년'),
+      h('button', {onClick:nextYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '▶')
+    ),
+
+    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:14}},
+      h('button', {onClick:prevMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '◀'),
+      h('div', {style:{display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center'}},
+        [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m) {
+          var isActive = m === calMonth;
+          return h('button', {key:m, onClick:function(){ setCalMonth(m); setSelDate(null); },
+            style:{padding:'5px 9px', borderRadius:8, fontSize:11, fontWeight:isActive?800:400, cursor:'pointer',
+              background:isActive ? C.accent : C.card, color:isActive ? '#0A0E27' : C.muted,
+              border:'1px solid '+(isActive ? C.accent : C.border), transition:'all 0.2s ease'}
+          }, m+'월');
+        })
+      ),
+      h('button', {onClick:nextMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '▶')
+    ),
+
+    h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12}},
+      h(GCard, {onClick:function(){ if(monthTotals.incCnt>0) setDetailType('income'); }, style:{padding:'10px 12px', cursor:monthTotals.incCnt>0?'pointer':'default', border:'1px solid '+C.green+'44'}},
+        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 수입'),
+        h('p', {style:{color:C.green, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.income)),
+        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.incCnt+'건'+(monthTotals.incCnt>0?' · 👆상세':''))
+      ),
+      h(GCard, {onClick:function(){ if(monthTotals.expCnt>0) setDetailType('expense'); }, style:{padding:'10px 12px', cursor:monthTotals.expCnt>0?'pointer':'default', border:'1px solid '+C.red+'44'}},
+        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 지출'),
+        h('p', {style:{color:C.red, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.expense)),
+        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.expCnt+'건'+(monthTotals.expCnt>0?' · 👆상세':''))
+      )
+    ),
+
+    h(GCard, {style:{padding:'12px 8px', marginBottom:12}},
+      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:6}},
+        dayLabels.map(function(d, i) {
+          var dayColor = i === 0 ? C.red : (i === 6 ? C.accent : C.muted);
+          return h('div', {key:d, style:{textAlign:'center', fontSize:11, fontWeight:700, color:dayColor, padding:'4px 0'}}, d);
+        })
+      ),
+      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3}},
+        cells.map(function(cell, idx) {
+          if (!cell.inMonth) {
+            return h('div', {key:'e'+idx, style:{aspectRatio:'1', borderRadius:8, background:C.faint, opacity:0.3, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'4px 0'}},
+              h('span', {style:{fontSize:10, color:C.muted, opacity:0.5}}, cell.day)
+            );
+          }
+          var dateStr = makeDateStr(cell.day);
+          var data = dayMap[dateStr];
+          var hasInc = data && data.incCnt > 0;
+          var hasExp = data && data.expCnt > 0;
+          var hasData = hasInc || hasExp;
+          var isToday = dateStr === todayStr;
+          var isSel = dateStr === selDate;
+          var dow = idx % 7;
+          var cellBg = isSel ? C.accent+'22' : (isToday ? C.gold+'15' : (hasData ? C.card2 : 'transparent'));
+          var cellBorder = isSel ? C.accent : (isToday ? C.gold+'88' : (hasData ? C.border : 'transparent'));
+          var cellShadow = hasData ? '0 2px 8px '+glw : 'none';
+
+          return h('div', {key:dateStr, onClick:function(){ setSelDate(isSel ? null : dateStr); },
+            style:{aspectRatio:'1', borderRadius:10, background:cellBg, border:'1.5px solid '+cellBorder,
+              boxShadow:cellShadow, cursor:'pointer', display:'flex', flexDirection:'column',
+              alignItems:'center', justifyContent:'space-between', padding:'3px 2px',
+              transition:'all 0.2s ease', position:'relative', transform:isSel?'scale(1.08)':'scale(1)'}
+          },
+            h('span', {style:{fontSize:12, fontWeight:isToday?800:(isSel?700:400),
+              color:isToday ? C.gold : (dow===0 ? C.red : (dow===6 ? C.accent : C.text)),
+              alignSelf:'flex-start', marginLeft:2}}, cell.day),
+           hasData && h('div', {style:{display:'flex', gap:6, alignItems:'center', marginBottom:1}},
+              hasExp && h('span', {style:{fontSize:11, color:C.red}}, '●'),
+              hasInc && h('span', {style:{fontSize:11, color:C.gold}}, '★')
+            ),
+            hasData && h('div', {style:{position:'absolute', bottom:1, right:2, textAlign:'right'}},
+              hasExp && h('p', {style:{fontSize:7, color:C.red, margin:0, lineHeight:1.1, opacity:0.8}}, '-'+fmtS(data.expense).replace('₩','')),
+              hasInc && h('p', {style:{fontSize:7, color:C.green, margin:0, lineHeight:1.1, opacity:0.8}}, '+'+fmtS(data.income).replace('₩',''))
+            )
+          );
+        })
+      )
+    ),
+
+    selDate && h(GCard, {style:{padding:'14px', marginBottom:12, border:'1px solid '+C.accent+'33', boxShadow:'0 4px 16px '+glw}},
+      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}},
+        h('div', null,
+          h('p', {style:{color:C.accent, fontSize:10, fontWeight:700, margin:0, letterSpacing:1}}, calYear+'년 '+calMonth+'월'),
+          h('p', {style:{color:C.text, fontSize:16, fontWeight:900, margin:'2px 0 0'}}, '📅 '+parseInt(selDate.split('-')[2])+'일 ('+dayLabels[new Date(selDate).getDay()]+')')
+        ),
+        h('button', {onClick:function(){ setSelDate(null); }, style:{background:C.faint, border:'1px solid '+C.border, color:C.muted, padding:'4px 10px', borderRadius:6, fontSize:11, cursor:'pointer'}}, '닫기')
+      ),
+      (selInc > 0 || selExp > 0) && h('div', {style:{display:'flex', gap:8, marginBottom:10}},
+        selInc > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.green+'11', borderRadius:8, border:'1px solid '+C.green+'33'}},
+          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '수입'),
+          h('p', {style:{color:C.green, fontSize:14, fontWeight:800, margin:0}}, fmt(selInc))
+        ),
+        selExp > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.red+'11', borderRadius:8, border:'1px solid '+C.red+'33'}},
+          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '지출'),
+          h('p', {style:{color:C.red, fontSize:14, fontWeight:800, margin:0}}, fmt(selExp))
+        )
+      ),
+      selTxs.length === 0 && h('p', {style:{textAlign:'center', color:C.muted, fontSize:12, padding:'16px 0'}}, '이 날짜에 거래 내역이 없습니다'),
+      selTxs.length > 0 && h('div', null,
+        selTxs.map(function(tx, ti) {
+          var txCat = getCat(tx.catId); var mem = getMem(tx.member);
+          var isInc = tx.type === 'income'; var amtColor = isInc ? C.green : C.red;
+          var hasMemo = tx.memo && tx.memo.length > 0;
+          var longMemo = tx.memo && tx.memo.length > 18;
+          return h('div', {key:tx.id, style:{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0',
+            borderBottom:ti < selTxs.length-1 ? '1px solid '+C.faint : 'none'}},
+            h('div', {style:{width:36, height:36, borderRadius:10, background:txCat.color+'22',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
+              boxShadow:'0 2px 6px '+txCat.color+'33'}}, txCat.icon),
+            h('div', {style:{flex:1, minWidth:0}},
+              h('div', {style:{display:'flex', alignItems:'center', gap:6, marginBottom:2}},
+                h('span', {style:{color:C.text, fontSize:13, fontWeight:700}}, tx.store || '미입력'),
+                h('span', {style:{background:txCat.color+'22', color:txCat.color, fontSize:9, padding:'1px 5px', borderRadius:4}}, txCat.name),
+                tx.subCat && h('span', {style:{background:C.faint, color:C.muted, fontSize:8, padding:'1px 4px', borderRadius:3}}, tx.subCat)
+              ),
+              h('p', {style:{color:C.muted, fontSize:10, margin:'1px 0'}}, (tx.date||'')+' · '+mem.name+' · '+(tx.method||'기타')),
+              hasMemo && h('div', {className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color:C.accent+'BB'}},
+                h('span', {className:longMemo?'memo-scroll':'', style:{paddingLeft:longMemo?0:4}}, '📝 '+tx.memo)
+              )
+            ),
+            h('div', {style:{textAlign:'right', flexShrink:0}},
+              h('p', {style:{color:amtColor, fontSize:14, fontWeight:800, margin:0}}, (isInc?'+':'-')+fmt(tx.amount).replace('₩','')),
+              h('span', {style:{fontSize:9, color:C.muted}}, isInc?'수입':'지출')
+            )
+          );
+        })
+      )
+    ),
+
+    detailType && h(TxDetailSheet, {
+      type: detailType,
+      txs: txs.filter(function(t) {
+        var prefix = calYear + '-' + String(calMonth).padStart(2, '0');
+        if (!t.date || t.date.substring(0, 7) !== prefix) return false;
+        if (detailType === 'income') return t.type === 'income';
+        return t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund';
+      }),
+      dateLabel: calYear + '년 ' + calMonth + '월',
+      onClose: function() { setDetailType(null); }
+    })
+  );
+}
+
+// ★★★ 한국 공휴일 데이터 (2026~2030) ★★★
+var KR_HOLIDAYS = {
+  // 고정 공휴일 (매년 동일)
+  'fixed': {
+    '01-01':'신정', '03-01':'삼일절', '05-05':'어린이날',
+    '06-06':'현충일', '08-15':'광복절', '10-03':'개천절',
+    '10-09':'한글날', '12-25':'크리스마스'
+  },
+  // 음력 기반 공휴일 (연도별)
+  '2026': {'02-16':'설날연휴','02-17':'설날','02-18':'설날연휴','05-24':'석가탄신일','10-04':'추석연휴','10-05':'추석','10-06':'추석연휴'},
+  '2027': {'02-06':'설날연휴','02-07':'설날','02-08':'설날연휴','05-13':'석가탄신일','09-23':'추석연휴','09-24':'추석','09-25':'추석연휴'},
+  '2028': {'01-26':'설날연휴','01-27':'설날','01-28':'설날연휴','05-02':'석가탄신일','09-11':'추석연휴','09-12':'추석','09-13':'추석연휴'},
+  '2029': {'02-12':'설날연휴','02-13':'설날','02-14':'설날연휴','05-20':'석가탄신일','09-30':'추석연휴','10-01':'추석','10-02':'추석연휴'},
+  '2030': {'02-02':'설날연휴','02-03':'설날','02-04':'설날연휴','05-09':'석가탄신일','09-20':'추석연휴','09-21':'추석','09-22':'추석연휴'}
+};
+
+function getHoliday(dateStr) {
+  var parts = dateStr.split('-');
+  var year = parts[0];
+  var mmdd = parts[1] + '-' + parts[2];
+  var fixed = KR_HOLIDAYS.fixed[mmdd];
+  if (fixed) return fixed;
+  var yearly = KR_HOLIDAYS[year];
+  if (yearly && yearly[mmdd]) return yearly[mmdd];
+  return null;
+}
+
+// ★★★ [신규] 달력 메뉴 — CalendarView ★★★
+function CalendarView(props) {
+  var txs = props.txs;
+  var startDay = props.startDay || 1;
+
+  var now = new Date();
+  var cyState = useState(now.getFullYear()); var calYear = cyState[0]; var setCalYear = cyState[1];
+  var cmState = useState(now.getMonth() + 1); var calMonth = cmState[0]; var setCalMonth = cmState[1];
+  var sdState = useState(null); var selDate = sdState[0]; var setSelDate = sdState[1];
+  var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
+
+  // ★ 메모 기능
+  var memosState = useState(function(){ return lsGet(LS_MEMOS, {}); });
+  var memos = memosState[0]; var setMemos = memosState[1];
+  var memoInput = useState(''); var memoText = memoInput[0]; var setMemoText = memoInput[1];
+  var memoEdit = useState(false); var isMemoEdit = memoEdit[0]; var setMemoEdit = memoEdit[1];
+
+  function saveMemo() {
+    if (!selDate || !memoText.trim()) return;
+    var next = Object.assign({}, memos);
+    next[selDate] = memoText.trim();
+    setMemos(next); lsSet(LS_MEMOS, next);
+    setMemoEdit(false);
+  }
+  function deleteMemo() {
+    if (!selDate) return;
+    var next = Object.assign({}, memos);
+    delete next[selDate];
+    setMemos(next); lsSet(LS_MEMOS, next);
+    setMemoText(''); setMemoEdit(false);
+  }
+
+  var dayLabels = ['일','월','화','수','목','금','토'];
+  var firstDow = new Date(calYear, calMonth - 1, 1).getDay();
+  var lastDate = new Date(calYear, calMonth, 0).getDate();
+  var prevLastDate = new Date(calYear, calMonth - 1, 0).getDate();
+
+  var cells = [];
+  var totalCells = Math.ceil((firstDow + lastDate) / 7) * 7;
+  for (var i = 0; i < totalCells; i++) {
+    var dayNum = i - firstDow + 1;
+    if (dayNum < 1) { cells.push({ day: prevLastDate + dayNum, inMonth: false }); }
+    else if (dayNum > lastDate) { cells.push({ day: dayNum - lastDate, inMonth: false }); }
+    else { cells.push({ day: dayNum, inMonth: true }); }
+  }
+
+  var dayMap = useMemo(function() {
+    var map = {};
+    var prefix = calYear + '-' + String(calMonth).padStart(2, '0');
+    txs.forEach(function(tx) {
+      if (!tx.date || tx.date.substring(0, 7) !== prefix) return;
+      var d = tx.date;
+      if (!map[d]) map[d] = { income: 0, expense: 0, incCnt: 0, expCnt: 0, txs: [] };
+      if (tx.type === 'income') { map[d].income += tx.amount; map[d].incCnt++; }
+      else { map[d].expense += tx.amount; map[d].expCnt++; }
+      map[d].txs.push(tx);
+    });
+    return map;
+  }, [txs, calYear, calMonth]);
+
+  var monthTotals = useMemo(function() {
+    var inc = 0, exp = 0, incC = 0, expC = 0;
+    Object.keys(dayMap).forEach(function(k) {
+      inc += dayMap[k].income; exp += dayMap[k].expense;
+      incC += dayMap[k].incCnt; expC += dayMap[k].expCnt;
+    });
+    return { income: inc, expense: exp, incCnt: incC, expCnt: expC };
+  }, [dayMap]);
+
+  function prevMonth() {
+    if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12); }
+    else { setCalMonth(calMonth - 1); }
+    setSelDate(null); setMemoEdit(false);
+  }
+  function nextMonth() {
+    if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1); }
+    else { setCalMonth(calMonth + 1); }
+    setSelDate(null); setMemoEdit(false);
+  }
+  function prevYear() { setCalYear(calYear - 1); setSelDate(null); setMemoEdit(false); }
+  function nextYear() { setCalYear(calYear + 1); setSelDate(null); setMemoEdit(false); }
+
+  function selectDate(dateStr) {
+    if (dateStr === selDate) { setSelDate(null); setMemoEdit(false); setMemoText(''); }
+    else { setSelDate(dateStr); setMemoEdit(false); setMemoText(memos[dateStr] || ''); }
+  }
+
+  var selTxs = selDate && dayMap[selDate] ? dayMap[selDate].txs.sort(function(a,b) { return new Date(b.date) - new Date(a.date); }) : [];
+  var selInc = selDate && dayMap[selDate] ? dayMap[selDate].income : 0;
+  var selExp = selDate && dayMap[selDate] ? dayMap[selDate].expense : 0;
+  var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+  function makeDateStr(day) {
+    return calYear + '-' + String(calMonth).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+
+  var glw = C.glow || 'rgba(0,229,255,0.15)';
+
+  return h('div', {style:{padding:'16px 16px 95px', maxWidth:430, margin:'0 auto'}},
+    h(Hdr, {title:'📅 달력'}),
+
+    // 연도 네비게이션
+    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:12, marginBottom:8}},
+      h('button', {onClick:prevYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '◀'),
+      h('span', {style:{color:C.text, fontSize:18, fontWeight:800, minWidth:80, textAlign:'center'}}, calYear + '년'),
+      h('button', {onClick:nextYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '▶')
+    ),
+
+    // 월 네비게이션
+    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:14}},
+      h('button', {onClick:prevMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '◀'),
+      h('div', {style:{display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center'}},
+        [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m) {
+          var isActive = m === calMonth;
+          return h('button', {key:m, onClick:function(){ setCalMonth(m); setSelDate(null); setMemoEdit(false); },
+            style:{padding:'5px 9px', borderRadius:8, fontSize:11, fontWeight:isActive?800:400, cursor:'pointer',
+              background:isActive ? C.accent : C.card, color:isActive ? '#0A0E27' : C.muted,
+              border:'1px solid '+(isActive ? C.accent : C.border), transition:'all 0.2s ease'}
+          }, m+'월');
+        })
+      ),
+      h('button', {onClick:nextMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '▶')
+    ),
+
+    // 월 총합 요약
+    h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12}},
+      h(GCard, {onClick:function(){ if(monthTotals.incCnt>0) setDetailType('income'); }, style:{padding:'10px 12px', cursor:monthTotals.incCnt>0?'pointer':'default', border:'1px solid '+C.green+'44'}},
+        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 수입'),
+        h('p', {style:{color:C.green, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.income)),
+        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.incCnt+'건'+(monthTotals.incCnt>0?' · 👆상세':''))
+      ),
+      h(GCard, {onClick:function(){ if(monthTotals.expCnt>0) setDetailType('expense'); }, style:{padding:'10px 12px', cursor:monthTotals.expCnt>0?'pointer':'default', border:'1px solid '+C.red+'44'}},
+        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 지출'),
+        h('p', {style:{color:C.red, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.expense)),
+        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.expCnt+'건'+(monthTotals.expCnt>0?' · 👆상세':''))
+      )
+    ),
+
+    // 달력 범례
+    h('div', {style:{display:'flex', gap:12, justifyContent:'center', marginBottom:8, flexWrap:'wrap'}},
+      h('span', {style:{fontSize:10, color:C.muted}}, '● 지출'),
+      h('span', {style:{fontSize:10, color:C.muted}}, '★ 수입'),
+      h('span', {style:{fontSize:10, color:C.red}}, '공휴일'),
+      h('span', {style:{fontSize:10, color:C.muted}}, '📌 메모')
+    ),
+
+    // 달력 그리드
+    h(GCard, {style:{padding:'12px 8px', marginBottom:12}},
+      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:6}},
+        dayLabels.map(function(d, i) {
+          var dayColor = i === 0 ? C.red : (i === 6 ? C.accent : C.muted);
+          return h('div', {key:d, style:{textAlign:'center', fontSize:11, fontWeight:700, color:dayColor, padding:'4px 0'}}, d);
+        })
+      ),
+      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3}},
+        cells.map(function(cell, idx) {
+          if (!cell.inMonth) {
+            return h('div', {key:'e'+idx, style:{aspectRatio:'1', borderRadius:8, background:C.faint, opacity:0.3, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'4px 0'}},
+              h('span', {style:{fontSize:10, color:C.muted, opacity:0.5}}, cell.day)
+            );
+          }
+          var dateStr = makeDateStr(cell.day);
+          var data = dayMap[dateStr];
+          var hasInc = data && data.incCnt > 0;
+          var hasExp = data && data.expCnt > 0;
+          var hasData = hasInc || hasExp;
+          var isToday = dateStr === todayStr;
+          var isSel = dateStr === selDate;
+          var dow = idx % 7;
+          var holiday = getHoliday(dateStr);
+          var hasMemo = !!memos[dateStr];
+          var isHoliday = !!holiday;
+
+          var cellBg = isSel ? C.accent+'22' : (isToday ? C.gold+'15' : (isHoliday ? C.red+'0A' : (hasData ? C.card2 : 'transparent')));
+          var cellBorder = isSel ? C.accent : (isToday ? C.gold+'88' : (isHoliday ? C.red+'44' : (hasData ? C.border : 'transparent')));
+          var cellShadow = hasData ? '0 2px 8px '+glw : 'none';
+          var numColor = isHoliday ? C.red : (isToday ? C.gold : (dow===0 ? C.red : (dow===6 ? C.accent : C.text)));
+
+          return h('div', {key:dateStr, onClick:function(){ selectDate(dateStr); },
+            style:{aspectRatio:'1', borderRadius:10, background:cellBg, border:'1.5px solid '+cellBorder,
+              boxShadow:cellShadow, cursor:'pointer', display:'flex', flexDirection:'column',
+              alignItems:'center', justifyContent:'space-between', padding:'3px 2px',
+              transition:'all 0.2s ease', position:'relative', transform:isSel?'scale(1.08)':'scale(1)',
+              overflow:'hidden'}
+          },
+            // 날짜 숫자 + 메모 아이콘
+            h('div', {style:{display:'flex', justifyContent:'space-between', width:'100%', padding:'0 1px'}},
+              h('span', {style:{fontSize:12, fontWeight:isToday?800:(isSel?700:(isHoliday?700:400)), color:numColor, marginLeft:1}}, cell.day),
+              hasMemo && h('span', {style:{fontSize:10, lineHeight:1}}, '📌')
+            ),
+            // 공휴일 이름 (축약)
+            isHoliday && h('span', {style:{fontSize:6, color:C.red, fontWeight:600, opacity:0.9, lineHeight:1, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}, holiday.length > 3 ? holiday.substring(0,3) : holiday),
+            // 수입/지출 도트
+            (hasData || (!isHoliday && !hasMemo)) && h('div', {style:{display:'flex', gap:2, alignItems:'center', marginBottom:1, minHeight:10}},
+              hasExp && h('span', {style:{fontSize:7, color:C.red}}, '●'),
+              hasInc && h('span', {style:{fontSize:7, color:C.gold}}, '★')
+            )
+          );
+        })
+      )
+    ),
+
+    // 선택된 날짜 상세 패널
+    selDate && h(GCard, {style:{padding:'14px', marginBottom:12, border:'1px solid '+C.accent+'33', boxShadow:'0 4px 16px '+glw}},
+      // 헤더
+      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}},
+        h('div', null,
+          h('p', {style:{color:C.accent, fontSize:10, fontWeight:700, margin:0, letterSpacing:1}}, calYear+'년 '+calMonth+'월'),
+          h('p', {style:{color:C.text, fontSize:16, fontWeight:900, margin:'2px 0 0'}}, '📅 '+parseInt(selDate.split('-')[2])+'일 ('+dayLabels[new Date(selDate).getDay()]+')')
+        ),
+        h('button', {onClick:function(){ setSelDate(null); setMemoEdit(false); }, style:{background:C.faint, border:'1px solid '+C.border, color:C.muted, padding:'4px 10px', borderRadius:6, fontSize:11, cursor:'pointer'}}, '닫기')
+      ),
+
+      // 공휴일 표시
+      getHoliday(selDate) && h('div', {style:{padding:'6px 10px', background:C.red+'15', borderRadius:8, border:'1px solid '+C.red+'33', marginBottom:8}},
+        h('span', {style:{color:C.red, fontSize:12, fontWeight:700}}, '🎌 공휴일: ' + getHoliday(selDate))
+      ),
+
+      // ★ 메모 영역
+      h('div', {style:{padding:'10px', background:C.card2, borderRadius:10, border:'1px solid '+C.border, marginBottom:10}},
+        h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}},
+          h('span', {style:{color:C.text, fontSize:12, fontWeight:700}}, '📌 메모'),
+          !isMemoEdit && h('button', {onClick:function(){ setMemoEdit(true); setMemoText(memos[selDate] || ''); },
+            style:{background:C.accent+'22', border:'1px solid '+C.accent+'44', color:C.accent, padding:'3px 10px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer'}
+          }, memos[selDate] ? '수정' : '추가')
+        ),
+        // 메모 표시 모드
+        !isMemoEdit && memos[selDate] && h('p', {style:{color:C.text, fontSize:12, margin:'4px 0 0', lineHeight:1.6}}, memos[selDate]),
+        !isMemoEdit && !memos[selDate] && h('p', {style:{color:C.muted, fontSize:11, margin:'4px 0 0', fontStyle:'italic'}}, '기념일이나 특별한 날을 기록해보세요'),
+        // 메모 편집 모드
+        isMemoEdit && h('div', {style:{marginTop:6}},
+          h('textarea', {
+            value:memoText, placeholder:'기념일, 약속, 특별한 날 등 자유롭게 기록하세요',
+            onChange:function(e){ setMemoText(e.target.value); },
+            style:{width:'100%', minHeight:60, padding:'8px 10px', background:C.bg, color:C.text, border:'1px solid '+C.accent+'44',
+              borderRadius:8, fontSize:12, resize:'vertical', outline:'none', fontFamily:'inherit'}
+          }),
+          h('div', {style:{display:'flex', gap:6, marginTop:6, justifyContent:'flex-end'}},
+            memos[selDate] && h('button', {onClick:deleteMemo,
+              style:{background:C.red+'22', border:'1px solid '+C.red+'44', color:C.red, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer'}
+            }, '삭제'),
+            h('button', {onClick:function(){ setMemoEdit(false); setMemoText(memos[selDate]||''); },
+              style:{background:C.faint, border:'1px solid '+C.border, color:C.muted, padding:'5px 12px', borderRadius:6, fontSize:11, cursor:'pointer'}
+            }, '취소'),
+            h('button', {onClick:saveMemo,
+              style:{background:C.accent, border:'none', color:'#0A0E27', padding:'5px 14px', borderRadius:6, fontSize:11, fontWeight:800, cursor:'pointer'}
+            }, '저장')
+          )
+        )
+      ),
+
+      // 수입/지출 요약
+      (selInc > 0 || selExp > 0) && h('div', {style:{display:'flex', gap:8, marginBottom:10}},
+        selInc > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.green+'11', borderRadius:8, border:'1px solid '+C.green+'33'}},
+          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '수입'),
+          h('p', {style:{color:C.green, fontSize:14, fontWeight:800, margin:0}}, fmt(selInc))
+        ),
+        selExp > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.red+'11', borderRadius:8, border:'1px solid '+C.red+'33'}},
+          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '지출'),
+          h('p', {style:{color:C.red, fontSize:14, fontWeight:800, margin:0}}, fmt(selExp))
+        )
+      ),
+
+      // 거래 내역
+      selTxs.length === 0 && !(selInc > 0 || selExp > 0) && !getHoliday(selDate) && !memos[selDate] && h('p', {style:{textAlign:'center', color:C.muted, fontSize:12, padding:'8px 0'}}, '이 날짜에 기록이 없습니다'),
+      selTxs.length > 0 && h('div', null,
+        h('p', {style:{color:C.muted, fontSize:10, fontWeight:700, marginBottom:6}}, '거래 내역 ('+selTxs.length+'건)'),
+        selTxs.map(function(tx, ti) {
+          var txCat = getCat(tx.catId); var mem = getMem(tx.member);
+          var isInc = tx.type === 'income'; var amtColor = isInc ? C.green : C.red;
+          var hasTxMemo = tx.memo && tx.memo.length > 0;
+          var longMemo = tx.memo && tx.memo.length > 18;
+          return h('div', {key:tx.id, style:{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0',
+            borderBottom:ti < selTxs.length-1 ? '1px solid '+C.faint : 'none'}},
+            h('div', {style:{width:36, height:36, borderRadius:10, background:txCat.color+'22',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
+              boxShadow:'0 2px 6px '+txCat.color+'33'}}, txCat.icon),
+            h('div', {style:{flex:1, minWidth:0}},
+              h('div', {style:{display:'flex', alignItems:'center', gap:6, marginBottom:2}},
+                h('span', {style:{color:C.text, fontSize:13, fontWeight:700}}, tx.store || '미입력'),
+                h('span', {style:{background:txCat.color+'22', color:txCat.color, fontSize:9, padding:'1px 5px', borderRadius:4}}, txCat.name),
+                tx.subCat && h('span', {style:{background:C.faint, color:C.muted, fontSize:8, padding:'1px 4px', borderRadius:3}}, tx.subCat)
+              ),
+              h('p', {style:{color:C.muted, fontSize:10, margin:'1px 0'}}, (tx.date||'')+' · '+mem.name+' · '+(tx.method||'기타')),
+              hasTxMemo && h('div', {className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color:C.accent+'BB'}},
+                h('span', {className:longMemo?'memo-scroll':'', style:{paddingLeft:longMemo?0:4}}, '📝 '+tx.memo)
+              )
+            ),
+            h('div', {style:{textAlign:'right', flexShrink:0}},
+              h('p', {style:{color:amtColor, fontSize:14, fontWeight:800, margin:0}}, (isInc?'+':'-')+fmt(tx.amount).replace('₩','')),
+              h('span', {style:{fontSize:9, color:C.muted}}, isInc?'수입':'지출')
+            )
+          );
+        })
+      )
+    ),
+
+    // 월간 상세 내역 시트
+    detailType && h(TxDetailSheet, {
+      type: detailType,
+      txs: txs.filter(function(t) {
+        var prefix = calYear + '-' + String(calMonth).padStart(2, '0');
+        if (!t.date || t.date.substring(0, 7) !== prefix) return false;
+        if (detailType === 'income') return t.type === 'income';
+        return t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund';
+      }),
+      dateLabel: calYear + '년 ' + calMonth + '월',
+      onClose: function() { setDetailType(null); }
+    })
+  );
+}
+
 function TxList(props) {
   var txs = props.txs;
   var onUpdate = props.onUpdate;
@@ -4627,7 +5267,14 @@ function TxList(props) {
   var groupedByMonth = useMemo(function(){
     var groups = {};
     filtered.forEach(function(tx){
-      var ym = tx.date.slice(0,7); // "2026-05" 형식
+      var rawDate = tx.date || '';
+      // ★ 잘못된 날짜 형식 보정 (MM/DD → 올해 YYYY-MM-DD)
+      if(rawDate.indexOf('/') >= 0) {
+        var dp = rawDate.split('/');
+        rawDate = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
+        tx.date = rawDate;
+      }
+      var ym = rawDate.slice(0,7); // "2026-05" 형식
       if(!groups[ym]) groups[ym] = [];
       groups[ym].push(tx);
     });
@@ -5202,7 +5849,7 @@ function AuthScreen(props) {
 }
 
 function BNav(props) {
-  var tabs = [{id:'dashboard',icon:'🏠',lbl:'홈'},{id:'analysis', icon:'📊',lbl:'분석'},{id:'add',icon:'+', lbl:'입력'},{id:'list',icon:'📋',lbl:'내역'},{id:'settings', icon:'⚙️',lbl:'설정'}];
+  var tabs = [{id:'dashboard',icon:'🏠',lbl:'홈'},{id:'calendar',icon:'📅',lbl:'달력'},{id:'add',icon:'+', lbl:'입력'},{id:'analysis', icon:'📊',lbl:'분석'},{id:'list',icon:'📋',lbl:'내역'},{id:'settings', icon:'⚙️',lbl:'설정'}];
   return h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430, margin:'0 auto',background:C.card,borderTop:'1px solid '+C.border, display:'flex',zIndex:100,paddingBottom:8}},
     tabs.map(function(t){
       var ia=props.active===t.id, isA=t.id==='add';
@@ -5950,6 +6597,35 @@ function App() {
   var loggedIn  = useState(!!savedUser);   var setLoggedIn = loggedIn[1];  loggedIn = loggedIn[0];
   var curUser   = useState(savedUser);     var setCurUser  = curUser[1];   curUser  = curUser[0];
   var tab       = useState('dashboard');   var setTab      = tab[1];       tab      = tab[0];
+
+  // ★★★ [뒤로가기 연동] 휴대폰 ◁ 버튼으로 이전 화면 복귀 ★★★
+  var isPopNav = useRef(false);
+
+  function navTo(newTab) {
+    if (newTab === tab) return;
+    history.pushState({ tab: newTab }, '');
+    setTab(newTab);
+  }
+
+  function navBack() {
+    if (history.state && history.state.tab) {
+      history.back();
+    } else {
+      setTab('dashboard');
+    }
+  }
+
+  useEffect(function() {
+    history.replaceState({ tab: 'dashboard' }, '');
+    function handlePop(e) {
+      if (e.state && e.state.tab) {
+        isPopNav.current = true;
+        setTab(e.state.tab);
+      }
+    }
+    window.addEventListener('popstate', handlePop);
+    return function() { window.removeEventListener('popstate', handlePop); };
+  }, []);
   var dpArr = useState('이번달'); var globalDp = dpArr[0]; var setGlobalDp = dpArr[1];
   var baseDateArr = useState(new Date()); var globalBaseDate = baseDateArr[0]; var setGlobalBaseDate = baseDateArr[1];
   var toast     = useState(null);          var setToast    = toast[1];     toast    = toast[0];
@@ -5969,7 +6645,7 @@ function App() {
   function doSaveTx(tx, isFixed, msg) {
     if(fbDb) { fbSaveTx(tx); if(isFixed) fbSaveFixed(tx); }
     else { setTxs(function(p){ var n=[tx].concat(p); lsSet(LS_TXS,n); return n; }); if(isFixed) setFixedExps(function(p){ var n=p.concat([tx]); lsSet(LS_FIXED,n); return n; }); }
-    setToast(msg || '저장되었습니다'); setTab('dashboard'); setTimeout(function(){setToast(null);},2000);
+    setToast(msg || '저장되었습니다'); navBack(); setTimeout(function(){setToast(null);},2000);
   }
 
   function addTx(tx, isFixed) {
@@ -5994,12 +6670,13 @@ function App() {
   if(!loggedIn) return h(AuthScreen, {onLogin: function(u){ lsSet(LS_USER,u); setCurUser(u); setLoggedIn(true); }});
 
   return h('div', {style:{ background:C.bg, minHeight:'100vh', color:C.text, fontFamily:"'Pretendard', sans-serif", maxWidth:430, margin:'0 auto', position:'relative' }},
-    tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:setTab, startDay:startDay, onAdd:addTx, onDelete:delTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
+    tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:navTo, startDay:startDay, onAdd:addTx, onDelete:delTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
+    tab==='calendar'  && h(CalendarView, {txs:txs, startDay:startDay}),
     tab==='analysis'  && h(Analysis,   {txs:txs, startDay:startDay, dp:globalDp, baseDate:globalBaseDate}),
-    tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:function(){setTab('dashboard');}, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx}),
+    tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:navBack, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx}),
     tab==='list'      && h(TxList,     {txs:txs, onUpdate:updTx, onDelete:delTx, onBulkDelete:bulkDel}),
     tab==='settings'  && h(Settings,   {txs:txs, onLogout:function(){lsDel(LS_USER); setLoggedIn(false);}, curUser:curUser, startDay:startDay, setStartDay:setStartDay}),
-    h(BNav, {active:tab, onTab:setTab}),
+    h(BNav, {active:tab, onTab:navTo}),
     dupModal && h(DuplicateModal, {
       dupTx: dupModal, 
       newTx: pendingTx.tx, 
