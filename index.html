@@ -2837,18 +2837,22 @@ function SMSIn(props) {
           if(!matched && isCVS)  { data.category = 'other'; data.sub_category = '편의점'; matched = true; }
         }
 
-        // ★ 날짜 형식 보정 (MM/DD, MM-DD → YYYY-MM-DD)
+       // ★ 날짜 형식 보정 (MM/DD, MM-DD → YYYY-MM-DD)
         var parsedDate = data.date || '';
         if(parsedDate && parsedDate.length <= 5) {
           var dp = parsedDate.replace(/\//g,'-').split('-');
           parsedDate = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
         }
         if(!parsedDate || parsedDate.length < 8) parsedDate = new Date().toISOString().split('T')[0];
+        
         setResult({
-          bank: data.bank || '카드', amount: data.amount, store: data.store || '미확인 가맹점',
+          bank: data.bank || '카드', 
+          amount: data.amount, 
+          store: data.store || '미확인 가맹점',
           catId: data.category || 'other',
           subCat: data.sub_category || '',
-          member: member, date: parsedDate
+          member: member, 
+          date: parsedDate
         });
         setErrMsg('');
       } catch(e) { setErrMsg('문자 형식을 이해하지 못했습니다. 수동으로 입력해주세요.'); }
@@ -3673,64 +3677,95 @@ function Dashboard(props) {
             return;
           }
           setIsAnl(true);
-          // 1. 요일별 지출 패턴 계산
-          var daysArr = ['일','월','화','수','목','금','토'];
-          var dayData = { 일:0, 월:0, 화:0, 수:0, 목:0, 금:0, 토:0 };
-          exp.forEach(function(t){ var d = new Date(t.date).getDay(); dayData[daysArr[d]] += t.amount; });
-          
-          // 2. 고정비 vs 변동비 자동 계산 (보험, 교육, 통신, 관리, 금융을 고정비로 간주)
-          var fixedIds = ['ins', 'edu', 'comm', 'util', 'finance'];
-          var fixedAmt = 0; var varAmt = 0;
-          var fixedNames = []; var varNames = [];
-          exp.forEach(function(t){
-            if(fixedIds.includes(t.catId) || (t.memo && t.memo.includes('정기'))) {
-              fixedAmt += t.amount;
-              if(!fixedNames.includes(getCat(t.catId).name)) fixedNames.push(getCat(t.catId).name);
-            } else {
-              varAmt += t.amount;
-              if(!varNames.includes(getCat(t.catId).name)) varNames.push(getCat(t.catId).name);
-            }
+          var catData = byC.slice(0,10).map(function(c){
+            return c.name+'('+Math.round(c.value).toLocaleString()+'원)';
+          }).join(', '); 
+          var currentCategoryData = byC.map(function(c){ 
+            return { 
+              category: c.name, 
+              id: c.id, 
+              amount: c.value, 
+              daily_avg: Math.round(c.value / pacingGuide.daysElapsed) 
+            }; 
           });
-
-          // 3. 자주 반복되는 지출 (빈도수 TOP 5 추출)
-          var storeCount = {};
+         // ★★★ [업그레이드] AI 맞춤 컨설팅 — 전체 데이터 심층 분석 ★★★
+          // 요일별 지출 패턴
+          var dowMap = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+          var dowCnt = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
           exp.forEach(function(t){
-            var n = t.store; if(!n) return;
-            if(!storeCount[n]) storeCount[n] = {name: n, count: 0, amount: 0};
-            storeCount[n].count++;
-            storeCount[n].amount += t.amount;
+            if(!t.date) return;
+            var dw = new Date(t.date).getDay();
+            dowMap[dw] += t.amount; dowCnt[dw]++;
           });
-          var topFreq = Object.values(storeCount).sort(function(a,b){return b.count - a.count;}).slice(0,5);
+          var dowNames = ['일','월','화','수','목','금','토'];
+          var dowSummary = dowNames.map(function(n,i){ return n+'요일:'+Math.round(dowMap[i]/10000)+'만('+dowCnt[i]+'건)'; }).join(', ');
 
-          // 4. 새로운 맞춤형 AI 프롬프트 (대표님 지시사항 완벽 반영)
-          var promptText = "당신은 최고의 데이터 기반 재무 분석 AI입니다. 사용자의 실제 데이터를 바탕으로 구체적이고 현실적인 컨설팅을 제공하세요. 기계적이고 뻔한 소리는 금지합니다.\n\n" +
-            "[실제 결제 데이터]\n" +
-            "- 총 수입: " + totI + "원, 총 지출: " + totE + "원\n" +
-            "- 고정비(보험/교육 등 절감불가): " + fixedAmt + "원 (" + fixedNames.slice(0,3).join(', ') + ")\n" +
-            "- 변동비(식비/쇼핑 등 조절가능): " + varAmt + "원 (" + varNames.slice(0,3).join(', ') + ")\n" +
-            "- 요일별 지출액: " + JSON.stringify(dayData) + "\n" +
-            "- 다빈도 결제처 TOP 5 (자주 간 곳): " + JSON.stringify(topFreq) + "\n" +
-            "- 기준 가이드: 식비 기준 30만원, 교통비 기준 9만원. 이 기준과 실제 지출을 비교하여 잘했으면 칭찬하고, 초과했으면 경고하세요.\n" +
-            "- 카테고리별 지출액: " + JSON.stringify(byC.map(function(c){return {name:c.name, amount:c.value};})) + "\n\n" +
-            "[응답 형식 (반드시 아래 JSON 형태만 출력, 다른 설명 금지)]\n" +
+          // 업체별 빈도 TOP10
+          var storeFreq = {};
+          exp.forEach(function(t){
+            var s = t.store || '미입력';
+            if(!storeFreq[s]) storeFreq[s] = {cnt:0, amt:0};
+            storeFreq[s].cnt++; storeFreq[s].amt += t.amount;
+          });
+          var topStores = Object.keys(storeFreq).map(function(k){
+            return {name:k, cnt:storeFreq[k].cnt, amt:storeFreq[k].amt};
+          }).sort(function(a,b){return b.cnt-a.cnt;}).slice(0,10);
+
+          // 고정비 자동 감지 (동일 금액 2회 이상 반복)
+          var amtRepeat = {};
+          exp.forEach(function(t){
+            var key = t.catId + '_' + t.amount;
+            if(!amtRepeat[key]) amtRepeat[key] = {catId:t.catId, amount:t.amount, cnt:0, store:t.store||''};
+            amtRepeat[key].cnt++;
+          });
+          var fixedCosts = Object.keys(amtRepeat).filter(function(k){ return amtRepeat[k].cnt >= 2; })
+            .map(function(k){ return amtRepeat[k]; });
+
+          // 세부 카테고리별 분석
+          var subCatMap = {};
+          exp.forEach(function(t){
+            var key = (t.catId||'other') + '>' + (t.subCat||'기타');
+            if(!subCatMap[key]) subCatMap[key] = {cat:t.catId, sub:t.subCat||'기타', amt:0, cnt:0};
+            subCatMap[key].amt += t.amount; subCatMap[key].cnt++;
+          });
+          var subCatList = Object.keys(subCatMap).map(function(k){ return subCatMap[k]; })
+            .sort(function(a,b){return b.amt-a.amt;}).slice(0,15);
+
+          var promptText = "당신은 한국 가정의 가계부를 분석하는 최고의 재무 컨설턴트입니다.\n" +
+            "아래 데이터를 심층 분석하여 현실적이고 구체적인 조언을 JSON으로만 응답하세요.\n\n" +
+            "=== 우리집 재무 기준 (절대 준수) ===\n" +
+            "- 식비 월 기준: 30만원 (이하면 칭찬, 초과만 주의)\n" +
+            "- 교통비 월 기준: 9만원\n" +
+            "- 보험/교육비는 고정비 → 절감 제안 절대 금지\n" +
+            "- 기준 이하 지출 = 잘 아낀 것 → 반드시 칭찬\n" +
+            "- '줄이세요'보다 '잘 하고 있습니다' 우선\n\n" +
+            "=== 이번 달 데이터 ===\n" +
+            "총 수입: " + totI + "원 / 총 지출: " + totE + "원\n" +
+            "저축률: " + (totI>0?Math.round((totI-totE)/totI*100):0) + "%\n\n" +
+            "카테고리별 지출:\n" + JSON.stringify(currentCategoryData) + "\n\n" +
+            "세부항목별 지출 TOP15:\n" + JSON.stringify(subCatList) + "\n\n" +
+            "요일별 지출 패턴: " + dowSummary + "\n\n" +
+            "자주 방문 업체 TOP10:\n" + JSON.stringify(topStores) + "\n\n" +
+            "고정비 감지 (동일금액 반복):\n" + JSON.stringify(fixedCosts) + "\n\n" +
+            "=== JSON 응답 형식 (다른 텍스트 절대 금지) ===\n" +
             "{\n" +
-            '  "score": 78,\n' +
-            '  "grade": "B+등급",\n' +
-            '  "summary_text": "수입 대비 저축률 32%, 양호한 상태입니다",\n' +
-            '  "fixed_expense": ' + fixedAmt + ',\n' +
-            '  "variable_expense": ' + varAmt + ',\n' +
-            '  "fixed_desc": "보험, 교육 등 고정성 지출",\n' +
-            '  "variable_desc": "식비, 쇼핑 등 변동성 지출",\n' +
-            '  "day_pattern": {"일":0, "월":0, "화":0, "수":0, "목":0, "금":0, "토":0},\n' +
-            '  "day_summary": "주말(토/일) 지출이 평일 대비 2배 높습니다.",\n' +
-            '  "budget_analysis": [\n' +
-            '    {"name": "식비", "used": 실제금액, "target": 300000, "comment": "기준치 이하라면 칭찬멘트, 초과면 경고멘트 작성", "isGood": true},\n' +
-            '    {"name": "교통비", "used": 실제금액, "target": 90000, "comment": "주유 몇 회 등 구체적 멘트 작성", "isGood": false}\n' +
+            '  "score": 0~100점,\n' +
+            '  "grade": "S/A/B+/B/C",\n' +
+            '  "summary": "한줄 핵심 요약 (칭찬 포함)",\n' +
+            '  "health_comment": "전체 가계 건강 상태 2~3문장",\n' +
+            '  "fixed_total": 고정비 합계 숫자,\n' +
+            '  "variable_total": 변동비 합계 숫자,\n' +
+            '  "fixed_list": "고정비 항목 나열 (예: 보험22만/교육19만/통신4만)",\n' +
+            '  "dow_analysis": "요일별 패턴 분석 2~3문장 (어떤 요일에 많이 쓰는지, 왜 그런지 추정)",\n' +
+            '  "category_reviews": [\n' +
+            '    {"name":"카테고리명","amount":금액,"benchmark":기준금액,"status":"good/warn/over","comment":"현실적 코멘트"}\n' +
             '  ],\n' +
-            '  "top_freq": [{"name":"편의점", "count":12, "amount":58000}],\n' +
-            '  "consulting_text": "데이터에 기반한 3문단 이상의 구체적 조언. (예: 식비를 잘 아꼈습니다. 다만 편의점 결제가 12회나 됩니다... 고정비는 잘 유지중입니다 등)",\n' +
-            '  "good_points": ["식비를 기준 대비 절약", "건강한 소비 습관"],\n' +
-            '  "next_goals": ["편의점 방문 12회 -> 8회로 줄이기 (월 2만원 절약)"]\n' +
+            '  "frequent_spending": [\n' +
+            '    {"store":"업체명","count":횟수,"amount":총금액,"comment":"패턴 분석 코멘트"}\n' +
+            '  ],\n' +
+            '  "praise": ["칭찬할 점 1","칭찬할 점 2","칭찬할 점 3"],\n' +
+            '  "action_items": ["실천 목표 1","실천 목표 2","실천 목표 3"],\n' +
+            '  "ai_consulting": "5~8문장의 종합 맞춤 컨설팅. 데이터 기반으로 구체적 숫자와 패턴을 언급하며, 현실적이고 실천 가능한 조언. 칭찬할 부분은 반드시 칭찬하고, 진짜 문제만 지적."\n' +
             "}";
           var xhr = new XMLHttpRequest();
           xhr.open('POST', 'https://api.groq.com/openai/v1/chat/completions', true);
@@ -4119,161 +4154,265 @@ function ExpertGuideModal(props) {
   var ai = props.ai || {};
   var stats = props.stats || {};
   var onClose = props.onClose;
-  
   var totI=stats.totI||0, totE=stats.totE||0;
+  var byC=stats.byC||[], byM=stats.byM||[], top20=stats.top20||[], dp=stats.dp||'';
   var savRate = totI>0 ? Math.round((totI-totE)/totI*100) : 0;
   var score = ai.score||0;
   var grade = ai.grade||'-';
   var scoreColor = score>=80?C.green:score>=60?C.gold:C.red;
 
-  var activeTab = useState('month'); var setActiveTab = activeTab[1]; activeTab = activeTab[0];
+  // 탭 상태
+  var tabState = useState('month'); var activeTab = tabState[0]; var setActiveTab = tabState[1];
+  // 아코디언 상태
+  var secState = useState({health:true,fixed:true,dow:true,bench:true,freq:true,consult:true,praise:true,action:true});
+  var openSec = secState[0]; var setOpenSec = secState[1];
+  function toggleSec(key) {
+    setOpenSec(function(prev) { var n = Object.assign({},prev); n[key] = !n[key]; return n; });
+  }
 
-  return h('div', {style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:2000,overflowY:'auto',display:'flex',justifyContent:'center'}},
-    h('div',{style:{width:'100%',maxWidth:430,padding:'16px 16px 100px'}},
-      
-      // 상단 헤더
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}},
-        h('div',null,
-          h('p',{style:{color:C.accent,fontSize:9,margin:0,letterSpacing:2}},'PREMIUM AI FINANCIAL REPORT'),
-          h('p',{style:{color:C.text,fontSize:20,fontWeight:900,margin:'2px 0 0'}},'AI 재무 컨설팅')
-        ),
-        h('button',{onClick:onClose,style:{background:'transparent',border:'1px solid '+C.border,color:C.muted,padding:'8px 16px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},'닫기')
-      ),
+  // 캔버스 레퍼런스 (홀로그램 차트)
+  var canvasRef = useRef(null);
+  var animRef = useRef(null);
 
-      // 탭 메뉴 (디자인용)
-      h('div',{style:{display:'flex',background:C.card2,borderRadius:8,padding:4,marginBottom:16}},
-        h('button',{onClick:function(){setActiveTab('month');}, style:{flex:1,padding:'10px 0',borderRadius:6,border:'none',background:activeTab==='month'?C.accent:'transparent',color:activeTab==='month'?'#fff':C.muted,fontWeight:700,fontSize:13,transition:'0.3s'}},'이번 달'),
-        h('button',{onClick:function(){setActiveTab('total');}, style:{flex:1,padding:'10px 0',borderRadius:6,border:'none',background:activeTab==='total'?C.accent:'transparent',color:activeTab==='total'?'#fff':C.muted,fontWeight:700,fontSize:13,transition:'0.3s'}},'누적 분석')
-      ),
+  useEffect(function(){
+    var cv = canvasRef.current;
+    if(!cv) return;
+    var ctx = cv.getContext('2d');
+    var W=cv.width, H=cv.height, cx=W/2, cy=H/2;
+    var t = 0;
+    function hex2rgb(h){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return[r,g,b];}
+    var cats = byC.slice(0,8).map(function(c){return{n:c.name,p:Math.round(c.value/totE*100),co:c.color};});
+    if(cats.length===0) cats=[{n:'데이터없음',p:100,co:'#444'}];
+    var pts=[];for(var i=0;i<80;i++)pts.push({a:Math.random()*6.28,r:80+Math.random()*140,sp:(Math.random()-.5)*.01,sz:.3+Math.random()*1.5,al:.1+Math.random()*.4,ci:Math.floor(Math.random()*cats.length)});
+    var rays=[];for(var i=0;i<20;i++)rays.push({a:i*6.28/20,len:120+Math.random()*80,w:.3+Math.random()*.5,al:.02+Math.random()*.04});
 
-      // 1. 점수판 및 가계 요약
-      h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
-        h('p',{style:{color:C.muted,fontSize:11,marginBottom:12}}, stats.dp + ' 가계 건강지수'),
-        h('div',{style:{display:'flex',alignItems:'center',gap:20}},
-          h('div',{style:{position:'relative',width:80,height:80,flexShrink:0}},
-            h('svg',{width:80,height:80,viewBox:'0 0 90 90'},
-              h('circle',{cx:45,cy:45,r:38,fill:'none',stroke:C.faint,strokeWidth:6}),
-              h('circle',{cx:45,cy:45,r:38,fill:'none',stroke:scoreColor,strokeWidth:6,strokeDasharray:String(Math.round(score*2.38))+' 238',strokeLinecap:'round',transform:'rotate(-90 45 45)'})
-            ),
-            h('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
-              h('span',{style:{fontSize:24,fontWeight:900,color:C.text}},score),
-              h('span',{style:{fontSize:9,fontWeight:700,color:C.muted}},grade)
-            )
+    function draw(){
+      t+=.014;ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(cx,cy);
+      var ag=ctx.createRadialGradient(0,0,0,0,0,240);ag.addColorStop(0,'rgba(0,229,255,.03)');ag.addColorStop(.5,'rgba(167,139,250,.02)');ag.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=ag;ctx.fillRect(-cx,-cy,W,H);
+      ctx.globalCompositeOperation='screen';
+      rays.forEach(function(r){var ra=r.a+t*.12;var f=.5+.5*Math.sin(t*1.2+r.a*3);ctx.save();ctx.rotate(ra);var rg=ctx.createLinearGradient(0,0,0,-r.len);rg.addColorStop(0,'rgba(0,229,255,'+r.al*f+')');rg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=rg;ctx.fillRect(-r.w,0,r.w*2,-r.len);ctx.restore();});
+      ctx.globalCompositeOperation='source-over';
+      for(var ri=0;ri<4;ri++){ctx.save();ctx.rotate(t*(.06+ri*.03)*(ri%2?1:-1));ctx.strokeStyle='rgba(0,229,255,'+(0.03-ri*.005)+')';ctx.lineWidth=.5;ctx.setLineDash([2+ri*3,6+ri*4]);ctx.beginPath();ctx.arc(0,0,185+ri*10,0,6.28);ctx.stroke();ctx.restore();}
+      ctx.setLineDash([]);
+      for(var si=0;si<2;si++){var sr=((t*.25+si*.5)%1)*100+100;var sa2=Math.max(0,1-(sr-100)/100)*.1;ctx.strokeStyle='rgba(0,229,255,'+sa2+')';ctx.lineWidth=.8;ctx.beginPath();ctx.arc(0,0,sr,0,6.28);ctx.stroke();}
+      var R1=155,R2=115,R3=95;var sAngle=-1.5708;
+      cats.forEach(function(d,idx){var sw=d.p/100*6.28;var ease=Math.min(1,Math.max(0,(t-.2-idx*.06)/.7));ease=ease*ease*(3-2*ease);var asw=sw*ease;if(asw<.001)asw=.001;var pulse=1+Math.sin(t*1.6+idx*.7)*.012;var rgb=hex2rgb(d.co);
+        ctx.save();ctx.shadowColor=d.co;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(0,0,R1*pulse+3,sAngle,sAngle+asw);ctx.strokeStyle=d.co+'44';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+        ctx.beginPath();ctx.arc(0,0,R1*pulse,sAngle,sAngle+asw);ctx.arc(0,0,R2*pulse,sAngle+asw,sAngle,true);ctx.closePath();var sg=ctx.createRadialGradient(0,0,R2*pulse,0,0,R1*pulse);sg.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',.2)');sg.addColorStop(.5,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',.5)');sg.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',.7)');ctx.fillStyle=sg;ctx.fill();ctx.strokeStyle=d.co+'77';ctx.lineWidth=.8;ctx.stroke();
+        if(d.p>=5){var ma=sAngle+asw/2;var lx=Math.cos(ma)*(R1+20)*pulse;var ly=Math.sin(ma)*(R1+20)*pulse;ctx.save();ctx.shadowColor=d.co;ctx.shadowBlur=8;ctx.fillStyle=d.co;ctx.font='500 15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.n,lx,ly-9);ctx.font='700 16px sans-serif';ctx.fillText(d.p+'%',lx,ly+9);ctx.restore();}
+        sAngle+=sw;
+      });
+      var cg=ctx.createRadialGradient(0,-15,0,0,0,R3);cg.addColorStop(0,'#1a1250');cg.addColorStop(.5,'#0d0a2a');cg.addColorStop(1,'#050510');ctx.beginPath();ctx.arc(0,0,R3,0,6.28);ctx.fillStyle=cg;ctx.fill();
+      var cg2=ctx.createRadialGradient(-10,-18,0,0,0,R3*.7);cg2.addColorStop(0,'rgba(0,229,255,.08)');cg2.addColorStop(1,'rgba(0,0,0,0)');ctx.beginPath();ctx.arc(0,0,R3,0,6.28);ctx.fillStyle=cg2;ctx.fill();
+      ctx.strokeStyle='rgba(0,229,255,.15)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,R3,0,6.28);ctx.stroke();
+      for(var ir=0;ir<3;ir++){ctx.save();ctx.rotate(t*(.3+ir*.12)*(ir%2?1:-1));ctx.strokeStyle='rgba(0,229,255,'+(0.04-ir*.01)+')';ctx.lineWidth=.4;ctx.beginPath();ctx.arc(0,0,R3-12-ir*16,0,6.28);ctx.stroke();ctx.restore();}
+      ctx.globalCompositeOperation='screen';
+      pts.forEach(function(p){p.a+=p.sp;var wobble=Math.sin(p.a*3+t*2)*6;var pr=p.r+wobble;var px=Math.cos(p.a)*pr;var py=Math.sin(p.a)*pr;var f=.4+.6*Math.sin(t*2+p.a*4);var co=cats[p.ci].co;var rgb=hex2rgb(co);ctx.beginPath();ctx.arc(px,py,p.sz*.5,0,6.28);ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+p.al*f+')';ctx.fill();});
+      ctx.globalCompositeOperation='source-over';
+      for(var oi=0;oi<4;oi++){var oa=t*.5+oi*6.28/4;var or2=165+Math.sin(t+oi)*8;var ox=Math.cos(oa)*or2;var oy=Math.sin(oa)*or2;ctx.globalCompositeOperation='screen';ctx.beginPath();ctx.arc(ox,oy,1.5,0,6.28);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fill();ctx.globalCompositeOperation='source-over';}
+      ctx.restore();animRef.current=requestAnimationFrame(draw);
+    }
+    draw();
+    return function(){ if(animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [byC, totE]);
+
+  // 카테고리 리뷰 (AI 응답)
+  var catReviews = ai.category_reviews || [];
+  var freqSpending = ai.frequent_spending || [];
+  var praises = ai.praise || [];
+  var actions = ai.action_items || [];
+
+  // 섹션 렌더링 헬퍼
+  function SecHdr(p) {
+    return h('div',{onClick:function(){toggleSec(p.id);},style:{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer',marginBottom:p.open?10:0}},
+      h('p',{style:{color:C.accent,fontSize:13,fontWeight:700,margin:0}}, p.icon+' '+p.title),
+      h('span',{style:{color:C.muted,fontSize:11,transform:p.open?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.3s',display:'inline-block'}},'▶')
+    );
+  }
+
+  return h('div',{style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:2000,overflowY:'auto'}},
+    h('div',{style:{maxWidth:430,margin:'0 auto',padding:'0 16px 100px'}},
+
+      // 헤더
+      h('div',{style:{position:'sticky',top:0,zIndex:10,background:C.bg,padding:'16px 0 10px',borderBottom:'1px solid '+C.border}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+          h('div',null,
+            h('p',{style:{color:C.accent,fontSize:10,letterSpacing:2,margin:0}},'PREMIUM AI FINANCIAL REPORT'),
+            h('p',{style:{color:C.text,fontSize:20,fontWeight:900,margin:'4px 0 0'}},'AI 재무 컨설팅')
           ),
-          h('div',{style:{flex:1,display:'flex',flexDirection:'column',gap:8}},
-            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'수입'), h('span',{style:{color:C.green,fontWeight:800,fontSize:14}},fmtS(totI)) ),
-            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'지출'), h('span',{style:{color:C.red,fontWeight:800,fontSize:14}},fmtS(totE)) ),
-            h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{color:C.muted,fontSize:12}},'저축률'), h('span',{style:{color:C.gold,fontWeight:800,fontSize:14}},savRate+'%') )
-          )
-        ),
-        ai.summary_text && h('div',{style:{marginTop:14,padding:'10px 12px',background:C.green+'15',border:'1px solid '+C.green+'44',borderRadius:8,display:'flex',alignItems:'center',gap:8}},
-          h('span',{style:{color:C.green,fontSize:14}},'✉️'),
-          h('span',{style:{color:C.green,fontSize:12,fontWeight:600}}, ai.summary_text)
+          h('button',{onClick:onClose,style:{background:C.card2,border:'1px solid '+C.border,color:C.text,padding:'6px 14px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer'}},'닫기')
         )
       ),
 
-      // 2. 고정비 vs 변동비 비율
-      h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'▣'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'고정비 vs 변동비') ),
-        h('div',{style:{display:'flex',gap:8,marginBottom:12}},
-          h('div',{style:{flex:1,background:C.card2,padding:12,borderRadius:8}},
-            h('p',{style:{color:C.muted,fontSize:10,marginBottom:4}},'고정비 (자동감지)'),
-            h('p',{style:{color:C.gold,fontSize:16,fontWeight:800,margin:0}},fmtS(ai.fixed_expense||0)),
-            h('p',{style:{color:C.muted,fontSize:9,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},ai.fixed_desc||'보험, 교육 등')
-          ),
-          h('div',{style:{flex:1,background:C.card2,padding:12,borderRadius:8}},
-            h('p',{style:{color:C.muted,fontSize:10,marginBottom:4}},'변동비 (조절가능)'),
-            h('p',{style:{color:C.accent,fontSize:16,fontWeight:800,margin:0}},fmtS(ai.variable_expense||0)),
-            h('p',{style:{color:C.muted,fontSize:9,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},ai.variable_desc||'식비, 쇼핑 등')
-          )
-        ),
-        (function(){
-           var f = ai.fixed_expense||0; var v = ai.variable_expense||0; var t = f+v;
-           var fp = t>0 ? Math.round(f/t*100) : 0;
-           return h('div',null,
-             h('div',{style:{display:'flex',height:6,borderRadius:3,overflow:'hidden',marginBottom:6}},
-               h('div',{style:{width:fp+'%',background:C.gold}}), h('div',{style:{flex:1,background:C.accent}})
-             ),
-             h('div',{style:{display:'flex',justifyContent:'space-between'}},
-               h('span',{style:{color:C.gold,fontSize:10}},fp+'% 고정'), h('span',{style:{color:C.accent,fontSize:10}},(100-fp)+'% 변동')
-             )
-           );
-        })()
+      // 홀로그램 차트
+      h('div',{style:{position:'relative',width:'100%',aspectRatio:'1',maxWidth:340,margin:'10px auto'}},
+        h('canvas',{ref:canvasRef,width:500,height:500,style:{width:'100%',height:'100%'}}),
+        h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',pointerEvents:'none'}},
+          h('p',{style:{color:C.accent+'88',fontSize:9,letterSpacing:3,margin:0}},'TOTAL EXPENSE'),
+          h('p',{style:{color:'#fff',fontSize:26,fontWeight:800,margin:'2px 0 0',textShadow:'0 0 20px '+C.accent+'66'}},fmtS(totE))
+        )
+      ),
+      // 범례
+      h('div',{style:{display:'flex',flexWrap:'wrap',gap:'3px 10px',justifyContent:'center',marginBottom:14}},
+        byC.slice(0,8).map(function(c){
+          return h('span',{key:c.id,style:{fontSize:10,color:c.color}},c.name+' '+Math.round(c.value/totE*100)+'%');
+        })
       ),
 
-      // 3. 요일별 지출 패턴 막대그래프
-      ai.day_pattern && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'📊'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'요일별 지출 패턴') ),
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',height:80,marginBottom:8,padding:'0 5px'}},
-          ['일','월','화','수','목','금','토'].map(function(d){
-            var amt = ai.day_pattern[d] || 0;
-            var maxD = Math.max.apply(null, Object.values(ai.day_pattern));
-            var hPct = maxD > 0 ? (amt/maxD*100) : 0;
-            var isWknd = (d==='토'||d==='일');
-            return h('div',{key:d,style:{display:'flex',flexDirection:'column',alignItems:'center',width:'12%'}},
-              h('div',{style:{width:'100%',height:hPct+'%',minHeight:5,background:isWknd?'#FF6B9D':'#3E7B8A',borderRadius:'4px 4px 0 0',transition:'height 0.5s'}}),
-              h('span',{style:{color:isWknd?C.gold:C.muted,fontSize:10,marginTop:6}},d)
+      // ① 가계 건강지수
+      h(GCard,{style:{padding:16,marginBottom:10}},
+        h(SecHdr,{id:'health',icon:'💊',title:'가계 건강지수',open:openSec.health}),
+        openSec.health && h('div',null,
+          h('div',{style:{display:'flex',alignItems:'center',gap:16,marginBottom:10}},
+            h('div',{style:{width:70,height:70,borderRadius:'50%',border:'4px solid '+scoreColor,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',boxShadow:'0 0 15px '+scoreColor+'44'}},
+              h('span',{style:{fontSize:22,fontWeight:800,color:scoreColor}},score),
+              h('span',{style:{fontSize:9,color:C.muted}},grade+'등급')
+            ),
+            h('div',{style:{flex:1}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},h('span',{style:{fontSize:11,color:C.muted}},'수입'),h('span',{style:{fontSize:13,fontWeight:700,color:C.green}},fmtS(totI))),
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},h('span',{style:{fontSize:11,color:C.muted}},'지출'),h('span',{style:{fontSize:13,fontWeight:700,color:C.red}},fmtS(totE))),
+              h('div',{style:{display:'flex',justifyContent:'space-between'}},h('span',{style:{fontSize:11,color:C.muted}},'저축률'),h('span',{style:{fontSize:13,fontWeight:700,color:C.gold}},savRate+'%'))
+            )
+          ),
+          ai.health_comment && h('div',{style:{background:scoreColor+'15',border:'1px solid '+scoreColor+'33',borderRadius:8,padding:'8px 12px'}},
+            h('p',{style:{fontSize:12,color:scoreColor,margin:0,lineHeight:1.6}},ai.health_comment)
+          )
+        )
+      ),
+
+      // ② 고정비 vs 변동비
+      h(GCard,{style:{padding:16,marginBottom:10}},
+        h(SecHdr,{id:'fixed',icon:'🔒',title:'고정비 vs 변동비',open:openSec.fixed}),
+        openSec.fixed && h('div',null,
+          h('div',{style:{display:'flex',gap:8,marginBottom:10}},
+            h('div',{style:{flex:1,background:C.faint,borderRadius:8,padding:10}},
+              h('p',{style:{fontSize:10,color:C.muted,margin:0}},'고정비'),
+              h('p',{style:{fontSize:16,fontWeight:800,color:C.gold,margin:'4px 0 0'}},fmtS(ai.fixed_total||0)),
+              h('p',{style:{fontSize:9,color:C.muted,margin:'2px 0 0'}},ai.fixed_list||'')
+            ),
+            h('div',{style:{flex:1,background:C.faint,borderRadius:8,padding:10}},
+              h('p',{style:{fontSize:10,color:C.muted,margin:0}},'변동비 (조절가능)'),
+              h('p',{style:{fontSize:16,fontWeight:800,color:C.accent,margin:'4px 0 0'}},fmtS(ai.variable_total||0))
+            )
+          ),
+          h('div',{style:{height:6,background:C.faint,borderRadius:3,overflow:'hidden',display:'flex'}},
+            h('div',{style:{width:Math.round((ai.fixed_total||0)/totE*100)+'%',background:C.gold,borderRadius:'3px 0 0 3px'}}),
+            h('div',{style:{flex:1,background:C.accent,borderRadius:'0 3px 3px 0'}})
+          )
+        )
+      ),
+
+      // ③ 요일별 지출 패턴
+      h(GCard,{style:{padding:16,marginBottom:10}},
+        h(SecHdr,{id:'dow',icon:'📊',title:'요일별 지출 패턴',open:openSec.dow}),
+        openSec.dow && h('div',null,
+          ai.dow_analysis && h('div',{style:{background:C.faint,borderRadius:8,padding:'8px 12px',marginBottom:6}},
+            h('p',{style:{fontSize:11,color:C.text,margin:0,lineHeight:1.6}},ai.dow_analysis)
+          )
+        )
+      ),
+
+      // ④ 기준 대비 분석
+      h(GCard,{style:{padding:16,marginBottom:10}},
+        h(SecHdr,{id:'bench',icon:'📏',title:'기준 대비 카테고리 분석',open:openSec.bench}),
+        openSec.bench && catReviews.length > 0 && h('div',null,
+          catReviews.map(function(cr,i){
+            var barColor = cr.status==='good'?C.green:(cr.status==='warn'?C.gold:C.red);
+            var pct = cr.benchmark > 0 ? Math.min(Math.round(cr.amount/cr.benchmark*100),120) : 100;
+            return h('div',{key:i,style:{marginBottom:12}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:3}},
+                h('span',{style:{fontSize:12,color:C.text}},cr.name),
+                h('span',{style:{fontSize:12,fontWeight:700,color:barColor}},fmtS(cr.amount)+' / 기준 '+fmtS(cr.benchmark))
+              ),
+              h('div',{style:{height:5,background:C.faint,borderRadius:3,overflow:'hidden'}},
+                h('div',{style:{width:Math.min(pct,100)+'%',height:'100%',background:barColor,borderRadius:3}})
+              ),
+              cr.comment && h('p',{style:{fontSize:11,color:barColor,margin:'3px 0 0'}},
+                (cr.status==='good'?'👍 ':'⚠️ ')+cr.comment)
             );
           })
-        ),
-        ai.day_summary && h('div',{style:{padding:'8px 12px',background:C.card2,border:'1px solid '+C.faint,borderRadius:8,display:'flex',alignItems:'center',gap:8}},
-          h('span',{style:{color:'#FF6B9D',fontSize:12}},'✉️'), h('span',{style:{color:C.text,fontSize:11,fontWeight:600}},ai.day_summary)
         )
       ),
 
-      // 4. 기준 대비 분석 (프로그레스 바)
-      ai.budget_analysis && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:16}}, h('span',{style:{color:C.accent}},'🎯'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'기준 대비 분석 (변동비만)') ),
-        ai.budget_analysis.map(function(b, idx){
-          var pct = b.target > 0 ? Math.round((b.used / b.target) * 100) : 0;
-          var barColor = b.isGood ? C.green : C.red;
-          return h('div',{key:idx, style:{marginBottom:16}},
-            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
-              h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},b.name),
-              h('span',{style:{color:barColor,fontSize:12,fontWeight:700}},fmtS(b.used) + ' / 기준 ' + fmtS(b.target))
-            ),
-            h('div',{style:{height:6,background:C.card2,borderRadius:3,marginBottom:8}},
-              h('div',{style:{height:'100%',width:Math.min(pct,100)+'%',background:barColor,borderRadius:3}})
-            ),
-            h('div',{style:{display:'flex',alignItems:'center',gap:6}},
-              h('span',{style:{color:barColor,fontSize:12}},'✉️'),
-              h('span',{style:{color:C.text,fontSize:11,fontWeight:600}},b.comment)
-            )
-          );
-        })
+      // ⑤ 자주 반복되는 지출
+      h(GCard,{style:{padding:16,marginBottom:10}},
+        h(SecHdr,{id:'freq',icon:'🔄',title:'자주 반복되는 지출',open:openSec.freq}),
+        openSec.freq && freqSpending.length > 0 && h('div',null,
+          freqSpending.map(function(fs,i){
+            return h('div',{key:i,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',background:C.faint,borderRadius:8,marginBottom:4}},
+              h('div',null,
+                h('span',{style:{fontSize:12,color:C.text}},fs.store),
+                h('span',{style:{fontSize:10,color:C.muted,marginLeft:6}},fs.count+'회')
+              ),
+              h('span',{style:{fontSize:12,fontWeight:700,color:C.red}},fmtS(fs.amount))
+            );
+          }),
+          freqSpending[0] && freqSpending[0].comment && h('p',{style:{fontSize:11,color:C.muted,margin:'6px 0 0',lineHeight:1.5}},freqSpending[0].comment)
+        )
       ),
 
-      // 5. 자주 반복되는 지출 (단골집 분석)
-      ai.top_freq && ai.top_freq.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:16,padding:20,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'🔄'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'자주 반복되는 지출 TOP 5') ),
-        ai.top_freq.map(function(f, idx){
-          return h('div',{key:idx,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:C.card2,borderRadius:8,marginBottom:6}},
-            h('div',null, h('span',{style:{color:C.text,fontSize:12,fontWeight:700}},f.name), h('span',{style:{color:C.muted,fontSize:10,marginLeft:6}},f.count+'회') ),
-            h('span',{style:{color:'#FF6B9D',fontSize:12,fontWeight:700}},fmtS(f.amount))
-          );
-        })
+      // ⑥ AI 맞춤 컨설팅 (핵심!)
+      h(GCard,{style:{padding:16,marginBottom:10,border:'1px solid '+C.accent+'33'}},
+        h(SecHdr,{id:'consult',icon:'🧠',title:'AI 맞춤 컨설팅',open:openSec.consult}),
+        openSec.consult && ai.ai_consulting && h('div',null,
+          h('p',{style:{fontSize:13,color:C.text,margin:0,lineHeight:1.9,whiteSpace:'pre-line'}},ai.ai_consulting)
+        )
       ),
 
-      // 6. AI 텍스트 컨설팅 (진짜 뇌가 분석한 결과)
-      ai.consulting_text && h('div',{style:{background:C.card,border:'1px solid '+C.accent+'44',borderRadius:16,padding:20,marginBottom:14,boxShadow:'0 0 15px '+C.accent+'11'}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}}, h('span',{style:{color:C.accent}},'🧠'), h('p',{style:{color:C.accent,fontSize:13,fontWeight:800,margin:0}},'AI 맞춤 컨설팅') ),
-        h('div',{style:{color:C.text,fontSize:13,lineHeight:1.7,whiteSpace:'pre-line'}}, ai.consulting_text) // AI가 길게 써준 멘트가 그대로 출력됩니다.
+      // ⑦ 잘한 점
+      praises.length > 0 && h(GCard,{style:{padding:16,marginBottom:10,background:C.green+'0A',border:'1px solid '+C.green+'33'}},
+        h(SecHdr,{id:'praise',icon:'🏆',title:'이번 달 잘한 점',open:openSec.praise}),
+        openSec.praise && h('div',null,
+          praises.map(function(p,i){
+            return h('p',{key:i,style:{fontSize:12,color:C.text,margin:'0 0 4px',lineHeight:1.5}},(i+1)+'. '+p);
+          })
+        )
       ),
 
-      // 7. 잘한 점 리스트
-      ai.good_points && ai.good_points.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.green+'44',borderRadius:16,padding:16,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}}, h('span',{style:{color:C.green}},'✅'), h('p',{style:{color:C.green,fontSize:13,fontWeight:800,margin:0}},'이번 달 잘한 점') ),
-        ai.good_points.map(function(gp, idx){
-          return h('p',{key:idx,style:{color:C.text,fontSize:12,marginBottom:6,lineHeight:1.5}}, (idx+1)+'. '+gp);
-        })
+      // ⑧ 실천 목표
+      actions.length > 0 && h(GCard,{style:{padding:16,marginBottom:10,background:C.gold+'0A',border:'1px solid '+C.gold+'33'}},
+        h(SecHdr,{id:'action',icon:'🎯',title:'다음 달 실천 목표',open:openSec.action}),
+        openSec.action && h('div',null,
+          actions.map(function(a,i){
+            return h('p',{key:i,style:{fontSize:12,color:C.text,margin:'0 0 4px',lineHeight:1.5}},(i+1)+'. '+a);
+          })
+        )
       ),
 
-      // 8. 다음 달 목표 리스트
-      ai.next_goals && ai.next_goals.length > 0 && h('div',{style:{background:C.card,border:'1px solid '+C.gold+'44',borderRadius:16,padding:16,marginBottom:14}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}}, h('span',{style:{color:C.gold}},'🎯'), h('p',{style:{color:C.gold,fontSize:13,fontWeight:800,margin:0}},'다음 달 실천 목표') ),
-        ai.next_goals.map(function(ng, idx){
-          return h('p',{key:idx,style:{color:C.text,fontSize:12,marginBottom:6,lineHeight:1.5}}, (idx+1)+'. '+ng);
-        })
+      // 구성원별 지출
+      byM.length > 0 && h(GCard,{style:{padding:16,marginBottom:10}},
+        h('p',{style:{color:C.accent,fontSize:13,fontWeight:700,margin:'0 0 10px'}},'👨‍👩‍👧 구성원별 지출'),
+        h('div',{style:{display:'flex',gap:10}},
+          byM.map(function(m){
+            return h('div',{key:m.id,style:{flex:1,textAlign:'center',padding:'12px 4px',background:C.faint,borderRadius:10,border:'1px solid '+m.color+'33'}},
+              h(Avt,{member:m.id,size:36}),
+              h('p',{style:{color:m.color,fontSize:11,fontWeight:700,margin:'4px 0 0'}},m.name),
+              h('p',{style:{color:C.text,fontSize:13,fontWeight:800,margin:'2px 0 0'}},fmtS(m.amt))
+            );
+          })
+        )
+      ),
+
+      // 지출 TOP 20 아코디언 (기존 유지)
+      top20.length > 0 && h(GCard,{style:{padding:16}},
+        h('div',{onClick:function(){var s=secState[0];setOpenSec(Object.assign({},s,{top20:!s.top20}));},style:{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}},
+          h('p',{style:{color:C.accent,fontSize:13,fontWeight:700,margin:0}},'💳 지출 TOP 20'),
+          h('span',{style:{color:C.muted,fontSize:11}},openSec.top20?'접기':'펼치기')
+        ),
+        openSec.top20 && h('div',{style:{marginTop:10}},
+          top20.map(function(tx,i){
+            var cat=getCat(tx.catId);
+            return h('div',{key:tx.id,style:{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid '+C.faint}},
+              h('span',{style:{color:C.muted,fontSize:11,width:20,textAlign:'right'}},i+1),
+              h('span',{style:{fontSize:16}},cat.icon),
+              h('div',{style:{flex:1,minWidth:0}},
+                h('p',{style:{color:C.text,fontSize:12,fontWeight:700,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store||'미입력'),
+                h('p',{style:{color:C.muted,fontSize:10,margin:0}},tx.date+' · '+(tx.subCat||cat.name))
+              ),
+              h('span',{style:{color:C.red,fontSize:13,fontWeight:800}},fmtS(tx.amount))
+            );
+          })
+        )
       )
     )
   );
