@@ -2423,7 +2423,31 @@ function startAnalyzeAll() {
           amount: result.amount ? String(result.amount) : '',
           catId: result.category || 'food',
           subCat: result.sub_category || '',
-          date: (result.date && result.date.length === 10) ? result.date : new Date().toISOString().split('T')[0],
+          date: (function() {
+            // ★ 영수증 파싱 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
+            var parsedDate = result.date || '';
+            if (parsedDate) {
+              var pd = String(parsedDate).replace(/\//g, '-').replace(/\./g, '-');
+              // 1) 월/일만 있을 때 (5-8, 05-08 등)
+              if (pd.length <= 5) {
+                var parts = pd.split('-');
+                pd = new Date().getFullYear() + '-' + String(parts[0]).padStart(2, '0') + '-' + String(parts[1] || '01').padStart(2, '0');
+              }
+              // 2) 연도가 있지만 과거 연도일 때 (2023-05-08, 2024-05-08 등)
+              if (pd.length === 10) {
+                var pyear = parseInt(pd.split('-')[0]);
+                var cyear = new Date().getFullYear();
+                if (pyear < cyear) {
+                  // 과거 연도 → 현재 연도로 교체
+                  pd = cyear + pd.substring(4);
+                }
+              }
+              return pd;
+            }
+            // 날짜 정보 없으면 오늘 날짜
+            var today = new Date();
+            return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+          })(),
           err: ''
         });
       }
@@ -2637,7 +2661,18 @@ function startAnalyzeAll() {
                       color:C.red,fontSize:14,fontWeight:800,outline:'none'}}),
                   h('input',{type:'date',value:item.date,
                     disabled:item.status==='saved',
-                    onChange:function(e){updateItem(item.id,{date:e.target.value});},
+                    onChange:function(e){
+                      var newDate = e.target.value;
+                      // ★ 사용자가 직접 입력한 날짜도 과거면 보정
+                      if (newDate && newDate.length === 10) {
+                        var inputYear = parseInt(newDate.split('-')[0]);
+                        var currentYear = new Date().getFullYear();
+                        if (inputYear < currentYear) {
+                          newDate = currentYear + newDate.substring(4);
+                        }
+                      }
+                      updateItem(item.id, {date: newDate});
+                    },
                     style:{flex:1,padding:'6px 8px',borderRadius:6,
                       background:C.faint,border:'1px solid '+C.border,
                       color:C.text,fontSize:11,outline:'none'}})
@@ -2837,11 +2872,25 @@ function SMSIn(props) {
           if(!matched && isCVS)  { data.category = 'other'; data.sub_category = '편의점'; matched = true; }
         }
 
-       // ★ 날짜 형식 보정 (MM/DD, MM-DD → YYYY-MM-DD)
+     // ★ 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
         var parsedDate = data.date || '';
-        if(parsedDate && parsedDate.length <= 5) {
-          var dp = parsedDate.replace(/\//g,'-').split('-');
-          parsedDate = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
+        if(parsedDate) {
+          var pd = String(parsedDate).replace(/\//g,'-');
+          // 1) 월/일만 있을 때 (5-8, 05-08 등)
+          if(pd.length <= 5) {
+            var parts = pd.split('-');
+            pd = new Date().getFullYear() + '-' + String(parts[0]).padStart(2,'0') + '-' + String(parts[1]||'01').padStart(2,'0');
+          }
+          // 2) 연도가 있지만 과거 연도일 때 (2023-05-08, 2024-05-08 등)
+          if(pd.length === 10) {
+            var pyear = parseInt(pd.split('-')[0]);
+            var cyear = new Date().getFullYear();
+            if(pyear < cyear) {
+              // 과거 연도 → 현재 연도로 교체
+              pd = cyear + pd.substring(4);
+            }
+          }
+          parsedDate = pd;
         }
         if(!parsedDate || parsedDate.length < 8) parsedDate = new Date().toISOString().split('T')[0];
         
@@ -2878,6 +2927,20 @@ function SMSIn(props) {
             h('input',{value:editRes.store,onChange:function(e){setEditRes(Object.assign({},editRes,{store:e.target.value}));}, style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.text,fontSize:13,marginBottom:10,outline:'none'}}),
             h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'금액'),
             h('input',{value:editRes.amount ? parseInt(editRes.amount).toLocaleString() : '',onChange:function(e){setEditRes(Object.assign({},editRes,{amount:parseInt(e.target.value.replace(/[^\d]/g,''))||0}));}, type:'tel', style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.red,fontSize:20,fontWeight:800,marginBottom:10,outline:'none'}}),
+            h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'날짜'),
+            h('input',{type:'date',value:editRes.date || new Date().toISOString().split('T')[0],
+              onChange:function(e){
+                var newDate = e.target.value;
+                if (newDate && newDate.length === 10) {
+                  var inputYear = parseInt(newDate.split('-')[0]);
+                  var currentYear = new Date().getFullYear();
+                  if (inputYear < currentYear) {
+                    newDate = currentYear + newDate.substring(4);
+                  }
+                }
+                setEditRes(Object.assign({},editRes,{date:newDate}));
+              },
+              style:{width:'100%',padding:'8px 12px',borderRadius:8,background:C.faint,border:'1px solid '+C.border,color:C.text,fontSize:13,marginBottom:10,outline:'none'}}),
             h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카테고리'),
             h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}},
               EX_CATS.map(function(c){
@@ -3021,17 +3084,22 @@ function CaptureIn(props) {
         setEditAmt(result.amount ? String(result.amount) : '');
         setEditCat(result.category || 'food');
         setEditSubCat(result.sub_category || '');
-        // ★ 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
+       // ★ 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
         if(result.date) {
-          var rd = String(result.date).replace(/\//g,'-');
+          var rd = String(result.date).replace(/\//g,'-').replace(/\./g,'-');
+          // 1) 월/일만 있을 때 (5-8, 05-08 등)
           if(rd.length <= 5) {
             var dp = rd.split('-');
             rd = new Date().getFullYear() + '-' + String(dp[0]).padStart(2,'0') + '-' + String(dp[1]||'01').padStart(2,'0');
           }
+          // 2) 연도가 있지만 과거 연도일 때 (2023-05-08, 2024-05-08 등)
           if(rd.length === 10) {
             var ry = parseInt(rd.split('-')[0]);
             var cy = new Date().getFullYear();
-            if(ry < cy) rd = cy + rd.substring(4);
+            if(ry < cy) {
+              // 과거 연도 → 현재 연도로 교체
+              rd = cy + rd.substring(4);
+            }
           }
           setEditDate(rd);
         }
@@ -6800,34 +6868,61 @@ function App() {
       if(data){ 
         var arr = Object.values(data).sort(function(a,b){ return new Date(b.date)-new Date(a.date); }); 
         
-        // ★★★ [실제 휴대폰 네이티브 알림 시스템] (기존 로직 침범 0%) ★★★
+       // ★★★ [실제 휴대폰 네이티브 알림 시스템] (기존 로직 침범 0%) ★★★
         if(!isFirstLoad.current && arr.length > prevTxCount.current) {
           var alarms = lsGet('flai_alarms', {newTx:true, budget:true, income:false});
           var newTx = arr[0]; // 방금 막 들어온 새 데이터
           
           if('Notification' in window && Notification.permission === 'granted') {
-            // 1. 수입 발생 알림
-            if(newTx.type === 'income' && alarms.income) {
-              new Notification('💰 수입 발생', {body: newTx.store + '에서 ' + (newTx.amount||0).toLocaleString() + '원이 입금되었습니다.', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
-            }
-            // 2. 새로운 지출 발생 알림
-            if(newTx.type === 'expense' && alarms.newTx) {
-              var memObj = MEMBERS.find(function(m){return m.id===newTx.member}) || {name:'가족'};
-              new Notification('💸 결제 알림 (by '+memObj.name+')', {body: newTx.store + '에서 ' + (newTx.amount||0).toLocaleString() + '원 사용', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+            
+            // ★ 10초 딜레이 후 알림 발송 (오입력 수정 시간 확보)
+            setTimeout(function() {
               
-              // 3. 예산 80% 초과 감지 및 경고 알림
-              if(alarms.budget) {
-                var budgetSet = lsGet('flai_budget', 0);
-                if(budgetSet > 0) {
-                  var curMonth = new Date().toISOString().slice(0,7);
-                  var curTotE = arr.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
-                  // 이번 결제로 인해 예산 80% 선을 처음 돌파했을 때 딱 한 번만!
-                  if(curTotE >= budgetSet * 0.8 && (curTotE - newTx.amount) < budgetSet * 0.8) {
-                    new Notification('🚨 예산 경고', {body: '이번 달 지출이 예산의 80%를 돌파했습니다! (현재 ' + curTotE.toLocaleString() + '원)', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
+              // 구성원 정보 가져오기
+              var memObj = MEMBERS.find(function(m){return m.id===newTx.member}) || {name:'가족'};
+              
+              // 카테고리 정보 가져오기
+              var catObj = EX_CATS.find(function(c){return c.id===newTx.catId}) || {name:'기타'};
+              
+              // 1. 수입 발생 알림 (상세 스타일)
+              if(newTx.type === 'income' && alarms.income) {
+                new Notification('💵 수입 입력', {
+                  body: memObj.name + '님이 수입을 입력했어요\n' + (newTx.store || '상호명 없음') + ' | ' + (newTx.amount||0).toLocaleString() + '원',
+                  icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                  vibrate: [200, 100, 200],
+                  tag: 'income-' + newTx.id
+                });
+              }
+              
+              // 2. 새로운 지출 발생 알림 (상세 스타일)
+              if(newTx.type === 'expense' && alarms.newTx) {
+                new Notification('💰 가계부 업데이트', {
+                  body: memObj.name + '님이 ' + catObj.name + '을(를) 입력했어요\n' + (newTx.store || '상호명 없음') + ' | ' + (newTx.amount||0).toLocaleString() + '원',
+                  icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                  vibrate: [200, 100, 200],
+                  tag: 'expense-' + newTx.id
+                });
+                
+                // 3. 예산 80% 초과 감지 및 경고 알림
+                if(alarms.budget) {
+                  var budgetSet = lsGet('flai_budget', 0);
+                  if(budgetSet > 0) {
+                    var curMonth = new Date().toISOString().slice(0,7);
+                    var curTotE = arr.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
+                    // 이번 결제로 인해 예산 80% 선을 처음 돌파했을 때 딱 한 번만!
+                    if(curTotE >= budgetSet * 0.8 && (curTotE - newTx.amount) < budgetSet * 0.8) {
+                      new Notification('🚨 예산 경고', {
+                        body: '이번 달 지출이 예산의 80%를 돌파했습니다!\n현재 ' + curTotE.toLocaleString() + '원 / 예산 ' + budgetSet.toLocaleString() + '원',
+                        icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                        vibrate: [300, 200, 300, 200, 300],
+                        tag: 'budget-warning'
+                      });
+                    }
                   }
                 }
               }
-            }
+              
+            }, 10000); // ★ 10초 딜레이 (10000ms)
           }
         }
         isFirstLoad.current = false;
