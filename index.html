@@ -4910,7 +4910,7 @@ function CalendarView(props) {
       var d = tx.date;
       if (!map[d]) map[d] = { income: 0, expense: 0, incCnt: 0, expCnt: 0, txs: [] };
       if (tx.type === 'income') { map[d].income += tx.amount; map[d].incCnt++; }
-      else { map[d].expense += tx.amount; map[d].expCnt++; }
+      else if (tx.catId !== 'invest' && tx.catId !== 'travel_fund') { map[d].expense += tx.amount; map[d].expCnt++; }
       map[d].txs.push(tx);
     });
     return map;
