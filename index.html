@@ -163,6 +163,11 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1)}
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+<style>
+  .emoji-picker-modal { position:fixed; inset:0; z-index:9999; display:flex; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.5); }
+  .emoji-picker-modal emoji-picker { width:100%; max-width:430px; height:320px; --background:#141A36; --border-color:#2A3055; --indicator-color:#00E5FF; --input-border-color:#2A3055; --input-font-color:#E8E8EC; --input-placeholder-color:#666; --category-font-color:#8888AA; --text-color:#E8E8EC; --button-active-background:#1E2548; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -279,19 +284,20 @@ function getFinMonth(dateStr, sDay) {
 /* ★수정: 대표님 추가 요청 세부 카테고리(생필품) 반영 완료! */
 var SUB_CATS = {
   food: ['외식', '식자재', '식대', '간식/후식/디저트'], 
-  shop: ['온라인', '오프라인', 'TV홈쇼핑'],
+  shop: ['온라인', '오프라인', 'TV홈쇼핑', '다이소', '쿠팡'],
   culture: ['OTT', '예술공연', '취미생활', '지적및문화', '여행'],
   trans: ['주유', '버스', '택시', '지하철'],
   comm: ['아빠', '엄마', '딸', '기타'],
   health: ['병원', '약', '건강보조식품'],
-  ins: ['아빠', '엄마', '딸', '부모님'],
+  ins: ['아빠', '엄마', '딸', '부모님', '자동차보험', '실비보험', '암보험'],
   edu: ['학원', '서적', '인강', '예체능'],
   daily: ['위생&케어용품', '세제&청소용품', '가전&가구', '주방용품', '잡화'],
   other: ['편의점', '할인마트', '정비&수리'],
-  event: ['결혼', '장례', '생일'],
+  event: ['결혼', '장례', '생일', '어버이날', '크리스마스'],
   finance: ['대출이자', '원금상환'],
   invest: ['주식', '코인', 'ISA', 'IRP', '연금저축', '저축', '예적금'],
-  leisure: ['여행', '기념일', '휴가']
+  leisure: ['여행', '기념일', '휴가'],
+  util: ['아파트 관리비', '가스비', '지방세', '보유세', '자동차세금']
 };
 
 function lsGet(key, def) {
@@ -431,6 +437,116 @@ var TREND = [
 
 function fmt(n)  { return '₩' + Math.round(n).toLocaleString('ko-KR'); }
 function fmtS(n) { return n >= 10000 ? '₩'+(n/10000).toFixed(0)+'만' : '₩'+Math.round(n).toLocaleString(); }
+// ★ 브랜드 로고 매핑 (인라인 SVG - 외부 의존 없음)
+var STORE_LOGOS = (function() {
+  function enc(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s); }
+  return {
+    'CU': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="14" fill="#8B1FA2"/>'
+      +'<ellipse cx="32" cy="29" rx="22" ry="16" fill="#9C1FBE" stroke="#ffffff" stroke-width="2.5"/>'
+      +'<text x="32" y="36" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="#ffffff" text-anchor="middle">CU</text>'
+      +'<path d="M18 46 Q32 56 46 46" stroke="#4CAF50" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+      +'</svg>'
+    ),
+    'EMART24': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#FFFFFF" stroke="#eeeeee" stroke-width="1"/>'
+      +'<text x="32" y="30" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="13" font-weight="700" fill="#FF6000" text-anchor="middle">emart</text>'
+      +'<text x="32" y="50" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="#FF6000" text-anchor="middle">24</text>'
+      +'</svg>'
+    ),
+    'GS25': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#0066CC"/>'
+      +'<rect x="0" y="32" width="64" height="32" rx="10" fill="#CC0000"/>'
+      +'<rect x="0" y="28" width="64" height="8" fill="#0066CC"/>'
+      +'<rect x="0" y="32" width="64" height="4" fill="#CC0000"/>'
+      +'<text x="32" y="25" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="#FFD700" text-anchor="middle">GS</text>'
+      +'<text x="32" y="56" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="#FFFFFF" text-anchor="middle">25</text>'
+      +'</svg>'
+    ),
+    '7ELEVEN': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#007B3A"/>'
+      +'<rect x="4" y="4" width="56" height="38" rx="6" fill="#FFFFFF"/>'
+      +'<text x="32" y="36" font-family="Arial Black,Impact,sans-serif" font-size="36" font-weight="900" fill="#F47920" text-anchor="middle">7</text>'
+      +'<rect x="4" y="30" width="56" height="6" fill="#CC0000" opacity="0.85"/>'
+      +'<text x="32" y="56" font-family="Arial Black,sans-serif" font-size="11" font-weight="900" fill="#FFFFFF" text-anchor="middle">ELEVEN</text>'
+      +'</svg>'
+    ),
+    '파리바게뜨': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<circle cx="32" cy="32" r="31" fill="#FFFFFF" stroke="#2C1810" stroke-width="2"/>'
+      +'<circle cx="32" cy="32" r="24" fill="#FFFFFF" stroke="#2C1810" stroke-width="1"/>'
+      +'<text x="32" y="18" font-family="Georgia,serif" font-size="5.5" fill="#2C1810" text-anchor="middle" letter-spacing="2">PARIS BAGUETTE</text>'
+      +'<text x="32" y="38" font-family="Georgia,Times New Roman,serif" font-size="22" font-weight="700" fill="#2C1810" text-anchor="middle">B</text>'
+      +'<text x="32" y="52" font-family="Georgia,serif" font-size="5" fill="#2C1810" text-anchor="middle" letter-spacing="1.5">BOULANGERIE</text>'
+      +'</svg>'
+    ),
+    '뚜레쥬르': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#1B4D1B"/>'
+      +'<text x="33" y="46" font-family="Times New Roman,Georgia,serif" font-size="32" font-weight="700" fill="#C9A84C" text-anchor="middle" font-style="italic">TLJ</text>'
+      +'</svg>'
+    ),
+    '노브랜드': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#FFE600"/>'
+      +'<circle cx="11" cy="35" r="7" fill="#FFE600" stroke="#000000" stroke-width="1.5"/>'
+      +'<circle cx="9" cy="33" r="1" fill="#000000"/>'
+      +'<circle cx="13" cy="33" r="1" fill="#000000"/>'
+      +'<path d="M8 37 Q11 40 14 37" stroke="#000000" stroke-width="1.2" fill="none" stroke-linecap="round"/>'
+      +'<circle cx="53" cy="35" r="7" fill="#FFE600" stroke="#000000" stroke-width="1.5"/>'
+      +'<circle cx="51" cy="33" r="1" fill="#000000"/>'
+      +'<circle cx="55" cy="33" r="1" fill="#000000"/>'
+      +'<path d="M50 37 Q53 40 56 37" stroke="#000000" stroke-width="1.2" fill="none" stroke-linecap="round"/>'
+      +'<text x="32" y="26" font-family="Arial Black,sans-serif" font-size="11" font-weight="900" fill="#000000" text-anchor="middle">No</text>'
+      +'<text x="32" y="40" font-family="Arial Black,sans-serif" font-size="11" font-weight="900" fill="#000000" text-anchor="middle">Brand</text>'
+      +'</svg>'
+    ),
+    '다이소': enc(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      +'<rect width="64" height="64" rx="10" fill="#CC0000"/>'
+      +'<text x="32" y="30" font-family="Arial Black,sans-serif" font-size="13" font-weight="900" fill="#FFFFFF" text-anchor="middle">DAISO</text>'
+      +'<rect x="10" y="34" width="44" height="2" fill="#FFFFFF" opacity="0.5"/>'
+      +'<text x="32" y="50" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">다이소</text>'
+      +'</svg>'
+    )
+  };
+})();
+
+function getStoreLogo(storeName) {
+  if (!storeName) return null;
+  var n = storeName.replace(/\s/g, '');
+  if (n.indexOf('CU') >= 0 || n.indexOf('씨유') >= 0)          return STORE_LOGOS['CU'];
+  if (n.indexOf('이마트24') >= 0 || n.indexOf('EMART24') >= 0)  return STORE_LOGOS['EMART24'];
+  if (n.indexOf('GS25') >= 0 || n.indexOf('지에스') >= 0)       return STORE_LOGOS['GS25'];
+  if (n.indexOf('7') >= 0 || n.indexOf('세븐') >= 0)            return STORE_LOGOS['7ELEVEN'];
+  if (n.indexOf('파리바게') >= 0)                                return STORE_LOGOS['파리바게뜨'];
+  if (n.indexOf('뚜레') >= 0)                                    return STORE_LOGOS['뚜레쥬르'];
+  if (n.indexOf('노브랜드') >= 0)                                return STORE_LOGOS['노브랜드'];
+  if (n.indexOf('다이소') >= 0)                                  return STORE_LOGOS['다이소'];
+  return null;
+}
+
+function storeIcon(storeName, catIcon, size) {
+  var logo = getStoreLogo(storeName);
+  if (logo) {
+    return h('img', {
+      src: logo,
+      style: {
+        width: size || 20,
+        height: size || 20,
+        borderRadius: 4,
+        objectFit: 'contain',
+        background: '#fff'
+      },
+      onError: function(e) { e.target.style.display = 'none'; }
+    });
+  }
+  return catIcon;
+}
 function getCat(id) { return ALL_CATS.find(function(c){return c.id===id;}) || {name:'기타',icon:'💸',color:'#B2BEC3'}; }
 function getMem(id) { return MEMBERS.find(function(m){return m.id===id;}) || MEMBERS[0]; }
 function srcIcon(s) {
@@ -1168,12 +1284,13 @@ function EditModal(props) {
   var isInv = tx.type==='invest' || tx.type==='asset_move';
   var cats = isI ? IN_CATS : (isInv ? INV_CATS : EX_CATS);
   
+  // ★ 자주 쓰는 아이콘 (축소) + 이모지 피커로 무한 확장 가능
   var DIARY_ICONS = [
-    '📝','🍪','☕','🍦','🍡','🍱','🥗','🥩','🐟','🛒',
-    '📦','🛍️','🏪','📺','🚗','🚕','🚌','🚆','✈️','⛽',
-    '🅿️','🛣️','🏠','🏥','🚬','🎬','📖','💐','🎂','🎁',
-    '❤️','⭐','💡','🔋','💊','💵','💳','🎫','💸','💰',
-    '📈','📉','🌍','🌊','☁️','🤖','🔥','🍺','⚽','PB_LOGO'
+    '📝','🍪','☕','🍦','🍱','🥗','🛒',
+    '📦','🛍️','🏪','🚗','🚌','✈️','⛽',
+    '🏠','🏥','🎬','📖','💐','🎂','🎁',
+    '❤️','⭐','💡','💊','💵','💳','💸',
+    '😊','😢','😡','🥰','🤗','😴','💪'
   ];
 
   // ⭐️ 3. 멀티 아이콘 토글 로직 (최대 5개)
@@ -1215,22 +1332,39 @@ function EditModal(props) {
       style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,border:'1px solid '+C.border, color:C.text,fontSize:14,marginBottom:12,boxSizing:'border-box',outline:'none'}}),
 
     // ⭐️ 4. 메모 및 멀티 아이콘 수정 UI
-    h('p',{style:{color:C.muted,fontSize:11,margin:'6px 0 6px',paddingLeft:4}},'📝 메모 및 이모티콘 수정'),
-    h('textarea',{
-      value:s.memo[0], 
-      onChange:function(e){s.memo[1](e.target.value);}, 
-      placeholder:'메모를 수정하세요', 
-      style:{width:'100%',height:60,padding:'12px',borderRadius:12,background:C.card2,border:'1px solid '+C.accent+'66',color:C.text,fontSize:14,resize:'none',outline:'none',boxSizing:'border-box',marginBottom:10,boxShadow:'0 2px 8px '+C.glow}
-    }),
-     h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7, 1fr)',gap:4,marginBottom:16,padding:'8px',background:C.faint,borderRadius:12,border:'1px solid '+C.border,maxHeight:160,overflowY:'auto'}},
+    h('p',{style:{color:C.muted,fontSize:11,margin:'6px 0 6px',paddingLeft:4}},'📝 메모 및 이모티콘 수정 (😀 버튼으로 3000개+ 검색)'),
+    h('div',{style:{position:'relative',marginBottom:10}},
+      h('textarea',{
+        value:s.memo[0], 
+        onChange:function(e){s.memo[1](e.target.value);}, 
+        placeholder:'메모를 수정하세요', 
+        style:{width:'100%',height:60,padding:'12px',paddingRight:50,borderRadius:12,background:C.card2,border:'1px solid '+C.accent+'66',color:C.text,fontSize:14,resize:'none',outline:'none',boxSizing:'border-box',boxShadow:'0 2px 8px '+C.glow}
+      }),
+      h('button',{
+        onClick:function(){
+          if(document.querySelector('.emoji-picker-modal')) return;
+          var modal = document.createElement('div');
+          modal.className = 'emoji-picker-modal';
+          modal.onclick = function(e){ if(e.target === modal) modal.remove(); };
+          var picker = document.createElement('emoji-picker');
+          picker.setAttribute('locale','ko');
+          picker.addEventListener('emoji-click',function(ev){
+            s.memo[1](s.memo[0] + ev.detail.unicode);
+            modal.remove();
+          });
+          modal.appendChild(picker);
+          document.body.appendChild(modal);
+        },
+        style:{position:'absolute',right:8,top:8,width:36,height:36,borderRadius:10,border:'1px solid '+C.accent+'44',background:C.card,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}
+      },'😀')
+    ),
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7, 1fr)',gap:4,marginBottom:16,padding:'8px',background:C.faint,borderRadius:12,border:'1px solid '+C.border}},
       DIARY_ICONS.map(function(icon){
-        var displayIcon = icon === 'PB_LOGO' ? h('img', {src:'https://i.ibb.co/pP6Z3vG/PB-LOGO.png', style:{width:20,height:20,borderRadius:'50%',objectFit:'contain',background:'#fff'}}) : icon;
-        var insertText = icon === 'PB_LOGO' ? '[PB로고]' : icon;
         return h('div',{
           key:icon, 
-          onClick:function(){ s.memo[1](s.memo[0] + insertText); }, 
+          onClick:function(){ s.memo[1](s.memo[0] + icon); }, 
           style:{width:'100%',aspectRatio:'1/1',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,cursor:'pointer',borderRadius:8,background:C.card, boxShadow:'0 1px 2px rgba(0,0,0,0.2)'}
-        }, displayIcon);
+        }, icon);
       })
     ),
 
@@ -1826,21 +1960,41 @@ isFixed && h('div',{style:{marginBottom:12}},
       })
     ),
 // ⭐️ 상호명 입력창 바로 밑에 들어가는 메모&아이콘 UI
-    h('p',{style:{color:C.muted,fontSize:11,margin:'6px 0 6px',paddingLeft:4}},'📝 메모 및 이모티콘 (아이콘을 누르면 글씨처럼 입력됩니다)'),
-    // 텍스트 입력창
-    h('textarea',{
-      value:memo, 
-      onChange:function(e){setMemo(e.target.value);}, 
-      placeholder:'메모와 이모티콘을 자유롭게 섞어서 입력하세요', 
-      style:{width:'100%',height:60,padding:'12px',borderRadius:12,background:C.card2,border:'1px solid '+C.accent+'66',color:C.text,fontSize:14,resize:'none',outline:'none',boxSizing:'border-box',marginBottom:10,boxShadow:'0 2px 8px '+C.glow}
-    }),
-    // 50개 대형 아이콘 키보드 (가로/세로 스크롤 가능하게 깔끔히 정돈)
-    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7, 1fr)',gap:6,marginBottom:16,padding:'12px',background:C.faint,borderRadius:12,border:'1px solid '+C.border,maxHeight:180,overflowY:'auto'}},
+    h('p',{style:{color:C.muted,fontSize:11,margin:'6px 0 6px',paddingLeft:4}},'📝 메모 및 이모티콘 (아이콘 또는 😀 버튼으로 입력)'),
+    // 텍스트 입력창 + 이모지 피커 버튼
+    h('div',{style:{position:'relative',marginBottom:10}},
+      h('textarea',{
+        value:memo, 
+        onChange:function(e){setMemo(e.target.value);}, 
+        placeholder:'메모와 이모티콘을 자유롭게 섞어서 입력하세요', 
+        style:{width:'100%',height:60,padding:'12px',paddingRight:50,borderRadius:12,background:C.card2,border:'1px solid '+C.accent+'66',color:C.text,fontSize:14,resize:'none',outline:'none',boxSizing:'border-box',boxShadow:'0 2px 8px '+C.glow}
+      }),
+      h('button',{
+        onClick:function(){
+          // 이모지 피커 모달 열기
+          if(document.querySelector('.emoji-picker-modal')) return;
+          var modal = document.createElement('div');
+          modal.className = 'emoji-picker-modal';
+          modal.onclick = function(e){ if(e.target === modal) modal.remove(); };
+          var picker = document.createElement('emoji-picker');
+          picker.setAttribute('locale','ko');
+          picker.addEventListener('emoji-click',function(ev){
+            setMemo(memo + ev.detail.unicode);
+            modal.remove();
+          });
+          modal.appendChild(picker);
+          document.body.appendChild(modal);
+        },
+        style:{position:'absolute',right:8,top:8,width:36,height:36,borderRadius:10,border:'1px solid '+C.accent+'44',background:C.card,fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}
+      },'😀')
+    ),
+    // 자주 쓰는 아이콘 (축소 버전)
+    h('div',{style:{display:'grid',gridTemplateColumns:'repeat(7, 1fr)',gap:6,marginBottom:16,padding:'10px',background:C.faint,borderRadius:12,border:'1px solid '+C.border}},
       DIARY_ICONS.map(function(icon){
         return h('div',{
           key:icon, 
-          onClick:function(){setMemo(memo + icon);}, // ★ 클릭 시 텍스트 뒤에 찰딱 붙음!
-          style:{width:'100%',aspectRatio:'1/1',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,cursor:'pointer',borderRadius:10,background:C.card, boxShadow:'0 2px 4px rgba(0,0,0,0.2)', transition:'transform 0.1s'}
+          onClick:function(){setMemo(memo + icon);},
+          style:{width:'100%',aspectRatio:'1/1',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,cursor:'pointer',borderRadius:8,background:C.card, boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}
         }, icon);
       })
     ),
@@ -4486,7 +4640,7 @@ function ExpertGuideModal(props) {
             var cat=getCat(tx.catId);
             return h('div',{key:tx.id,style:{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid '+C.faint}},
               h('span',{style:{color:C.muted,fontSize:11,width:20,textAlign:'right'}},i+1),
-              h('span',{style:{fontSize:16}},cat.icon),
+              h('div',{style:{fontSize:16,display:'inline-flex'}},storeIcon(tx.store, cat.icon, 18)),
               h('div',{style:{flex:1,minWidth:0}},
                 h('p',{style:{color:C.text,fontSize:12,fontWeight:700,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store||'미입력'),
                 h('p',{style:{color:C.muted,fontSize:10,margin:0}},tx.date+' · '+(tx.subCat||cat.name))
@@ -5063,7 +5217,7 @@ function CalendarView(props) {
             borderBottom:ti < selTxs.length-1 ? '1px solid '+C.faint : 'none'}},
             h('div', {style:{width:36, height:36, borderRadius:10, background:txCat.color+'22',
               display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
-              boxShadow:'0 2px 6px '+txCat.color+'33'}}, txCat.icon),
+              boxShadow:'0 2px 6px '+txCat.color+'33'}}, storeIcon(tx.store, txCat.icon, 26)),
             h('div', {style:{flex:1, minWidth:0}},
               h('div', {style:{display:'flex', alignItems:'center', gap:6, marginBottom:2}},
                 h('span', {style:{color:C.text, fontSize:13, fontWeight:700}}, tx.store || '미입력'),
@@ -5179,7 +5333,7 @@ function CalendarView(props) {
       var d = tx.date;
       if (!map[d]) map[d] = { income: 0, expense: 0, incCnt: 0, expCnt: 0, txs: [] };
       if (tx.type === 'income') { map[d].income += tx.amount; map[d].incCnt++; }
-      else { map[d].expense += tx.amount; map[d].expCnt++; }
+      else if (tx.catId !== 'invest' && tx.catId !== 'travel_fund') { map[d].expense += tx.amount; map[d].expCnt++; }
       map[d].txs.push(tx);
     });
     return map;
@@ -5679,7 +5833,7 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
                   },
                     h('div',{style:{display:'flex',alignItems:'center',gap:10}},
                       selMode && h('div',{style:{width:20,height:20,borderRadius:'50%',flexShrink:0, background:isSel?C.red:C.faint,border:'2px solid '+(isSel?C.red:C.border), display:'flex',alignItems:'center',justifyContent:'center', fontSize:11,color:'#fff',fontWeight:700}},isSel?'✓':''),
-                      h('div',{style:{width:36,height:36,borderRadius:10,background:cat.color+'22', border:'1px solid '+cat.color+'44',display:'flex',alignItems:'center', justifyContent:'center',fontSize:18,flexShrink:0}},cat.icon),
+                      h('div',{style:{width:36,height:36,borderRadius:10,background:cat.color+'22', border:'1px solid '+cat.color+'44',display:'flex',alignItems:'center', justifyContent:'center',fontSize:18,flexShrink:0}},storeIcon(tx.store, cat.icon, 24)),
                       h('div',{style:{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:3}},
                         h('p',{style:{color:C.text,fontSize:13,fontWeight:700,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store),
                           tx.memo && h('div', {className: 'memo-container', style:{marginTop:2, paddingLeft: tx.memo.length > 20 ? 0 : 8}},
@@ -5702,11 +5856,13 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
                           h('span',{style:{color:C.muted,fontSize:10}},tx.date.slice(5)+' · '+tx.method.slice(0,10))
                         )
                       ),
-                      // ✅ hh 오타 수정됨
+                     // [금액 및 태그 영역]
                       h('div',{style:{textAlign:'right',flexShrink:0}},
-                        h('p',{style:{color: tx.type==='income' ? C.green : C.text, fontSize:13, fontWeight:800, margin:'0 0 3px'}}, (tx.type==='income' ? '+' : '-') + fmt(tx.amount)),
-                        // ✅ cat.color+ 오타 수정됨
-                        h('span',{style:{background:cat.color+'22',color:cat.color,fontSize:9,fontWeight:600,padding:'2px 5px',borderRadius:10}},cat.name)
+                        h('p',{style:{color: tx.type==='income' ? C.green : C.red, fontSize:14, fontWeight:800, margin:'0 0 4px'}}, (tx.type==='income' ? '+' : '-') + fmt(tx.amount).replace('₩','')),
+                        h('div', {style:{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2}},
+                          h('span',{style:{background:cat.color+'22',color:cat.color,fontSize:9,fontWeight:600,padding:'2px 5px',borderRadius:10}},cat.name),
+                          tx.subCat && h('span',{style:{background:C.border, color:'#FFFFFF', fontSize:9, padding:'1px 5px', borderRadius:10, fontWeight:700}}, tx.subCat)
+                        )
                       )
                     )
                   );
@@ -5714,7 +5870,8 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
               )
             );
           })
-        ), // ✅ 괄호 꼬임 완벽 해결
+        ),
+
     editTx && h(EditModal,{tx:editTx, onSave:function(u){onUpdate(u);setEditTx(null);}, onDelete:function(id){onDelete(id);setEditTx(null);}, onClose:function(){setEditTx(null);}})
   );
 }
