@@ -87,10 +87,10 @@
       
       // PWA 매니페스트 동적 생성
       var manifest = {
-        id: '/family-ledger/', // 식별자
+        id: currentUrl, // 고유 ID도 현재 주소로
         name: 'FamilyLedger AI 가계부',
         short_name: '가계부',
-        start_url: '.', // 필수: 상대 경로로 설정하여 충돌 방지
+        start_url: currentUrl, // ★ 상대경로(.) 대신 절대경로 삽입!
         display: 'standalone',
         background_color: '#0A0E27',
         theme_color: '#00E5FF',
