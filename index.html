@@ -71,7 +71,9 @@
 
   function generateIcon(size) {
     var c = document.createElement('canvas'); c.width = size; c.height = size;
-    var ctx = c.getContext('2d'); drawAppIcon(ctx, size); return c.toDataURL('image/png');
+    var ctx = c.getContext('2d', { willReadFrequently: true });
+    drawAppIcon(ctx, size); 
+    return c.toDataURL('image/png', 0.8);
   }
 
   window.addEventListener('DOMContentLoaded', function(){
@@ -85,12 +87,17 @@
       var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
       document.head.appendChild(apple);
       
+      // ★ 누락되었던 핵심 변수 완벽 선언
+      var currentUrl = window.location.href.split('?')[0];
+      var scopeUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+      
       // PWA 매니페스트 동적 생성
       var manifest = {
-        id: currentUrl, // 고유 ID도 현재 주소로
+        id: currentUrl,
         name: 'FamilyLedger AI 가계부',
         short_name: '가계부',
-        start_url: currentUrl, // ★ 상대경로(.) 대신 절대경로 삽입!
+        start_url: currentUrl,
+        scope: scopeUrl,
         display: 'standalone',
         background_color: '#0A0E27',
         theme_color: '#00E5FF',
@@ -101,10 +108,11 @@
         ]
       };
       
-      var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+      // Blob 에러를 원천 차단하는 Data URI 방식 사용
+      var manifestData = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
       var mLink = document.createElement('link'); 
       mLink.rel = 'manifest'; 
-      mLink.href = URL.createObjectURL(blob);
+      mLink.href = manifestData;
       document.head.appendChild(mLink);
       
       console.log('🔥 PWA Manifest 정상 생성 완료!');
