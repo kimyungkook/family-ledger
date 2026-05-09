@@ -10,13 +10,13 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <title>FamilyLedger AI</title>
 <script>
-// ★★★ [앱 아이콘 설정] — 아이콘 변경시 drawAppIcon 함수만 수정 ★★★
+// ★★★ [앱 아이콘 및 PWA 매니페스트 완벽 생성 코드] ★★★
 (function(){
   function drawAppIcon(ctx, s) {
     var r = s/192;
     ctx.fillStyle = '#0A0E27';
     roundRect(ctx, 0, 0, s, s, 42*r); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 1.2*r; 
+    ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 1.2*r;
     roundRect(ctx, 0, 0, s, s, 42*r); ctx.stroke();
     ctx.fillStyle = '#101C3A'; ctx.strokeStyle = 'rgba(0,229,255,0.4)'; ctx.lineWidth = 0.8*r;
     roundRect(ctx, 45*r, 32*r, 96*r, 120*r, 7*r); ctx.fill(); ctx.stroke();
@@ -55,10 +55,12 @@
     var dots = [['#FF6B9D',53*r,18*r],['#00E5FF',66*r,14*r],['#FFD700',79*r,18*r]];
     dots.forEach(function(d){ ctx.fillStyle=d[0]; ctx.beginPath(); ctx.arc(d[1],d[2],5*r,0,Math.PI*2); ctx.fill(); });
   }
+
   function drawCheck(ctx, x, y, r, color) {
     ctx.strokeStyle = color; ctx.lineWidth = 1.8*r; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+4*r,y+4*r); ctx.lineTo(x+10*r,y-4*r); ctx.stroke();
   }
+
   function roundRect(ctx, x, y, w, h, rad) {
     ctx.beginPath(); ctx.moveTo(x+rad,y); ctx.lineTo(x+w-rad,y);
     ctx.arcTo(x+w,y,x+w,y+rad,rad); ctx.lineTo(x+w,y+h-rad);
@@ -66,27 +68,29 @@
     ctx.arcTo(x,y+h,x,y+h-rad,rad); ctx.lineTo(x,y+rad);
     ctx.arcTo(x,y,x+rad,y,rad); ctx.closePath();
   }
+
   function generateIcon(size) {
     var c = document.createElement('canvas'); c.width = size; c.height = size;
     var ctx = c.getContext('2d'); drawAppIcon(ctx, size); return c.toDataURL('image/png');
   }
+
   window.addEventListener('DOMContentLoaded', function(){
     try {
       var icon192 = generateIcon(192);
       var icon512 = generateIcon(512);
       
-      // 파비콘 및 애플 터치 아이콘 추가
       var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = icon192;
       document.head.appendChild(fav);
+      
       var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
       document.head.appendChild(apple);
       
-      // ★ 마스터 수정: PWA 동적 매니페스트 무결성 코드
+      // PWA 매니페스트 동적 생성
       var manifest = {
-        id: '/familyledger/', // 최근 PWA 필수 규격 (고유 ID)
+        id: '/family-ledger/', // 식별자
         name: 'FamilyLedger AI 가계부',
         short_name: '가계부',
-        start_url: '.', // 현재 디렉토리를 상대 경로로 지정 (blob 충돌 방지)
+        start_url: '.', // 필수: 상대 경로로 설정하여 충돌 방지
         display: 'standalone',
         background_color: '#0A0E27',
         theme_color: '#00E5FF',
@@ -96,18 +100,19 @@
           { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
         ]
       };
-
-      // 동적 Manifest 주입
+      
       var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
       var mLink = document.createElement('link'); 
       mLink.rel = 'manifest'; 
       mLink.href = URL.createObjectURL(blob);
       document.head.appendChild(mLink);
-
+      
+      console.log('🔥 PWA Manifest 정상 생성 완료!');
     } catch(e) { 
-      console.warn('[PWA아이콘]', e); 
+      console.warn('[PWA아이콘/매니페스트 오류]', e); 
     }
   });
+})();
 </script>
 <style>
 /* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
