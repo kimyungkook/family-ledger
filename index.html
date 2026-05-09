@@ -70,41 +70,33 @@
     var c = document.createElement('canvas'); c.width = size; c.height = size;
     var ctx = c.getContext('2d'); drawAppIcon(ctx, size); return c.toDataURL('image/png');
   }
-// ★★★ [PWA 완벽 구현 - 초경량 SVG 방식 (에러 원천 차단)] ★★★
-window.addEventListener('DOMContentLoaded', function(){
-  try {
-    var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0A0E27"/><rect width="512" height="512" rx="112" fill="none" stroke="#00E5FF" stroke-width="12"/><text x="256" y="320" font-size="240" font-family="sans-serif" font-weight="bold" fill="#00E5FF" text-anchor="middle">W</text></svg>';
-    var iconBase64 = 'data:image/svg+xml;base64,' + btoa(svgStr);
-
-    var fav = document.createElement('link'); fav.rel = 'icon'; fav.href = iconBase64;
-    document.head.appendChild(fav);
-    var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = iconBase64;
-    document.head.appendChild(apple);
-
-    var currentUrl = window.location.href.split('?')[0];
-
-    var manifest = {
-      id: currentUrl,
-      name: 'FamilyLedger AI 가계부',
-      short_name: '가계부',
-      start_url: currentUrl,
-      display: 'standalone',
-      background_color: '#0A0E27',
-      theme_color: '#00E5FF',
-      icons: [
-        { src: iconBase64, sizes: '192x192 512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-      ]
-    };
-
-    var manifestData = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
-    var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = manifestData;
-    document.head.appendChild(mLink);
-
-    console.log('🔥 PWA Manifest 정상 생성 및 아이콘 로드 완료!');
-  } catch(e) { 
-    console.warn('[PWA오류]', e); 
-  }
-});
+  window.addEventListener('DOMContentLoaded', function(){
+    try {
+      var icon192 = generateIcon(192);
+      var icon512 = generateIcon(512);
+      var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = icon192;
+      document.head.appendChild(fav);
+      var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
+      document.head.appendChild(apple);
+      var manifest = {
+        name: 'FamilyLedger AI 가계부',
+        short_name: '가계부',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#0A0E27',
+        theme_color: '#00E5FF',
+        orientation: 'portrait',
+        icons: [
+          { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+      var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(blob);
+      document.head.appendChild(mLink);
+    } catch(e) { console.warn('[PWA아이콘]', e); }
+  });
+})();
 </script>
 <style>
 /* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
