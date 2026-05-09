@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <title>FamilyLedger AI</title>
 <script>
-// ★★★ [앱 아이콘 및 PWA 매니페스트 완벽 생성 코드] ★★★
+// ★★★ [앱 아이콘 설정] — 아이콘 변경시 drawAppIcon 함수만 수정 ★★★
 (function(){
   function drawAppIcon(ctx, s) {
     var r = s/192;
@@ -55,12 +55,10 @@
     var dots = [['#FF6B9D',53*r,18*r],['#00E5FF',66*r,14*r],['#FFD700',79*r,18*r]];
     dots.forEach(function(d){ ctx.fillStyle=d[0]; ctx.beginPath(); ctx.arc(d[1],d[2],5*r,0,Math.PI*2); ctx.fill(); });
   }
-
   function drawCheck(ctx, x, y, r, color) {
     ctx.strokeStyle = color; ctx.lineWidth = 1.8*r; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+4*r,y+4*r); ctx.lineTo(x+10*r,y-4*r); ctx.stroke();
   }
-
   function roundRect(ctx, x, y, w, h, rad) {
     ctx.beginPath(); ctx.moveTo(x+rad,y); ctx.lineTo(x+w-rad,y);
     ctx.arcTo(x+w,y,x+w,y+rad,rad); ctx.lineTo(x+w,y+h-rad);
@@ -68,58 +66,44 @@
     ctx.arcTo(x,y+h,x,y+h-rad,rad); ctx.lineTo(x,y+rad);
     ctx.arcTo(x,y,x+rad,y,rad); ctx.closePath();
   }
-
   function generateIcon(size) {
     var c = document.createElement('canvas'); c.width = size; c.height = size;
-    var ctx = c.getContext('2d', { willReadFrequently: true });
-    drawAppIcon(ctx, size); 
-    return c.toDataURL('image/png', 0.8);
+    var ctx = c.getContext('2d'); drawAppIcon(ctx, size); return c.toDataURL('image/png');
   }
-
-// ★★★ [PWA 완벽 구현 - 초경량 SVG 방식 (에러 원천 차단)] ★★★
-window.addEventListener('DOMContentLoaded', function(){
-  try {
-    // 1. 크롬이 절대 거부하지 않는 초소형 벡터 아이콘 생성
-    var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0A0E27"/><rect width="512" height="512" rx="112" fill="none" stroke="#00E5FF" stroke-width="12"/><text x="256" y="320" font-size="240" font-family="sans-serif" font-weight="bold" fill="#00E5FF" text-anchor="middle">W</text></svg>';
-    var iconBase64 = 'data:image/svg+xml;base64,' + btoa(svgStr);
-
-    // 2. 파비콘 적용
-    var fav = document.createElement('link'); fav.rel = 'icon'; fav.href = iconBase64;
-    document.head.appendChild(fav);
-    var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = iconBase64;
-    document.head.appendChild(apple);
-
-    // 3. 현재 주소 확보
-    var currentUrl = window.location.href.split('?')[0];
-
-    // 4. 초경량 매니페스트 생성
-    var manifest = {
-      id: currentUrl,
-      name: 'FamilyLedger AI 가계부',
-      short_name: '가계부',
-      start_url: currentUrl,
-      display: 'standalone',
-      background_color: '#0A0E27',
-      theme_color: '#00E5FF',
-      icons: [
-        { src: iconBase64, sizes: '192x192 512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-      ]
-    };
-
-    var manifestData = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
-    var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = manifestData;
-    document.head.appendChild(mLink);
-
-    console.log('🔥 PWA Manifest 정상 생성 및 아이콘 로드 완료!');
-  } catch(e) { 
-    console.warn('[PWA오류]', e); 
-  }
-});
+  window.addEventListener('DOMContentLoaded', function(){
+    try {
+      var icon192 = generateIcon(192);
+      var icon512 = generateIcon(512);
+      var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = icon192;
+      document.head.appendChild(fav);
+      var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
+      document.head.appendChild(apple);
+      var manifest = {
+        name: 'FamilyLedger AI 가계부',
+        short_name: '가계부',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#0A0E27',
+        theme_color: '#00E5FF',
+        orientation: 'portrait',
+        icons: [
+          { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+      var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(blob);
+      document.head.appendChild(mLink);
+    } catch(e) { console.warn('[PWA아이콘]', e); }
+  });
+})();
 </script>
 <style>
 /* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&family=Nanum+Pen+Script&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2205@1.0/KCC-Ganpan.css');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/Hahmlet-Regular.css');
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 
@@ -1270,7 +1254,7 @@ function EditModal(props) {
   function renderIcon(icon, size) {
     if (icon === 'PB_LOGO') {
       return h('img', {
-        src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 
+        src: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png', 
         style: { width: size || 18, height: size || 18, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', backgroundColor: '#fff' }
       });
     }
@@ -3476,47 +3460,6 @@ function AlarmModal(props) {
     {key:'income',  label:'수입 입력 알림',         desc:'급여 등 수입 입력 시'}
   ];
   return h(Sheet, {title:'🔔 알림 설정', onClose:onClose},
-    h('button', {
-      onClick: function() {
-        if ('Notification' in window) {
-          if (Notification.permission === 'granted') {
-            new Notification('🔔 테스트 알림', {
-              body: '알림이 정상적으로 작동합니다! ✅',
-              icon: ''https://i.ibb.co/pP6Z3vG/PB-LOGO.png',',
-              vibrate: [200, 100, 200]
-            });
-          } else if (Notification.permission === 'denied') {
-            alert('❌ 알림 권한이 거부되었습니다.\n\n브라우저 설정에서 알림을 허용해주세요.');
-          } else {
-            Notification.requestPermission().then(function(permission) {
-              if (permission === 'granted') {
-                new Notification('🔔 테스트 알림', {
-                  body: '알림이 정상적으로 작동합니다! ✅',
-                  icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                  vibrate: [200, 100, 200]
-                });
-              } else {
-                alert('❌ 알림 권한을 허용하지 않았습니다.');
-              }
-            });
-          }
-        } else {
-          alert('❌ 이 브라우저는 알림을 지원하지 않습니다.');
-        }
-      },
-      style: {
-        width: '100%',
-        padding: '16px',
-        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '15px',
-        fontWeight: '700',
-        marginBottom: '16px',
-        cursor: 'pointer'
-      }
-    }, '🧪 알림 테스트 (클릭)'),
     h(GCard,{style:{marginBottom:14,background:C.accent+'11',border:'1px solid '+C.accent+'44'}},
       h('p',{style:{color:C.accent,fontSize:12,fontWeight:700,margin:'0 0 6px'}},'알림 기능이란?'),
       h('p',{style:{color:C.muted,fontSize:12,margin:0,lineHeight:1.7}},
