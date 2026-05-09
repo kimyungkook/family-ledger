@@ -16,7 +16,7 @@
     var r = s/192;
     ctx.fillStyle = '#0A0E27';
     roundRect(ctx, 0, 0, s, s, 42*r); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 1.2*r;
+    ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 1.2*r; 
     roundRect(ctx, 0, 0, s, s, 42*r); ctx.stroke();
     ctx.fillStyle = '#101C3A'; ctx.strokeStyle = 'rgba(0,229,255,0.4)'; ctx.lineWidth = 0.8*r;
     roundRect(ctx, 45*r, 32*r, 96*r, 120*r, 7*r); ctx.fill(); ctx.stroke();
@@ -74,16 +74,19 @@
     try {
       var icon192 = generateIcon(192);
       var icon512 = generateIcon(512);
+      
+      // 파비콘 및 애플 터치 아이콘 추가
       var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = icon192;
       document.head.appendChild(fav);
       var apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = icon192;
       document.head.appendChild(apple);
-      var currentUrl = window.location.pathname;
+      
+      // ★ 마스터 수정: PWA 동적 매니페스트 무결성 코드
       var manifest = {
+        id: '/familyledger/', // 최근 PWA 필수 규격 (고유 ID)
         name: 'FamilyLedger AI 가계부',
         short_name: '가계부',
-        start_url: currentUrl,
-        scope: currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1),
+        start_url: '.', // 현재 디렉토리를 상대 경로로 지정 (blob 충돌 방지)
         display: 'standalone',
         background_color: '#0A0E27',
         theme_color: '#00E5FF',
@@ -93,12 +96,18 @@
           { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
         ]
       };
+
+      // 동적 Manifest 주입
       var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-      var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(blob);
+      var mLink = document.createElement('link'); 
+      mLink.rel = 'manifest'; 
+      mLink.href = URL.createObjectURL(blob);
       document.head.appendChild(mLink);
-    } catch(e) { console.warn('[PWA아이콘]', e); }
+
+    } catch(e) { 
+      console.warn('[PWA아이콘]', e); 
+    }
   });
-})();
 </script>
 <style>
 /* ★수정: 프리텐다드 및 다양한 웹폰트 임포트 ★ */
