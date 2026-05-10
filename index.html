@@ -5676,7 +5676,11 @@ function TxList(props) {
       if(minAmt !== '' && amt < parseInt(minAmt)) return false;
       if(maxAmt !== '' && amt > parseInt(maxAmt)) return false;
       return true;
-    }).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+      }).sort(function(a,b){
+      var td = new Date(b.date||0) - new Date(a.date||0);
+      if (td !== 0) return td;
+      return (Number(b.id)||0) - (Number(a.id)||0);
+    });
   },[txs,search,fCat,fMem,dFrom,dTo,minAmt,maxAmt]);
 
   var totE = filtered.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
@@ -7059,75 +7063,72 @@ function App() {
   var pendingTx = useState(null);          var setPendingTx = pendingTx[1]; pendingTx = pendingTx[0];
 
   // ★ 추가: 알림 무한반복을 막기 위한 방어벽
+   // ★ 알림: 첫 Firebase 스냅샷은 무시, 이후에는 "이전에 없던 id"만 새 내역으로 판정 (arr[0]은 날짜 정렬이라 틀릴 수 있음)
   var isFirstLoad = useRef(true);
-  var prevTxCount = useRef(0);
+  var prevTxIdsRef = useRef(new Set());
 
   useEffect(function(){
     var r = fbRef('txs'); if(!r) return;
     r.on('value', function(snap){ 
       var data = snap.val(); 
       if(data){ 
-        var arr = Object.values(data).sort(function(a,b){ return new Date(b.date)-new Date(a.date); }); 
+          var arr = Object.values(data).sort(function(a,b){
+          var td = new Date(b.date||0) - new Date(a.date||0);
+          if (td !== 0) return td;
+          return (Number(b.id)||0) - (Number(a.id)||0);
+        });  
         
-       // ★★★ [실제 휴대폰 네이티브 알림 시스템] (기존 로직 침범 0%) ★★★
-        if(!isFirstLoad.current && arr.length > prevTxCount.current) {
-          var alarms = lsGet('flai_alarms', {newTx:true, budget:true, income:false});
-          var newTx = arr[0]; // 방금 막 들어온 새 데이터
-          
-          if('Notification' in window && Notification.permission === 'granted') {
-            
-            // ★ 10초 딜레이 후 알림 발송 (오입력 수정 시간 확보)
-            setTimeout(function() {
-              
-              // 구성원 정보 가져오기
-              var memObj = MEMBERS.find(function(m){return m.id===newTx.member}) || {name:'가족'};
-              
-              // 카테고리 정보 가져오기
-              var catObj = EX_CATS.find(function(c){return c.id===newTx.catId}) || {name:'기타'};
-              
-              // 1. 수입 발생 알림 (상세 스타일)
-              if(newTx.type === 'income' && alarms.income) {
-                new Notification('💵 수입 입력', {
-                  body: memObj.name + '님이 수입을 입력했어요\n' + (newTx.store || '상호명 없음') + ' | ' + (newTx.amount||0).toLocaleString() + '원',
-                  icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                  vibrate: [200, 100, 200],
-                  tag: 'income-' + newTx.id
-                });
-              }
-              
-              // 2. 새로운 지출 발생 알림 (상세 스타일)
-              if(newTx.type === 'expense' && alarms.newTx) {
-                new Notification('💰 가계부 업데이트', {
-                  body: memObj.name + '님이 ' + catObj.name + '을(를) 입력했어요\n' + (newTx.store || '상호명 없음') + ' | ' + (newTx.amount||0).toLocaleString() + '원',
-                  icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                  vibrate: [200, 100, 200],
-                  tag: 'expense-' + newTx.id
-                });
-                
-                // 3. 예산 80% 초과 감지 및 경고 알림
-                if(alarms.budget) {
-                  var budgetSet = lsGet('flai_budget', 0);
-                  if(budgetSet > 0) {
-                    var curMonth = new Date().toISOString().slice(0,7);
-                    var curTotE = arr.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
-                    // 이번 결제로 인해 예산 80% 선을 처음 돌파했을 때 딱 한 번만!
-                    if(curTotE >= budgetSet * 0.8 && (curTotE - newTx.amount) < budgetSet * 0.8) {
-                      new Notification('🚨 예산 경고', {
-                        body: '이번 달 지출이 예산의 80%를 돌파했습니다!\n현재 ' + curTotE.toLocaleString() + '원 / 예산 ' + budgetSet.toLocaleString() + '원',
-                        icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                        vibrate: [300, 200, 300, 200, 300],
-                        tag: 'budget-warning'
-                      });
+       // ★★★ [실제 휴대폰 네이티브 알림 시스템] ★★★
+        if(!isFirstLoad.current) {
+          var prevSet = prevTxIdsRef.current;
+          var newItems = arr.filter(function(t){ return t && !prevSet.has(String(t.id)); });
+          if(newItems.length > 0) {
+            newItems.sort(function(a,b){ return (Number(b.id)||0) - (Number(a.id)||0); });
+            var latestNewTx = newItems[0];
+            var alarms = lsGet(LS_ALARMS, {newTx:true, budget:true, monthly:true, ai:true, income:false});
+            if('Notification' in window && Notification.permission === 'granted') {
+              var arrSnap = arr;
+              setTimeout(function() {
+                var tx = latestNewTx;
+                var memObj = MEMBERS.find(function(m){return m.id===tx.member}) || {name:'가족'};
+                var catObj = EX_CATS.find(function(c){return c.id===tx.catId}) || {name:'기타'};
+                if(tx.type === 'income' && alarms.income) {
+                  new Notification('💵 수입 입력', {
+                    body: memObj.name + '님이 수입을 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
+                    icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'income-' + tx.id
+                  });
+                }
+                if(tx.type === 'expense' && alarms.newTx) {
+                  new Notification('💰 가계부 업데이트', {
+                    body: memObj.name + '님이 ' + catObj.name + '을(를) 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
+                    icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'expense-' + tx.id
+                  });
+                  if(alarms.budget) {
+                    var budgetSet = lsGet('flai_budget', 0);
+                    if(budgetSet > 0) {
+                      var curMonth = new Date().toISOString().slice(0,7);
+                      var curTotE = arrSnap.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
+                      if(curTotE >= budgetSet * 0.8 && (curTotE - tx.amount) < budgetSet * 0.8) {
+                        new Notification('🚨 예산 경고', {
+                          body: '이번 달 지출이 예산의 80%를 돌파했습니다!\n현재 ' + curTotE.toLocaleString() + '원 / 예산 ' + budgetSet.toLocaleString() + '원',
+                          icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
+                          vibrate: [300, 200, 300, 200, 300],
+                          tag: 'budget-warning'
+                        });
+                      }
                     }
                   }
                 }
-              }
-              
-            }, 10000); // ★ 10초 딜레이 (10000ms)
+              }, 3000);
+            }
           }
         }
+        prevTxIdsRef.current = new Set(arr.map(function(t){ return String(t.id); }));
         isFirstLoad.current = false;
-        prevTxCount.current = arr.length;
         // ★★★ [알림 시스템 끝] ★★★
 
         setTxs(arr); 
