@@ -81,7 +81,8 @@
       var manifest = {
         name: 'FamilyLedger AI 가계부',
         short_name: '가계부',
-        start_url: '.',
+        start_url: (function(){ try { var u = new URL(location.href); u.hash=''; return u.pathname + u.search; } catch(e){ return './'; } })(),
+        scope: (function(){ try { var u = new URL(location.href); return u.pathname.replace(/[^/]+$/, '') || '/'; } catch(e){ return './'; } })(),
         display: 'standalone',
         background_color: '#0A0E27',
         theme_color: '#00E5FF',
@@ -95,6 +96,15 @@
       var mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(blob);
       document.head.appendChild(mLink);
     } catch(e) { console.warn('[PWA아이콘]', e); }
+  });
+})();
+<script>
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function (e) {
+      console.warn('[PWA SW]', e);
+    });
   });
 })();
 </script>
