@@ -271,6 +271,69 @@ var LS_GOALS = 'flai_goals';   // 가족 목표 저장소
 var LS_CARD_ARCHIVE = 'flai_card_archive'; // 카드명세 보관함
 if(!lsGet(LS_CARD_ARCHIVE,null)) lsSet(LS_CARD_ARCHIVE,[]);
 
+// ★★★ [STEP1-완성판] 카드 결제일 시스템 ★★★
+var LS_CARD_BILLING_DAY = 'flai_card_billing_day';
+
+/* 결제일 기준 기간 계산 (billingDay=12 → 전월13일~당월12일) */
+function getCardBillingPeriod(billingDay, baseDate) {
+  var bd = Math.max(1, Math.min(28, parseInt(billingDay) || 12));
+  var y  = baseDate.getFullYear();
+  var m  = baseDate.getMonth(); // 0-indexed
+  var sy = y, sm = m - 1;
+  if (sm < 0) { sm = 11; sy--; }
+  return {
+    start: new Date(sy, sm, bd + 1, 0, 0, 0),
+    end:   new Date(y,  m,  bd,     23, 59, 59)
+  };
+}
+
+/* ★★★ 핵심 수정: 등록카드(bank_name 형식) + 직접입력(신용카드) 모두 잡는 판별 함수 ★★★ */
+function isCreditCardMethod(method) {
+  if (!method) return false;
+  var m = method.toString();
+  // 1. 직접 '신용카드' 또는 '신용' 포함
+  if (m === '신용카드' || m.indexOf('신용') >= 0) return true;
+  // 2. 명백한 비신용 결제 방법 → 즉시 false
+  var notCredit = ['체크카드','현금','이체','카카오페이','네이버페이','상품권','지역화폐','기타','카드'];
+  for (var i = 0; i < notCredit.length; i++) {
+    if (m === notCredit[i]) return false;
+  }
+  // 3. ★★ 핵심: 등록된 신용카드와 method 문자열 매칭 ★★
+  // method 저장 형식: "신한_아이사랑행복카드(****-****-****-1234)"
+  var registeredCards = lsGet(LS_CARDS, INIT_CARDS);
+  for (var j = 0; j < registeredCards.length; j++) {
+    var c = registeredCards[j];
+    if (c.type === 'credit') {
+      var bankMatch = m.indexOf(c.bank) >= 0;
+      var nameMatch = m.indexOf(c.name) >= 0;
+      var last4Match = c.last4 && m.indexOf(c.last4) >= 0;
+      if (bankMatch && (nameMatch || last4Match)) return true;
+    }
+  }
+  return false;
+}
+
+/* 신용카드 전용 + 결제기간 필터 (전체 txs 기준) */
+function filterCreditCardTxs(allTxs, billingDay, baseDate) {
+  var period = getCardBillingPeriod(billingDay, baseDate);
+  var sDate  = period.start;
+  var eDate  = period.end;
+  return allTxs.filter(function(tx) {
+    if (tx.type !== 'expense') return false;
+    if (tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
+    if (!isCreditCardMethod(tx.method)) return false;
+    var d = new Date(tx.date + 'T12:00:00');
+    return d >= sDate && d <= eDate;
+  });
+}
+
+/* 날짜 포맷 MM월 DD일 */
+function fmtBillingDate(d) {
+  if (!d) return '';
+  return (d.getMonth() + 1) + '월 ' + String(d.getDate()).padStart(2, '0') + '일';
+}
+// ★★★ [STEP1 끝] ★★★
+
 if(!lsGet(LS_GOALS, null)) lsSet(LS_GOALS, { title: '여름휴가비 모으기', target: 3000000, isCompleted: false });
 
 /* 가족 목표 데이터 불러오기 */
@@ -391,13 +454,44 @@ var THEME_LIGHT = {
   grad: '#0984E3', glow: 'rgba(0,191,165,0.12)', tabActive: 'linear-gradient(135deg,#00BFA5,#0984E3)', tabText: '#fff', navGrad: 'linear-gradient(135deg,#00BFA5,#0984E3)'
 };
 
-// 3. 🍜 코지 모드 (두번째 사진: 다크브라운+오렌지 카페)
+/* [수정 범위: THEME_COZY 업그레이드 V2] */
 var THEME_COZY = {
-  bg: '#1A1008', card: '#2A1F14', card2: '#3D2B1F', border: '#4A3728',
-  accent: '#E8732A', red: '#FF6B35', green: '#6ABF69', gold: '#FFB347',
-  text: '#F5E6D3', muted: '#A89080', faint: '#2A1F14',
-  btn: '#E8732A', chart: ['#E8732A', '#FFB347', '#D4813B', '#8B6914', '#FF6B35'],
-  grad: '#FFB347', glow: 'rgba(232,115,42,0.25)', tabActive: 'linear-gradient(135deg,#E8732A,#FFB347)', tabText: '#fff', navGrad: 'linear-gradient(135deg,#E8732A,#FFB347)'
+  // 1. 배경: 순수 블랙 탈피, 상단은 약간 밝고 하단은 깊이감 있는 다크 네이비 브라운
+  bg: 'linear-gradient(180deg, #1E1E1E 0%, #121212 100%)', 
+  
+  // 2. 카드: 하이라이트가 가미된 메탈릭 그라데이션 (36% 농도 강화)
+  card: 'linear-gradient(135deg, rgba(50,35,25,0.98) 0%, rgba(35,22,15,0.95) 50%, rgba(20,12,8,0.98) 100%)',
+  card2: 'linear-gradient(135deg, rgba(70,50,40,0.98) 0%, rgba(45,30,22,0.95) 100%)',
+  
+  // 3. 발광 윤곽선: 금색 광채가 은은하게 퍼지는 고휘도 보더
+  border: 'rgba(255, 196, 107, 0.35)', 
+  
+  accent: '#FFAC5F', // 조금 더 고급스러운 피치 골드
+  red: '#FF7E6D',
+  green: '#74E682',
+  gold: '#FFD38C',
+  text: '#FFF9F2',    // 가독성을 위한 최고급 크림 화이트
+  muted: '#C7B19D',
+  faint: 'rgba(255,255,255,0.07)',
+  btn: 'linear-gradient(90deg, #FF9E45, #FFC46B)', // 버튼에도 그라데이션 적용
+  
+  chart: [
+    '#FFAC5F',
+    '#FFD38C',
+    '#FF7E6D',
+    '#FFC46B',
+    '#74E682'
+  ],
+  
+  // 4. 메인 강조 그라데이션: 채도를 높이고 빛의 반사를 시각화
+  grad: 'linear-gradient(135deg, #FFD38C 0%, #FF9E45 40%, #E67E22 100%)',
+  
+  // 5. 발광(Glow) 효과: 객체가 배경에 완전히 안착되도록 만드는 외부/내부 광원
+  glow: '0 0 20px rgba(255, 158, 69, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.05)',
+  
+  tabActive: 'linear-gradient(135deg, #FFD38C, #FF9E45)',
+  tabText: '#FFFFFF',
+  navGrad: 'linear-gradient(180deg, #2A1A10, #121212)' // 네비게이션 바 하단 고정감 강화
 };
 
 var C = savedTheme === 'light' ? THEME_LIGHT : (savedTheme === 'cozy' ? THEME_COZY : THEME_DARK);
@@ -481,6 +575,99 @@ var TREND = [
 
 function fmt(n)  { return '₩' + Math.round(n).toLocaleString('ko-KR'); }
 function fmtS(n) { return n >= 10000 ? '₩'+(n/10000).toFixed(0)+'만' : '₩'+Math.round(n).toLocaleString(); }
+
+// ★★★ [전역] 신용카드 판별 함수 ★★★
+var LS_CARD_BILLING_DAY = 'flai_card_billing_day';
+
+function isCredit(method) {
+  if (!method) return false;
+  var m = String(method).trim();
+
+  // ── 1. 명백한 비카드 결제수단 즉시 제외 ──
+  var notCard = ['현금','이체','카카오페이','네이버페이','상품권',
+                 '지역화폐','기타','급여이체','현금영수증','계좌이체'];
+  for (var i = 0; i < notCard.length; i++) {
+    if (m === notCard[i]) return false;
+  }
+
+  // ── 2. 체크카드 제외 ──
+  if (m === '체크카드') return false;
+  if (m.indexOf('체크') >= 0 && m.indexOf('카드') >= 0) return false;
+  if (m.indexOf('직불') >= 0) return false;
+
+  // ── 3. 명시적 신용카드 라벨 ──
+  if (m === '신용카드') return true;
+  if (m === '카드')     return true; // 불명확한 '카드' → 신용카드로 처리
+  if (m.indexOf('신용') >= 0) return true;
+
+  // ── 4. 등록된 카드 목록과 매칭 (핵심) ──
+  var cards = [];
+  try {
+    var raw = lsGet(LS_CARDS, null);
+    if (Array.isArray(raw)) cards = raw;
+  } catch(e) { cards = []; }
+
+  for (var j = 0; j < cards.length; j++) {
+    var c = cards[j];
+    if (!c || !c.bank) continue;
+    var bankHit  = m.indexOf(c.bank) >= 0;
+    var nameHit  = c.name  && m.indexOf(c.name)  >= 0;
+    var last4Hit = c.last4 && m.indexOf(c.last4) >= 0;
+    if (bankHit && (nameHit || last4Hit)) {
+      // 등록카드와 매칭됨 → type으로 신용/체크 구분
+      return c.type === 'credit';
+    }
+  }
+
+  // ── 5. ★★★ 핵심 보완: 카드번호 패턴(****) 감지 ──
+  // methodDisplay()가 등록카드 사용 시 반드시 "****" 포함
+  // 체크카드가 아닌 **** 패턴 = 신용카드로 판단
+  if (m.indexOf('****') >= 0) {
+    // 등록된 체크카드 목록과 대조 → 체크카드면 제외
+    var isKnownDebit = false;
+    for (var k = 0; k < cards.length; k++) {
+      var dc = cards[k];
+      if (!dc || dc.type !== 'check') continue;
+      var dbankHit  = dc.bank  && m.indexOf(dc.bank)  >= 0;
+      var dnameHit  = dc.name  && m.indexOf(dc.name)  >= 0;
+      var dlast4Hit = dc.last4 && m.indexOf(dc.last4) >= 0;
+      if (dbankHit && (dnameHit || dlast4Hit)) { isKnownDebit = true; break; }
+    }
+    if (!isKnownDebit) return true; // 등록된 체크카드 아니면 → 신용카드
+  }
+
+  // ── 6. 카드사 이름 직접 포함 여부 (CSV 업로드 대응) ──
+  var creditBanks = ['신한카드','국민카드','KB카드','하나카드','우리카드',
+                     'IBK카드','농협카드','NH카드','현대카드','삼성카드',
+                     '롯데카드','BC카드','씨티카드','카카오뱅크카드'];
+  for (var n = 0; n < creditBanks.length; n++) {
+    if (m.indexOf(creditBanks[n]) >= 0 && m.indexOf('체크') < 0) return true;
+  }
+
+  // ── 7. 페이류는 신용카드 아님 ──
+  if (m.indexOf('페이') >= 0) return false;
+
+  return false;
+}
+
+function getCardBillingPeriod(billingDay, baseDate) {
+  var bd = Math.max(1, Math.min(28, parseInt(billingDay) || 12));
+  var y = baseDate.getFullYear();
+  var m = baseDate.getMonth();
+  var sy = y; var sm = m - 1;
+  if (sm < 0) { sm = 11; sy--; }
+  return {
+    start: new Date(sy, sm, bd + 1, 0, 0, 0),
+    end:   new Date(y,  m,  bd,     23, 59, 59)
+  };
+}
+
+function fmtBillingDate(d) {
+  if (!d) return '';
+  return (d.getMonth() + 1) + '월 ' + String(d.getDate()).padStart(2, '0') + '일';
+}
+// ★★★ [전역 함수 끝] ★★★
+
 // ★ 브랜드 로고 매핑 (인라인 SVG - 외부 의존 없음)
 var STORE_LOGOS = (function() {
   function enc(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s); }
@@ -591,6 +778,104 @@ function storeIcon(storeName, catIcon, size) {
   }
   return catIcon;
 }
+
+// ★★★ [STEP2] 2026 프리미엄 SVG 아이콘 ★★★
+function CubeIcon(props) {
+  var ratio = props.ratio || 0;
+  var size  = props.size  || 52;
+  var S = String(size);
+
+  /* 순수 코어 (0~25%) — 홀로그램 헥사곤 다이아몬드 */
+  var svgPure =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+      +'<radialGradient id="rpure" cx="42%" cy="35%" r="58%">'
+        +'<stop offset="0%" stop-color="#CCFFFF"/><stop offset="50%" stop-color="#00CCFF"/><stop offset="100%" stop-color="#0033AA"/>'
+      +'</radialGradient>'
+      +'<filter id="fpure" x="-50%" y="-50%" width="200%" height="200%">'
+        +'<feGaussianBlur stdDeviation="2.5" result="b"/>'
+        +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+      +'</filter>'
+    +'</defs>'
+    +'<polygon points="24,3 45,15 45,33 24,45 3,33 3,15" fill="url(#rpure)" filter="url(#fpure)"/>'
+    +'<polygon points="24,3 45,15 24,20" fill="rgba(255,255,255,0.35)"/>'
+    +'<polygon points="3,15 24,20 24,45" fill="rgba(0,60,180,0.45)"/>'
+    +'<polygon points="45,15 45,33 24,45 24,20" fill="rgba(0,100,210,0.40)"/>'
+    +'<line x1="3" y1="15" x2="45" y2="15" stroke="rgba(0,255,255,0.4)" stroke-width="0.7"/>'
+    +'<line x1="24" y1="3" x2="3" y2="15" stroke="rgba(0,255,255,0.5)" stroke-width="0.7"/>'
+    +'<line x1="24" y1="3" x2="45" y2="15" stroke="rgba(0,255,255,0.5)" stroke-width="0.7"/>'
+    +'<circle cx="24" cy="17" r="4" fill="rgba(255,255,255,0.95)" filter="url(#fpure)"/>'
+    +'<circle cx="24" cy="17" r="1.5" fill="#00FFFF"/>'
+    +'</svg>';
+
+  /* 안정적 큐브 (25~50%) — 3D 아이소메트릭 퍼플 큐브 */
+  var svgStable =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+      +'<linearGradient id="lgtop" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#CCA8FF"/><stop offset="100%" stop-color="#7C4DFF"/></linearGradient>'
+      +'<linearGradient id="lgleft" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3A1580"/><stop offset="100%" stop-color="#5E35B1"/></linearGradient>'
+      +'<linearGradient id="lgright" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="#7E57C2"/><stop offset="100%" stop-color="#4527A0"/></linearGradient>'
+      +'<filter id="fstable" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'</defs>'
+    +'<g filter="url(#fstable)">'
+      +'<polygon points="24,5 44,16 24,26 4,16" fill="url(#lgtop)"/>'
+      +'<polygon points="4,16 24,26 24,44 4,34" fill="url(#lgleft)"/>'
+      +'<polygon points="44,16 44,34 24,44 24,26" fill="url(#lgright)"/>'
+    +'</g>'
+    +'<polygon points="24,5 44,16 24,26 4,16" fill="none" stroke="rgba(200,168,255,0.6)" stroke-width="0.8"/>'
+    +'<line x1="24" y1="5" x2="24" y2="26" stroke="rgba(255,255,255,0.25)" stroke-width="0.8"/>'
+    +'<line x1="4" y1="16" x2="44" y2="16" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>'
+    +'<line x1="4" y1="34" x2="24" y2="44" stroke="rgba(255,255,255,0.12)" stroke-width="0.7"/>'
+    +'<line x1="44" y1="34" x2="24" y2="44" stroke="rgba(255,255,255,0.12)" stroke-width="0.7"/>'
+    +'<circle cx="24" cy="16" r="2.8" fill="rgba(255,255,255,0.9)"/>'
+    +'</svg>';
+
+  /* 균열된 유리 (50~75%) — 오렌지 크랙 팔각형 */
+  var svgCracked =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+      +'<radialGradient id="rcrack" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#FFE566"/><stop offset="50%" stop-color="#FF9E45"/><stop offset="100%" stop-color="#C05000"/></radialGradient>'
+      +'<filter id="fcrack" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'</defs>'
+    +'<polygon points="18,3 30,3 44,16 44,32 30,45 18,45 4,32 4,16" fill="url(#rcrack)" filter="url(#fcrack)" opacity="0.93"/>'
+    +'<polygon points="18,3 30,3 44,16 44,32 30,45 18,45 4,32 4,16" fill="none" stroke="rgba(255,210,80,0.65)" stroke-width="1.2"/>'
+    +'<path d="M25,5 L17,19 L27,24 L19,43" stroke="rgba(255,255,255,0.9)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'<path d="M31,9 L24,20 L30,25 L26,40" stroke="rgba(255,255,255,0.38)" stroke-width="1" fill="none" stroke-linecap="round"/>'
+    +'<path d="M13,14 L20,22" stroke="rgba(255,255,255,0.28)" stroke-width="0.9" fill="none" stroke-linecap="round"/>'
+    +'<circle cx="22" cy="22" r="2.5" fill="rgba(255,255,255,0.95)"/><circle cx="22" cy="22" r="1" fill="#FF9E45"/>'
+    +'</svg>';
+
+  /* 과열된 플라즈마 (75~100%) — 붉은 에너지 볼 */
+  var svgPlasma =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+      +'<radialGradient id="rpout" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FF1155"/><stop offset="55%" stop-color="#CC1111"/><stop offset="100%" stop-color="#550000"/></radialGradient>'
+      +'<radialGradient id="rpin" cx="38%" cy="35%" r="50%"><stop offset="0%" stop-color="rgba(255,210,90,1)"/><stop offset="65%" stop-color="rgba(255,90,40,0.5)"/><stop offset="100%" stop-color="rgba(255,0,50,0)"/></radialGradient>'
+      +'<filter id="fplasma" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'</defs>'
+    +'<circle cx="24" cy="24" r="21" fill="url(#rpout)" filter="url(#fplasma)"/>'
+    +'<circle cx="24" cy="24" r="19" fill="url(#rpin)"/>'
+    +'<path d="M24,6 Q34,14 28,23 Q22,30 30,38" stroke="rgba(255,230,100,0.9)" stroke-width="2" fill="none" stroke-linecap="round"/>'
+    +'<path d="M14,10 Q7,20 14,29 Q20,35 12,43" stroke="rgba(255,160,80,0.7)" stroke-width="1.4" fill="none" stroke-linecap="round"/>'
+    +'<path d="M34,11 Q43,20 37,29" stroke="rgba(255,210,120,0.6)" stroke-width="1.1" fill="none" stroke-linecap="round"/>'
+    +'<circle cx="24" cy="24" r="8" fill="rgba(255,245,180,0.28)"/>'
+    +'<circle cx="24" cy="24" r="3" fill="rgba(255,255,255,0.97)"/><circle cx="24" cy="24" r="1.2" fill="#FF1155"/>'
+    +'</svg>';
+
+  var svgStr = ratio > 0.75 ? svgPlasma
+             : ratio > 0.50 ? svgCracked
+             : ratio > 0.25 ? svgStable
+             :                svgPure;
+
+  return h('div', {
+    dangerouslySetInnerHTML: { __html: svgStr },
+    style: { width:size, height:size, flexShrink:0 }
+  });
+}
+// ★★★ [STEP2 끝] ★★★
+
+
+
 function getCat(id) { return ALL_CATS.find(function(c){return c.id===id;}) || {name:'기타',icon:'💸',color:'#B2BEC3'}; }
 function getMem(id) { return MEMBERS.find(function(m){return m.id===id;}) || MEMBERS[0]; }
 function srcIcon(s) {
@@ -773,13 +1058,23 @@ function GCard(props) {
       boxShadow: '0 4px 12px rgba(42, 51, 77, 0.06)'
     });
   } 
- // 🔮 코지 모드 (Aurora Glow) - v2.0 정밀 수정
+  // 🌌 코지 AMOLED (배경 밝기 상향 및 발광/그라데이션 강화 버전)
   else if (savedTheme === 'cozy') {
     Object.assign(baseStyle, {
-      background: C.card,
-      border: '1px solid ' + C.border,
-      backdropFilter: 'blur(18px)',
-      boxShadow: '0 4px 16px ' + C.glow
+      // 배경색을 약 20% 밝게 조정하고 그라데이션 대비를 36% 강화
+      background: 
+        'linear-gradient(180deg, rgba(65,48,38,0.98) 0%, rgba(35,28,24,0.98) 100%)',
+      // 은은한 발광 효과를 위해 테두리 투명도와 색상 조정
+      border: 
+        '1px solid rgba(255,190,130,0.25)', 
+      // 일체감을 위한 블러 처리 유지
+      backdropFilter: 
+        'blur(22px)',
+      WebkitBackdropFilter: 
+        'blur(22px)',
+      // 외곽선 발광(Glow) 효과 강화: 아이콘과 텍스트가 배경에 안착되도록 조정
+      boxShadow: 
+        '0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(255,158,69,0.18), inset 0 0 15px rgba(255,158,69,0.05)',
     });
   }
  // 💎 Modern Glassmorphism - v4.0
@@ -1364,7 +1659,7 @@ function EditModal(props) {
 
   return h(Sheet,{title:(isI?'💰 수입':'💸 지출')+' 수정',onClose:onClose},
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'금액'),
-    h('input',{value:s.amt[0],onChange:function(e){s.amt[1](e.target.value.replace(/\D/g,''));},type:'tel',
+    h('input',{value:s.amt[0] ? parseInt(s.amt[0]).toLocaleString() : '',onChange:function(e){s.amt[1](e.target.value.replace(/[^\d]/g,''));},type:'tel',
       style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,border:'1px solid '+C.border, color:isI?C.green:C.red,fontSize:22,fontWeight:800,marginBottom:12,boxSizing:'border-box',outline:'none'}}),
     
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'날짜'),
@@ -2960,152 +3255,161 @@ function startAnalyzeAll() {
 function SMSIn(props) {
   var onAdd = props.onAdd;
   var onBack = props.onBack;
-  var sms    = useState('');    var setSms    = sms[1];    sms    = sms[0];
-  var result = useState(null);  var setResult = result[1]; result = result[0];
-  var errMsg = useState('');    var setErrMsg = errMsg[1]; errMsg = errMsg[0];
-  var member = useState('dad'); var setMember = member[1]; member = member[0];
+  var smsState = useState(''); var sms = smsState[0]; var setSms = smsState[1];
+  var resultState = useState(null); var result = resultState[0]; var setResult = resultState[1];
+  var errMsgState = useState(''); var errMsg = errMsgState[0]; var setErrMsg = errMsgState[1];
+  var member = 'dad';
 
   function parseSMS() {
     var text = sms.trim();
-    if(!text) { setErrMsg('문자 내용을 입력해주세요'); return; }
+    if (!text) { setErrMsg('문자 내용을 입력해주세요'); return; }
     var apiKey = lsGet(LS_GEMINI, '');
-    if(!apiKey) { setErrMsg('설정에서 Gemini API 키를 먼저 등록해주세요!'); return; }
+    if (!apiKey) { setErrMsg('설정에서 AI API 키를 먼저 등록해주세요!'); return; }
 
-    setErrMsg('🧬 AI가 문자 내용을 분석 중입니다...');
-    /* ★수정: 소분류까지 추출하도록 프롬프트 변경 */
-    var prompt = "다음은 카드 결제 문자야. 여기서 정보를 추출해서 반드시 JSON 형식만 출력해.\n" +
-                 "형식: {\"bank\":\"카드사명\", \"amount\":숫자, \"store\":\"상호명\", \"date\":\"YYYY-MM-DD\", \"category\":\"대분류ID\", \"sub_category\":\"소분류명\"}\n" +
-                 "★1순위-상호명: 이름에 '마트'포함(이마트24제외)=other,할인마트. CU,GS25,세븐일레븐,이마트24,미니스톱=other,편의점. 병원=health. 식당=food,외식. 주유소=trans,주유.\n" +
-                 "★2순위-금액: 상호명으로 판단 불가할때만, 금액이4800배수이면=other,편의점.\n" +
-                 "문자내용:\n" + text;
+    setErrMsg('분석 중입니다...');
+
+    var catGuide = '카테고리 규칙(상호명 우선판단):\n' +
+      'food,외식: 식당,레스토랑,치킨,피자,족발,보쌈,갈비,삼겹,국밥,설렁탕,냉면,칼국수,분식,떡볶이,김밥,라멘,초밥,돈까스,햄버거,맥도날드,버거킹,롯데리아,맘스터치,KFC,배달,요기요,배민,쿠팡이츠,휴게소,고깃집,삼계탕,순대,만두,국수,우동,짜장,짬뽕,부대찌개,순두부,감자탕,한솥,본죽,밥집,포차,곱창,불고기,스테이크\n' +
+      'food,간식/후식/디저트: 카페,스타벅스,투썸,이디야,메가커피,빽다방,할리스,파리바게뜨,뚜레쥬르,던킨,베스킨라빈스,설빙,케이크,마카롱,도넛,제과,베이커리,와플,공차,더벤티,커피빈,블루보틀,폴바셋,요거트,젤라또,아이스크림,디저트,빙수\n' +
+      'food,식자재: 이마트,홈플러스,롯데마트,하나로,농협마트,GS더프레시,노브랜드,코스트코,트레이더스,킴스,메가마트,빅마트,탑마트,한아름,오케이마트,큐엔씨,QnC,식자재,반찬,정육,수산,청과,채소,과일,쌀,슈퍼마켓,수퍼마켓,슈퍼,수퍼,나들가게,그린마트,마트\n' +
+      'food,식대: 구내식당,급식,사원식당\n' +
+      'other,편의점: CU,GS25,세븐일레븐,이마트24,미니스톱\n' +
+      '담배특칙: 금액이 4800원또는 4800배수이면 무조건 other,편의점\n' +
+      'shop,온라인: 쿠팡,네이버쇼핑,11번가,옥션,지마켓,위메프,티몬,알리,테무,아마존,인터파크\n' +
+      'shop,오프라인: 백화점,아울렛,현대백화점,롯데백화점,신세계,갤러리아\n' +
+      'trans,주유: 주유소,SK에너지,GS칼텍스,S-OIL,현대오일,충전소\n' +
+      'trans,택시: 카카오T,타다,우버,택시\n' +
+      'trans,버스: 버스,고속버스,시외버스\n' +
+      'trans,지하철: 지하철,코레일,KTX,SRT,전철,티머니\n' +
+      'health,병원: 병원,의원,클리닉,치과,안과,피부과,한의원,정형외과,내과,이비인후과,소아과,산부인과\n' +
+      'health,약: 약국\n' +
+      'health,건강보조식품: 종근당,정관장,비타민,홍삼,유산균,콜라겐\n' +
+      'ins,보험: 보험,삼성생명,한화생명,교보생명,현대해상,메리츠\n' +
+      'comm,기타: SKT,KT,LG유플러스,통신,인터넷,알뜰폰\n' +
+      'edu,학원: 학원,교습,어학원,태권도,발레,피아노,미술학원,논술\n' +
+      'edu,서적: 교보문고,알라딘,예스24,서점,도서\n' +
+      'daily,위생&케어용품: 올리브영,다이소,화장품,샴푸,치약\n' +
+      'daily,가전&가구: 하이마트,전자랜드,이케아,한샘,가전\n' +
+      'util,관리비: 관리비,전기요금,도시가스,한국전력\n' +
+      'event,결혼: 웨딩,결혼식,돌잔치,꽃집\n' +
+      'event,장례: 장례,부의금,조의금,상조\n' +
+      'finance,대출이자: 대출,이자,상환\n' +
+      'leisure,여행: 호텔,펜션,리조트,에어비앤비,여행사,항공\n' +
+      'other,정비&수리: 카센터,타이어,세차,엔진오일';
+
+    var prompt = '다음은 카드 결제 문자야. 정보를 추출해서 JSON만 출력해. 설명금지.\n' +
+      '형식: {"bank":"카드사","amount":숫자,"store":"상호명","date":"YYYY-MM-DD","category":"ID","sub_category":"소분류"}\n' +
+      catGuide + '\n문자내용:\n' + text;
 
     callGeminiText(prompt, apiKey, function(err, res) {
-      if(err) { setErrMsg('AI 분석 실패: ' + err); return; }
-      console.log('📋 Groq 응답 원문:', res);
+      if (err) { setErrMsg('AI 분석 실패: ' + err); return; }
       try {
-        var cleanJson = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-        var s0 = cleanJson.indexOf('{'), e0 = cleanJson.lastIndexOf('}');
-        if(s0 >= 0 && e0 > s0) cleanJson = cleanJson.slice(s0, e0+1);
-        var data = JSON.parse(cleanJson);
-       /* ★ AI 결과 강제 보정 — 전체 카테고리 & 세부항목 ★ */
-        var st = (data.store || '').toLowerCase();
-        var amt = data.amount || 0;
+        var clean = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+        var s0 = clean.indexOf('{');
+        var e0 = clean.lastIndexOf('}');
+        if (s0 >= 0 && e0 > s0) clean = clean.slice(s0, e0 + 1);
+        var data = JSON.parse(clean);
+
+        var st     = (data.store || '').toLowerCase();
+        var amt    = parseInt(data.amount) || 0;
         var is4800 = (amt > 0 && amt % 4800 === 0);
-        var isMart = (st.indexOf('마트') >= 0 && st.indexOf('이마트24') < 0 && st.indexOf('미니') < 0);
-        var isCVS = (st.indexOf('cu') >= 0 || st.indexOf('gs25') >= 0 || st.indexOf('gs더프레시') >= 0 || st.indexOf('세븐') >= 0 || st.indexOf('이마트24') >= 0 || st.indexOf('미니스톱') >= 0);
         var matched = false;
 
-        /* ── 1순위: 4800 배수 = 담배값 판별 ── */
-        if(is4800) {
-          data.category = 'other';
-          data.sub_category = isMart ? '할인마트' : '편의점';
+        if (is4800) {
+          data.category    = 'other';
+          data.sub_category = '편의점';
           matched = true;
         }
 
-        /* ── 2순위: 상호명 키워드 매칭 (담배 아닐 때) ── */
-        if(!matched) {
+        if (!matched) {
           var rules = [
-            /* 식비 */
-            {k:['식당','레스토랑','치킨','피자','족발','보쌈','갈비','삼겹','국밥','설렁탕','냉면','칼국수','분식','떡볶이','김밥','라멘','초밥','돈까스','햄버거','맥도날드','버거킹','롯데리아','맘스터치','배달','요기요','배민','쿠팡이츠','휴게소'], c:'food', s:'외식'},
-            {k:['카페','스타벅스','투썸','이디야','메가커피','빽다방','할리스','베이커리','파리바게뜨','뚜레쥬르','던킨','아이스크림','베스킨라빈스','설빙','디저트'], c:'food', s:'간식/후식/디저트'},
-            {k:['홈플러스','롯데마트','하나로','농협','수퍼','슈퍼','식자재','반찬'], c:'food', s:'식자재'},
-            {k:['구내식당','급식','사원식당'], c:'food', s:'식대'},
-            /* 쇼핑 */
-            {k:['쿠팡','네이버쇼핑','11번가','옥션','지마켓','위메프','티몬','알리','테무','아마존'], c:'shop', s:'온라인'},
-            {k:['백화점','아울렛','현대백화점','롯데백화점','신세계','갤러리아'], c:'shop', s:'오프라인'},
-            {k:['홈쇼핑','CJ오쇼핑','GS홈쇼핑','현대홈쇼핑','롯데홈쇼핑'], c:'shop', s:'TV홈쇼핑'},
-            /* 문화생활 */
-            {k:['넷플릭스','유튜브프리미엄','웨이브','왓챠','디즈니','티빙','쿠팡플레이','애플tv'], c:'culture', s:'OTT'},
-            {k:['cgv','메가박스','롯데시네마','영화','극장'], c:'culture', s:'예술공연'},
-            {k:['헬스','피트니스','골프','수영','요가','필라테스','클라이밍'], c:'culture', s:'취미생활'},
-            /* 교통비 */
-            {k:['주유','sk에너지','gs칼텍스','s-oil','현대오일','충전소'], c:'trans', s:'주유'},
-            {k:['택시','카카오t','타다','우버'], c:'trans', s:'택시'},
-            {k:['버스','시내버스','시외버스','고속버스'], c:'trans', s:'버스'},
-            {k:['지하철','메트로','코레일','ktx','srt'], c:'trans', s:'지하철'},
-            /* 통신비 */
-            {k:['skt','kt','lg유플러스','알뜰폰','통신','인터넷'], c:'comm', s:'기타'},
-            /* 보험 */
-            {k:['보험','삼성생명','한화생명','교보생명','현대해상','db손해','메리츠'], c:'ins', s:'아빠'},
-            /* 교육비 */
-            {k:['학원','과외','교습'], c:'edu', s:'학원'},
-            {k:['서점','교보문고','영풍문고','알라딘','예스24','도서'], c:'edu', s:'서적'},
-            {k:['인강','메가스터디','대성','이투스','클래스101'], c:'edu', s:'인강'},
-            /* 의료비 */
-            {k:['병원','의원','클리닉','치과','안과','피부과','한의원','정형외과','내과','이비인후과','소아과','산부인과','비뇨기과'], c:'health', s:'병원'},
-            {k:['약국','팜'], c:'health', s:'약'},
-            {k:['종근당','정관장','뉴트리','비타민','홍삼','오메가','유산균'], c:'health', s:'건강보조식품'},
-            /* 생필품 */
-            {k:['올리브영','다이소','아모레','이니스프리','화장품','샴푸','치약','칫솔','세안','스킨','로션'], c:'daily', s:'위생&케어용품'},
-            {k:['세제','락스','섬유유연제','청소'], c:'daily', s:'세제&청소용품'},
-            {k:['가전','전자','하이마트','전자랜드','냉장고','세탁기','에어컨'], c:'daily', s:'가전&가구'},
-            /* 관리비 */
-            {k:['관리비','전기','수도','가스','도시가스','한전','아파트'], c:'util', s:''},
-            /* 경조사 */
-            {k:['축의금','결혼식','웨딩','돌잔치'], c:'event', s:'결혼'},
-            {k:['장례','부의금','조의금','상조'], c:'event', s:'장례'},
-            /* 금융 */
-            {k:['대출','이자','원금','상환'], c:'finance', s:'대출이자'},
-            /* 여가활동 */
-            {k:['호텔','펜션','리조트','에어비앤비','숙소','모텔'], c:'leisure', s:'여행'},
-            /* 기타지출 */
-            {k:['정비','카센터','오토','타이어','세차','엔진오일'], c:'other', s:'정비&수리'}
+            {c:'food', s:'외식', k:['식당','레스토랑','치킨','피자','족발','보쌈','갈비','삼겹','국밥','설렁탕','냉면','칼국수','분식','떡볶이','김밥','라멘','초밥','돈까스','햄버거','맥도날드','버거킹','롯데리아','맘스터치','kfc','서브웨이','배달','요기요','배민','쿠팡이츠','휴게소','고깃집','삼계탕','순대','만두','국수','우동','짜장','짬뽕','부대찌개','순두부','감자탕','한솥','본죽','포차','곱창','불고기','스테이크','밥집']},
+            {c:'food', s:'간식/후식/디저트', k:['카페','스타벅스','투썸','이디야','메가커피','빽다방','할리스','파리바게뜨','뚜레쥬르','던킨','베스킨라빈스','설빙','케이크','마카롱','도넛','제과','베이커리','와플','공차','더벤티','커피빈','블루보틀','폴바셋','젤라또','아이스크림','디저트','빙수']},
+            {c:'food', s:'식자재', k:['이마트','홈플러스','롯데마트','하나로','농협마트','gs더프레시','노브랜드','코스트코','트레이더스','킴스','메가마트','빅마트','탑마트','한아름','오케이마트','큐엔씨','qnc','식자재','반찬','정육','수산','청과','채소','과일','쌀','슈퍼마켓','수퍼마켓','슈퍼','수퍼','나들가게','푸드마켓','그린마트','마트']},
+            {c:'food', s:'식대', k:['구내식당','급식','사원식당','학교식당']},
+            {c:'shop', s:'온라인', k:['쿠팡','네이버쇼핑','11번가','옥션','지마켓','위메프','티몬','알리','테무','아마존','인터파크']},
+            {c:'shop', s:'오프라인', k:['백화점','아울렛','현대백화점','롯데백화점','신세계','갤러리아']},
+            {c:'shop', s:'TV홈쇼핑', k:['홈쇼핑','cj오쇼핑','gs홈쇼핑','현대홈쇼핑','롯데홈쇼핑']},
+            {c:'culture', s:'OTT', k:['넷플릭스','유튜브프리미엄','웨이브','왓챠','디즈니','티빙','쿠팡플레이']},
+            {c:'culture', s:'예술공연', k:['cgv','메가박스','롯데시네마','영화','극장','공연','뮤지컬','콘서트','전시','에버랜드','롯데월드']},
+            {c:'culture', s:'취미생활', k:['헬스','피트니스','골프','수영','요가','필라테스','클라이밍','볼링','독서실']},
+            {c:'trans', s:'주유', k:['주유','sk에너지','gs칼텍스','s-oil','에쓰오일','현대오일','충전소']},
+            {c:'trans', s:'택시', k:['카카오t','카카오택시','타다','우버','택시']},
+            {c:'trans', s:'버스', k:['버스','시내버스','시외버스','고속버스','공항버스']},
+            {c:'trans', s:'지하철', k:['지하철','메트로','코레일','ktx','srt','전철','티머니','이비카드']},
+            {c:'trans', s:'기타교통', k:['주차','파킹','주차장','하이패스','통행료']},
+            {c:'comm', s:'기타', k:['skt','sk텔레콤','kt','lg유플러스','알뜰폰','통신','인터넷','sk브로드밴드']},
+            {c:'ins', s:'아빠', k:['보험','삼성생명','한화생명','교보생명','현대해상','db손해','메리츠','흥국','미래에셋','라이나']},
+            {c:'edu', s:'학원', k:['학원','교습','어학원','태권도','발레','피아노','바이올린','미술학원','논술','토익','토플']},
+            {c:'edu', s:'서적', k:['교보문고','영풍문고','알라딘','예스24','서점','도서','책']},
+            {c:'edu', s:'인강', k:['인강','메가스터디','이투스','클래스101','패스트캠퍼스']},
+            {c:'health', s:'병원', k:['병원','의원','클리닉','치과','안과','피부과','한의원','정형외과','내과','이비인후과','소아과','산부인과','성형외과','재활']},
+            {c:'health', s:'약', k:['약국','팜']},
+            {c:'health', s:'건강보조식품', k:['종근당','정관장','비타민','홍삼','유산균','콜라겐']},
+            {c:'daily', s:'위생&케어용품', k:['올리브영','다이소','아모레','이니스프리','화장품','샴푸','치약','칫솔','생리대','기저귀']},
+            {c:'daily', s:'세제&청소용품', k:['세제','락스','섬유유연제','주방세제']},
+            {c:'daily', s:'가전&가구', k:['하이마트','전자랜드','이케아','한샘','현대리바트','냉장고','세탁기','에어컨','청소기']},
+            {c:'util', s:'', k:['관리비','전기요금','수도요금','도시가스','한국전력','공과금']},
+            {c:'event', s:'결혼', k:['웨딩','결혼식','돌잔치','꽃집','플라워','화환']},
+            {c:'event', s:'장례', k:['장례','부의금','조의금','상조']},
+            {c:'finance', s:'대출이자', k:['대출','이자','원금','상환','융자']},
+            {c:'leisure', s:'여행', k:['호텔','펜션','리조트','에어비앤비','숙소','모텔','여행사','항공']},
+            {c:'other', s:'정비&수리', k:['카센터','타이어','세차','엔진오일','정비소']},
+            {c:'other', s:'기타', k:['반려동물','동물병원','펫','사료','세탁소','드라이클리닝']}
           ];
 
-          for(var ri = 0; ri < rules.length; ri++) {
+          for (var ri = 0; ri < rules.length; ri++) {
             var rule = rules[ri];
-            for(var ki = 0; ki < rule.k.length; ki++) {
-              if(st.indexOf(rule.k[ki]) >= 0) {
-                data.category = rule.c;
+            for (var ki = 0; ki < rule.k.length; ki++) {
+              if (st.indexOf(rule.k[ki]) >= 0) {
+                data.category    = rule.c;
                 data.sub_category = rule.s;
                 matched = true;
                 break;
               }
             }
-            if(matched) break;
+            if (matched) break;
           }
 
-          /* 마트/편의점 (키워드 매칭 안 된 경우 최종 판별) */
-          if(!matched && isMart) { data.category = 'food'; data.sub_category = '식자재'; matched = true; }
-          if(!matched && isCVS)  { data.category = 'other'; data.sub_category = '편의점'; matched = true; }
+          var isMart = (st.indexOf('마트') >= 0 && st.indexOf('이마트24') < 0 && st.indexOf('미니') < 0);
+          var isCVS  = (st.indexOf('cu') >= 0 || st.indexOf('gs25') >= 0 || st.indexOf('세븐') >= 0 || st.indexOf('이마트24') >= 0 || st.indexOf('미니스톱') >= 0);
+          if (!matched && isMart) { data.category = 'food';  data.sub_category = '식자재'; matched = true; }
+          if (!matched && isCVS)  { data.category = 'other'; data.sub_category = '편의점'; matched = true; }
         }
 
-     // ★ 날짜 보정: 연도 없거나 과거 연도면 올해로 보정
         var parsedDate = data.date || '';
-        if(parsedDate) {
-          var pd = String(parsedDate).replace(/\//g,'-');
-          // 1) 월/일만 있을 때 (5-8, 05-08 등)
-          if(pd.length <= 5) {
-            var parts = pd.split('-');
-            pd = new Date().getFullYear() + '-' + String(parts[0]).padStart(2,'0') + '-' + String(parts[1]||'01').padStart(2,'0');
+        if (parsedDate) {
+          var pd = String(parsedDate).replace(/\//g, '-');
+          if (pd.length <= 5) {
+            var dp2 = pd.split('-');
+            pd = new Date().getFullYear() + '-' + String(dp2[0]).padStart(2,'0') + '-' + String(dp2[1]||'01').padStart(2,'0');
           }
-          // 2) 연도가 있지만 과거 연도일 때 (2023-05-08, 2024-05-08 등)
-          if(pd.length === 10) {
+          if (pd.length === 10) {
             var pyear = parseInt(pd.split('-')[0]);
             var cyear = new Date().getFullYear();
-            if(pyear < cyear) {
-              // 과거 연도 → 현재 연도로 교체
-              pd = cyear + pd.substring(4);
-            }
+            if (pyear < cyear) pd = cyear + pd.substring(4);
           }
           parsedDate = pd;
         }
-        if(!parsedDate || parsedDate.length < 8) parsedDate = new Date().toISOString().split('T')[0];
-        
+        if (!parsedDate || parsedDate.length < 8) parsedDate = new Date().toISOString().split('T')[0];
+
         setResult({
-          bank: data.bank || '카드', 
-          amount: data.amount, 
-          store: data.store || '미확인 가맹점',
-          catId: data.category || 'other',
+          bank:   data.bank || '카드',
+          amount: data.amount,
+          store:  data.store || '미확인 가맹점',
+          catId:  data.category || 'other',
           subCat: data.sub_category || '',
-          member: member, 
-          date: parsedDate
+          member: member,
+          date:   parsedDate
         });
         setErrMsg('');
-      } catch(e) { setErrMsg('문자 형식을 이해하지 못했습니다. 수동으로 입력해주세요.'); }
+      } catch(e) {
+        setErrMsg('문자 형식을 이해하지 못했습니다. 수동으로 입력해주세요.');
+      }
     });
   }
-  var editRes = useState(null); var setEditRes = editRes[1]; editRes = editRes[0];
+
+  var editResState = useState(null); var editRes = editResState[0]; var setEditRes = editResState[1];
   useEffect(function(){ if(result) setEditRes(Object.assign({},result)); }, [result]);
   
   return h('div',{style:{padding:'0 16px 90px'}},
@@ -3146,7 +3450,6 @@ function SMSIn(props) {
                   style:{padding:'5px 10px',borderRadius:16,border:'none',cursor:'pointer', background:editRes.catId===c.id?c.color+'44':C.faint, color:editRes.catId===c.id?c.color:C.muted,fontSize:12}}, c.icon+' '+c.name);
               })
             ),
-            /* ★ 소분류 화면 노출 부분 추가 */
             (editRes.catId && SUB_CATS[editRes.catId]) && h('div', {style:{marginBottom:10, padding:'8px', background:C.card2, borderRadius:8, border:'1px dashed '+getCat(editRes.catId).color+'66'}},
               h('p',{style:{color:getCat(editRes.catId).color, fontSize:10, fontWeight:700, margin:'0 0 6px'}}, '📌 세부 항목'),
               h('div',{style:{display:'flex', flexWrap:'wrap', gap:4}},
@@ -3775,12 +4078,410 @@ function TxDetailSheet(props) {
   );
 }
 
+// ★★★ [신규] 신용카드 결제 내역 전용 시트 ★★★
+function CreditCardDetailSheet(props) {
+  var allTxs     = props.txs || [];
+  var billingDay = props.billingDay || 12;
+  var baseDate   = props.baseDate || new Date();
+  var totI       = props.totI || 0;
+  var onClose    = props.onClose;
+  var onUpdate   = props.onUpdate || function(){};
+  var onDelete   = props.onDelete || function(){};
+
+  var period   = getCardBillingPeriod(billingDay, baseDate);
+  var sDate    = new Date(period.start.getFullYear(), period.start.getMonth(), period.start.getDate(), 0, 0, 0);
+  var eDate    = new Date(period.end.getFullYear(), period.end.getMonth(), period.end.getDate(), 23, 59, 59);
+  var startStr = fmtBillingDate(period.start);
+  var endStr   = fmtBillingDate(period.end);
+
+  var creditTxs = allTxs.filter(function(tx) {
+    if (tx.type !== 'expense') return false;
+    if (tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
+    if (!isCredit(tx.method)) return false;
+    var dp = (tx.date || '').split('-');
+    if (dp.length < 3) return false;
+    var d = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]), 12, 0, 0);
+    return d >= sDate && d <= eDate;
+  });
+
+  var totalCredit = creditTxs.reduce(function(s, t) { return s + t.amount; }, 0);
+  var incRatio    = totI > 0 ? Math.round(totalCredit / totI * 100) : 0;
+  var incColor    = incRatio > 80 ? '#FF2266' : incRatio > 50 ? '#FF9E45' : '#00CFFF';
+
+  var smArr = useState('all'); var setSelMem = smArr[1]; var selMem = smArr[0];
+  var ocArr = useState({});   var setOpenCats = ocArr[1]; var openCats = ocArr[0];
+  var etArr = useState(null); var setEditTx = etArr[1];   var editTx = etArr[0];
+
+  var filteredTxs = selMem === 'all'
+    ? creditTxs
+    : creditTxs.filter(function(t) { return t.member === selMem; });
+
+  var grouped = EX_CATS.map(function(cat) {
+    var items = filteredTxs.filter(function(t) { return t.catId === cat.id; });
+    var total = items.reduce(function(s, t) { return s + t.amount; }, 0);
+    return { cat: cat, items: items.sort(function(a, b) { return new Date(b.date) - new Date(a.date); }), total: total };
+  }).filter(function(g) { return g.items.length > 0; }).sort(function(a, b) { return b.total - a.total; });
+
+  var grandTotal = filteredTxs.reduce(function(s, t) { return s + t.amount; }, 0);
+  var allOpen    = grouped.length > 0 && grouped.every(function(g) { return openCats[g.cat.id]; });
+
+  function toggleCat(id) {
+    setOpenCats(function(prev) { var n = Object.assign({}, prev); n[id] = !n[id]; return n; });
+  }
+  function doToggleAll() {
+    var n = {};
+    if (!allOpen) { grouped.forEach(function(g) { n[g.cat.id] = true; }); }
+    setOpenCats(n);
+  }
+
+  var tabs = [{ id: 'all', name: '전체', emoji: '👪', color: '#00CFFF' }]
+    .concat(MEMBERS.map(function(m) { return { id: m.id, name: m.name, emoji: m.emoji, color: m.color }; }));
+
+  if (editTx) {
+    return h(EditModal, {
+      tx: editTx,
+      onSave: function(u) { onUpdate(u); setEditTx(null); },
+      onDelete: function(id) { onDelete(id); setEditTx(null); },
+      onClose: function() { setEditTx(null); }
+    });
+  }
+
+  return h('div', { style: { position: 'fixed', inset: 0, background: C.bg, color: C.text, zIndex: 3000, overflowY: 'auto', display: 'flex', justifyContent: 'center' } },
+    h('div', { style: { width: '100%', maxWidth: 430, paddingBottom: 100 } },
+
+      h('div', { style: { position: 'sticky', top: 0, zIndex: 10, background: C.bg, padding: '18px 16px 12px', borderBottom: '1px solid ' + C.border } },
+        h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
+          h('div', null,
+            h('p', { style: { color: '#7C4DFF', fontSize: 10, margin: '0 0 4px', fontWeight: 800, letterSpacing: 2 } }, '💳 신용카드 결제 분석'),
+            h('p', { style: { color: C.text, fontSize: 18, fontWeight: 900, margin: 0 } }, '신용카드 결제 내역')
+          ),
+          h('button', { onClick: onClose, style: { background: C.card2, border: '1px solid ' + C.border, color: C.text, padding: '6px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12 } }, '✕ 닫기')
+        ),
+
+        h('div', { style: { padding: '14px 16px', background: 'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))', borderRadius: 14, border: '1px solid rgba(124,77,255,0.32)', marginBottom: 12 } },
+          h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+            h('div', null,
+              h('p', { style: { color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 4px' } }, '📅 ' + startStr + ' ~ ' + endStr),
+              h('p', { style: { color: '#fff', fontSize: 22, fontWeight: 900, margin: '0 0 6px', letterSpacing: -0.5 } }, fmt(totalCredit)),
+              h('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
+                h('span', { style: { background: 'rgba(124,77,255,0.3)', color: '#C4A0FF', fontSize: 10, padding: '2px 8px', borderRadius: 6, fontWeight: 700 } }, creditTxs.length + '건'),
+                h('span', { style: { color: 'rgba(255,255,255,0.2)', fontSize: 10 } }, '|'),
+                h('span', { style: { color: incColor, fontSize: 10, fontWeight: 700 } }, '수입대비 ' + incRatio + '%')
+              )
+            ),
+            h('button', { onClick: doToggleAll, style: { background: 'rgba(124,77,255,0.25)', border: '1px solid rgba(124,77,255,0.45)', color: '#C4A0FF', padding: '7px 12px', borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: 'pointer' } },
+              allOpen ? '📁 전체접기' : '📂 전체펼치기')
+          )
+        ),
+
+        h('div', { style: { display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 4 } },
+          tabs.map(function(m) {
+            var isSel = selMem === m.id;
+            var mAmt  = m.id === 'all' ? totalCredit : creditTxs.filter(function(t) { return t.member === m.id; }).reduce(function(s, t) { return s + t.amount; }, 0);
+            return h('button', { key: m.id, onClick: function() { setSelMem(m.id); setOpenCats({}); },
+              style: { flexShrink: 0, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', border: isSel ? '1.5px solid ' + m.color : '1px solid ' + C.border, background: isSel ? m.color + '25' : C.card2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62 } },
+              h('span', { style: { fontSize: 18 } }, m.emoji),
+              h('span', { style: { color: isSel ? m.color : C.muted, fontSize: 10, fontWeight: 700 } }, m.name),
+              h('span', { style: { color: isSel ? m.color : 'rgba(255,255,255,0.25)', fontSize: 9, fontWeight: 600 } }, fmtS(mAmt))
+            );
+          })
+        )
+      ),
+
+      h('div', { style: { padding: '14px 16px 0' } },
+        grouped.length === 0
+          ? h('div', { style: { textAlign: 'center', padding: '60px 20px' } },
+              h('p', { style: { fontSize: 48, marginBottom: 12 } }, '💳'),
+              h('p', { style: { color: C.text, fontSize: 15, fontWeight: 700, marginBottom: 8 } }, '신용카드 내역 없음'),
+              h('p', { style: { color: C.muted, fontSize: 12 } }, '📅 ' + startStr + ' ~ ' + endStr)
+            )
+          : grouped.map(function(g) {
+              var cat    = g.cat;
+              var isOpen = openCats[cat.id];
+              var pct    = grandTotal > 0 ? Math.round(g.total / grandTotal * 100) : 0;
+
+              return h('div', { key: cat.id, style: { marginBottom: 10, borderRadius: 14, overflow: 'hidden', border: '1px solid ' + (isOpen ? 'rgba(124,77,255,0.5)' : C.border), background: C.card, boxShadow: isOpen ? '0 4px 24px rgba(124,77,255,0.25)' : '0 2px 8px rgba(0,0,0,0.18)', transition: 'all 0.3s ease' } },
+
+                h('div', { onClick: function() { toggleCat(cat.id); }, style: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: isOpen ? 'rgba(124,77,255,0.08)' : 'transparent', transition: 'background 0.3s' } },
+                  h('div', { style: { width: 44, height: 44, borderRadius: 13, background: cat.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, boxShadow: '0 2px 10px ' + cat.color + '33' } }, cat.icon),
+                  h('div', { style: { flex: 1, minWidth: 0 } },
+                    h('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 } },
+                      h('span', { style: { color: C.text, fontSize: 14, fontWeight: 800 } }, cat.name),
+                      h('span', { style: { background: 'rgba(124,77,255,0.28)', color: '#C4A0FF', fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 700 } }, pct + '%'),
+                      h('span', { style: { color: C.muted, fontSize: 10 } }, g.items.length + '건')
+                    ),
+                    h('div', { style: { height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'hidden' } },
+                      h('div', { style: { height: '100%', width: pct + '%', background: 'linear-gradient(90deg,' + cat.color + ',#7C4DFF)', borderRadius: 4 } })
+                    )
+                  ),
+                  h('div', { style: { textAlign: 'right', flexShrink: 0 } },
+                    h('p', { style: { color: cat.color, fontSize: 15, fontWeight: 800, margin: '0 0 4px' } }, fmt(g.total)),
+                    h('span', { style: { color: C.muted, fontSize: 13, display: 'inline-block', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' } }, '▶')
+                  )
+                ),
+
+                isOpen ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.05)' } },
+                  h('div', { style: { display: 'flex', gap: 7, padding: '10px 16px', background: 'rgba(0,0,0,0.2)', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.04)' } },
+                    MEMBERS.map(function(m) {
+                      var mAmt = g.items.filter(function(t) { return t.member === m.id; }).reduce(function(s, t) { return s + t.amount; }, 0);
+                      if (!mAmt) return null;
+                      return h('div', { key: m.id, style: { flexShrink: 0, textAlign: 'center', padding: '7px 12px', borderRadius: 10, background: m.color + '16', border: '1px solid ' + m.color + '38', minWidth: 62 } },
+                        h('span', { style: { fontSize: 18, display: 'block' } }, m.emoji),
+                        h('span', { style: { color: m.color, fontSize: 9, fontWeight: 700, display: 'block', marginTop: 2 } }, m.name),
+                        h('span', { style: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 800, display: 'block' } }, fmtS(mAmt))
+                      );
+                    })
+                  ),
+                  g.items.map(function(tx, ti) {
+                    var mem  = getMem(tx.member);
+                    var mStr = String(tx.method || '').length > 12 ? String(tx.method || '').slice(0, 10) + '..' : String(tx.method || '');
+                    return h('div', { key: tx.id,
+                      onClick: function() { setEditTx(tx); },
+                      style: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: ti < g.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', cursor: 'pointer' }
+                    },
+                      h('div', { style: { width: 36, height: 36, borderRadius: 11, background: mem.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, border: '1px solid ' + mem.color + '33' } }, mem.emoji),
+                      h('div', { style: { flex: 1, minWidth: 0 } },
+                        h('p', { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, tx.store || '미입력'),
+                        h('div', { style: { display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' } },
+                          h('span', { style: { color: mem.color, fontSize: 10, fontWeight: 600 } }, mem.name),
+                          h('span', { style: { color: 'rgba(255,255,255,0.2)' } }, '·'),
+                          h('span', { style: { color: C.muted, fontSize: 10 } }, tx.date),
+                          tx.subCat ? h('span', { style: { background: cat.color + '1E', color: cat.color, fontSize: 9, padding: '1px 5px', borderRadius: 4, marginLeft: 2 } }, tx.subCat) : null
+                        ),
+                        tx.memo ? h('p', { style: { color: C.accent + 'AA', fontSize: 10, margin: '3px 0 0' } }, '📝 ' + tx.memo) : null
+                      ),
+                      h('div', { style: { textAlign: 'right', flexShrink: 0 } },
+                        h('p', { style: { color: '#C4A0FF', fontSize: 14, fontWeight: 800, margin: '0 0 3px' } }, fmt(tx.amount)),
+                        h('p', { style: { color: 'rgba(255,255,255,0.35)', fontSize: 9, margin: 0 } }, mStr),
+                        h('p', { style: { color: 'rgba(124,77,255,0.7)', fontSize: 9, margin: '2px 0 0', fontWeight: 700 } }, '✏️ 수정')
+                      )
+                    );
+                  })
+                ) : null
+              );
+            })
+      )
+    )
+  );
+}
+
+// ★★★ [CreditCardDetailSheet 끝] ★★★
+
+function CardDetailSheet(props) {
+  var txs           = props.txs || [];
+  var onClose       = props.onClose;
+  var billingPeriod = props.billingPeriod || {};
+
+  var selMember = useState('all'); var setSelMember = selMember[1]; selMember = selMember[0];
+  var openCats  = useState({});   var setOpenCats  = openCats[1];  openCats  = openCats[0];
+
+  // 구성원 필터 적용
+  var filteredTxs = selMember === 'all'
+    ? txs
+    : txs.filter(function(tx){ return tx.member === selMember; });
+
+  // 카테고리별 그룹화
+  var grouped = EX_CATS.map(function(cat){
+    var items = filteredTxs.filter(function(t){ return t.catId === cat.id; });
+    var total = items.reduce(function(s,t){ return s+t.amount; }, 0);
+    return { cat:cat, items:items.sort(function(a,b){ return new Date(b.date)-new Date(a.date); }), total:total };
+  }).filter(function(g){ return g.items.length > 0; }).sort(function(a,b){ return b.total-a.total; });
+
+  var grandTotal = filteredTxs.reduce(function(s,t){ return s+t.amount; }, 0);
+  var allOpen    = grouped.length > 0 && grouped.every(function(g){ return openCats[g.cat.id]; });
+
+  function toggleCat(catId) {
+    setOpenCats(function(prev){
+      var n = Object.assign({}, prev);
+      n[catId] = !n[catId];
+      return n;
+    });
+  }
+  function toggleAll() {
+    var n = {};
+    if (!allOpen) { grouped.forEach(function(g){ n[g.cat.id] = true; }); }
+    setOpenCats(n);
+  }
+
+  var periodLabel = (billingPeriod.startStr && billingPeriod.endStr)
+    ? billingPeriod.startStr + ' ~ ' + billingPeriod.endStr : '신용카드 내역';
+
+  var memberTabs = [{ id:'all', name:'전체', emoji:'👨‍👩‍👧', color:'#00CFFF' }].concat(
+    MEMBERS.map(function(m){ return { id:m.id, name:m.name, emoji:m.emoji, color:m.color }; })
+  );
+
+  return h('div', {style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:2000,overflowY:'auto',display:'flex',justifyContent:'center'}},
+    h('div', {style:{width:'100%',maxWidth:430,paddingBottom:100}},
+
+      // ── 스티키 헤더 ──
+      h('div', {style:{position:'sticky',top:0,zIndex:10,background:C.bg,padding:'18px 16px 12px',borderBottom:'1px solid '+C.border}},
+
+        h('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+          h('div', null,
+            h('p', {style:{color:'#7C4DFF',fontSize:10,margin:0,letterSpacing:2,fontWeight:700}}, '💳 신용카드 결제 분석'),
+            h('p', {style:{color:C.text,fontSize:18,fontWeight:900,margin:'4px 0 0'}}, '신용카드 결제 내역')
+          ),
+          h('button', {onClick:onClose, style:{background:C.card2,border:'1px solid '+C.border,color:C.text,padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}}, '✕ 닫기')
+        ),
+
+        // 기간 + 총액
+        h('div', {style:{padding:'12px 16px',background:'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))',borderRadius:14,border:'1px solid rgba(124,77,255,0.32)',marginBottom:12}},
+          h('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+            h('div', null,
+              h('p', {style:{color:'rgba(255,255,255,0.45)',fontSize:10,margin:'0 0 4px',letterSpacing:0.5}}, '📅 '+periodLabel),
+              h('p', {style:{color:'#fff',fontSize:22,fontWeight:900,margin:0,letterSpacing:-0.5}}, fmt(grandTotal))
+            ),
+            h('div', {style:{textAlign:'right'}},
+              h('p', {style:{color:'rgba(255,255,255,0.4)',fontSize:10,margin:'0 0 6px'}}, filteredTxs.length+'건 · '+grouped.length+'개 카테고리'),
+              h('button', {
+                onClick:toggleAll,
+                style:{background:'rgba(124,77,255,0.28)',border:'1px solid rgba(124,77,255,0.45)',
+                  color:'#C4A0FF',padding:'6px 11px',borderRadius:8,fontSize:10,fontWeight:700,cursor:'pointer'}
+              }, allOpen ? '📁 전체접기' : '📂 전체펼치기')
+            )
+          )
+        ),
+
+        // ★ 구성원 탭 필터
+        h('div', {style:{display:'flex',gap:7,overflowX:'auto',paddingBottom:4}},
+          memberTabs.map(function(m){
+            var isSel  = selMember === m.id;
+            var memAmt = m.id === 'all'
+              ? txs.reduce(function(s,t){return s+t.amount;},0)
+              : txs.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+            return h('button', {
+              key: m.id,
+              onClick: function(){ setSelMember(m.id); setOpenCats({}); },
+              style:{
+                flexShrink:0, padding:'8px 12px', borderRadius:12, cursor:'pointer',
+                border: isSel ? '1.5px solid '+m.color : '1px solid '+C.border,
+                background: isSel ? m.color+'25' : C.card2,
+                display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:62
+              }
+            },
+              h('span', {style:{fontSize:18}}, m.emoji),
+              h('span', {style:{color:isSel?m.color:C.muted, fontSize:10, fontWeight:700}}, m.name),
+              h('span', {style:{color:isSel?m.color:'rgba(255,255,255,0.25)', fontSize:9, fontWeight:600}}, fmtS(memAmt))
+            );
+          })
+        )
+      ),
+
+      // ── 카테고리 아코디언 ──
+      h('div', {style:{padding:'14px 16px 0'}},
+        grouped.length === 0
+          ? h('div', {style:{textAlign:'center',padding:'60px 20px'}},
+              h('p', {style:{fontSize:44}}, '💳'),
+              h('p', {style:{color:C.muted,fontSize:14,marginTop:14}}, '이 기간 신용카드 내역이 없습니다')
+            )
+          : grouped.map(function(g){
+              var cat    = g.cat;
+              var isOpen = openCats[cat.id];
+              var pct    = grandTotal > 0 ? Math.round(g.total / grandTotal * 100) : 0;
+
+              return h('div', {key:cat.id, style:{
+                marginBottom:10, borderRadius:14, overflow:'hidden',
+                border:'1px solid '+(isOpen?'rgba(124,77,255,0.45)':C.border),
+                background:C.card,
+                boxShadow:isOpen?'0 4px 24px rgba(124,77,255,0.22)':'0 2px 8px rgba(0,0,0,0.18)',
+                transition:'all 0.3s ease'
+              }},
+
+                // 카테고리 헤더
+                h('div', {
+                  onClick:function(){ toggleCat(cat.id); },
+                  style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',cursor:'pointer',
+                    background:isOpen?'rgba(124,77,255,0.07)':'transparent',transition:'background 0.3s'}
+                },
+                  h('div', {style:{width:44,height:44,borderRadius:13,background:cat.color+'22',
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    fontSize:22,flexShrink:0,boxShadow:'0 2px 10px '+cat.color+'33'}}, cat.icon),
+                  h('div', {style:{flex:1,minWidth:0}},
+                    h('div', {style:{display:'flex',alignItems:'center',gap:7,marginBottom:5}},
+                      h('span', {style:{color:C.text,fontSize:14,fontWeight:800}}, cat.name),
+                      h('span', {style:{background:'rgba(124,77,255,0.25)',color:'#C4A0FF',
+                        fontSize:10,padding:'2px 7px',borderRadius:6,fontWeight:700}}, pct+'%'),
+                      h('span', {style:{color:C.muted,fontSize:10}}, g.items.length+'건')
+                    ),
+                    h('div', {style:{height:3,background:'rgba(255,255,255,0.07)',borderRadius:4,overflow:'hidden'}},
+                      h('div', {style:{height:'100%',width:pct+'%',
+                        background:'linear-gradient(90deg,'+cat.color+',#7C4DFF)',
+                        borderRadius:4,transition:'width 0.6s ease'}})
+                    )
+                  ),
+                  h('div', {style:{textAlign:'right',flexShrink:0}},
+                    h('p', {style:{color:cat.color,fontSize:15,fontWeight:800,margin:'0 0 4px'}}, fmt(g.total)),
+                    h('span', {style:{color:C.muted,fontSize:13,display:'inline-block',
+                      transform:isOpen?'rotate(90deg)':'rotate(0deg)',
+                      transition:'transform 0.3s ease'}}, '▶')
+                  )
+                ),
+
+                // ★ 아코디언 펼침 내용
+                isOpen && h('div', {style:{borderTop:'1px solid rgba(255,255,255,0.05)'}},
+
+                  // 구성원별 소계 칩
+                  h('div', {style:{display:'flex',gap:7,padding:'10px 16px',
+                    background:'rgba(0,0,0,0.18)',overflowX:'auto',borderBottom:'1px solid rgba(255,255,255,0.04)'}},
+                    MEMBERS.map(function(m){
+                      var mAmt = g.items.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+                      if (mAmt === 0) return null;
+                      return h('div', {key:m.id, style:{flexShrink:0,textAlign:'center',padding:'7px 12px',
+                        borderRadius:10,background:m.color+'16',border:'1px solid '+m.color+'38',minWidth:60}},
+                        h('span', {style:{fontSize:18,display:'block'}}, m.emoji),
+                        h('span', {style:{color:m.color,fontSize:9,fontWeight:700,display:'block',marginTop:2}}, m.name),
+                        h('span', {style:{color:'rgba(255,255,255,0.8)',fontSize:11,fontWeight:800,display:'block'}}, fmtS(mAmt))
+                      );
+                    })
+                  ),
+
+                  // 개별 거래 내역
+                  g.items.map(function(tx, ti){
+                    var mem = getMem(tx.member);
+                    return h('div', {key:tx.id, style:{
+                      display:'flex',alignItems:'center',gap:10,padding:'12px 16px',
+                      borderBottom: ti < g.items.length-1 ? '1px solid rgba(255,255,255,0.04)' : 'none'
+                    }},
+                      h('div', {style:{width:36,height:36,borderRadius:11,
+                        background:mem.color+'22',display:'flex',alignItems:'center',
+                        justifyContent:'center',fontSize:18,flexShrink:0,
+                        border:'1px solid '+mem.color+'33'}}, mem.emoji),
+                      h('div', {style:{flex:1,minWidth:0}},
+                        h('p', {style:{color:C.text,fontSize:13,fontWeight:700,
+                          margin:'0 0 3px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
+                          tx.store || '미입력'),
+                        h('div', {style:{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}},
+                          h('span', {style:{color:mem.color,fontSize:10,fontWeight:600}}, mem.name),
+                          h('span', {style:{color:'rgba(255,255,255,0.18)'}}, '·'),
+                          h('span', {style:{color:C.muted,fontSize:10}}, tx.date),
+                          tx.subCat && h('span', {style:{background:cat.color+'1E',color:cat.color,
+                            fontSize:9,padding:'1px 5px',borderRadius:4,marginLeft:2}}, tx.subCat)
+                        ),
+                        tx.memo && h('p', {style:{color:C.accent+'AA',fontSize:10,margin:'3px 0 0'}}, '📝 '+tx.memo)
+                      ),
+                      h('div', {style:{textAlign:'right',flexShrink:0}},
+                        h('p', {style:{color:'#C4A0FF',fontSize:14,fontWeight:800,margin:0}}, fmt(tx.amount)),
+                        h('p', {style:{color:C.muted,fontSize:9,margin:'2px 0 0'}}, (tx.method||'').slice(0,8)+'…')
+                      )
+                    );
+                  })
+                )
+              );
+            })
+      )
+    )
+  );
+}
+// ★★★ [STEP4 CardDetailSheet 끝] ★★★
+
 function Dashboard(props) {
+  var now = new Date();
   var txs = props.txs;
   var onNav = props.onNav;
   var startDay = props.startDay || 1;
   var onAdd = props.onAdd;
   var onDelete = props.onDelete;
+  var onUpdate = props.onUpdate || function(){};
   var dp = props.dp;
   var setDp = props.setDp;
   var baseDate = props.baseDate;
@@ -3789,7 +4490,9 @@ function Dashboard(props) {
   var isAnl = useState(false); var setIsAnl = isAnl[1]; isAnl = isAnl[0];
   var mSht = useState(null); var setMSht = mSht[1]; mSht = mSht[0];
   var guideData = useState(null); var setGuideData = guideData[1]; guideData = guideData[0];
-  var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];  
+  var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
+  var csArr = useState(false); var setShowCS = csArr[1]; var showCS = csArr[0];
+  var showCreditSheet = useState(false); var setShowCreditSheet = showCreditSheet[1]; showCreditSheet = showCreditSheet[0];  
 
   var ftx = useMemo(function(){ return fDash(txs, dp, baseDate, 1); }, [txs, dp, baseDate]);
   
@@ -3928,23 +4631,113 @@ function Dashboard(props) {
 
     h(FamilyGoalManager, {txs: ftx}),
     h('div', {style:{display:'flex', gap:10, marginBottom:14}}, h(GCard, {onClick:function(){setModal('assets_invest');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border}}, '📈 투자 관리'), h(GCard, {onClick:function(){setModal('assets_travel');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border}}, '✈️ 여가비 관리') ),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
+     h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}},
       [
-        {l:'총 수입', v:fmt(curInc), c:C.green, mom:momInc, type:'income'},
-        {l:'총 지출', v:fmt(curExp), c:C.red, mom:momExp, type:'expense'},
-        {l:'수입대비 지출', v:curRate+'%', c:curRate>85?C.red:C.gold, mom:null},
-        {l:'순 저축 (여유자금)', v:fmt(accNetSavings), c:C.text, mom:null},
-        {l:'📈 총 투자/자산', v:fmt(accInv), c:'#A29BFE', mom:null}
+        {l:'총 수입', v:fmt(curInc), c:C.green, type:'income'},
+        {l:'총 지출', v:fmt(curExp), c:C.red, type:'expense'},
+        {l:'순 저축', v:fmt(accNetSavings), c:C.text, type:'net'},
+        {l:'📈 투자/자산', v:fmt(accInv), c:'#A29BFE', type:'invest'}
       ].map(function(k){
         var isClickable = k.type === 'income' || k.type === 'expense';
-        return h(GCard,{key:k.l, onClick: isClickable ? function(){ setDetailType(k.type); } : undefined, style:{padding:'12px 14px', position:'relative', cursor: isClickable ? 'pointer' : 'default', border: isClickable ? '1px solid '+k.c+'33' : undefined}}, 
-          h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6}}, h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l), k.mom && h(MomBadge, {mom:k.mom, type:k.type}) ),
-          h('p',{style:{color:k.c,fontSize:17,fontWeight:800,margin:0}},k.v),
-          isClickable && h('p',{style:{color:C.muted,fontSize:9,margin:'4px 0 0',textAlign:'right'}}, '👆 터치하면 상세 내역')
+        return h(GCard,{key:k.l, onClick: isClickable ? function(){ setDetailType(k.type); } : undefined, style:{padding:'12px 14px', cursor: isClickable ? 'pointer' : 'default', border: isClickable ? '1px solid '+k.c+'33' : undefined}}, 
+          h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l),
+          h('p',{style:{color:k.c,fontSize:16,fontWeight:800,margin:'4px 0 0'}},k.v)
         );
       })
     ),
-  
+    
+// [Dashboard 내부에 삽입할 카드 로직]
+(function(){
+  var billingDay = lsGet(LS_CARD_BILLING_DAY, 12);
+  var period     = getCardBillingPeriod(billingDay, baseDate);
+  var startStr   = fmtBillingDate(period.start);
+  var endStr     = fmtBillingDate(period.end);
+
+  // ★ isCredit() 전역함수로 신용카드만 필터 + 결제기간 적용
+  var sDate = new Date(period.start.getFullYear(), period.start.getMonth(), period.start.getDate(), 0, 0, 0);
+  var eDate = new Date(period.end.getFullYear(),   period.end.getMonth(),   period.end.getDate(),   23, 59, 59);
+
+  var cardTxs = txs.filter(function(tx) {
+    if (tx.type !== 'expense') return false;
+    if (tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
+    if (!isCredit(tx.method)) return false;
+    var d = new Date(tx.date + 'T12:00:00');
+    return d >= sDate && d <= eDate;
+  });
+
+  var cardAmt  = cardTxs.reduce(function(s, t) { return s + t.amount; }, 0);
+  var incRatio = totI > 0 ? Math.round(cardAmt / totI * 100) : 0;
+  var incColor = incRatio > 80 ? '#FF2266' : incRatio > 50 ? '#FF9E45' : '#00CFFF';
+
+  var CARD_BUDGET = 2000000;
+  var ratio = cardAmt > 0 ? cardAmt / CARD_BUDGET : 0;
+  var pct   = Math.min(ratio * 100, 100).toFixed(1);
+
+  var personas = [
+    { min: 0.75, name: '과열된 플라즈마', color: '#FF2266' },
+    { min: 0.50, name: '균열된 유리',     color: '#FF9E45' },
+    { min: 0.25, name: '안정적 큐브',     color: '#7C4DFF' },
+    { min: 0,    name: '순수 코어',       color: '#00CFFF' }
+  ];
+  var p = personas.find(function(x) { return ratio >= x.min; }) || personas[3];
+
+  return h('div', {
+    onClick: function() { setShowCS(true); },
+    style: {
+      marginBottom: 14,
+      background: 'linear-gradient(145deg,rgba(14,10,26,0.95),rgba(24,16,44,0.92))',
+      backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+      border: '1px solid ' + p.color + '44',
+      borderRadius: 20,
+      boxShadow: '0 8px 32px -8px ' + p.color + '55, inset 0 1px 0 rgba(255,255,255,0.06)',
+      padding: '18px 20px',
+      cursor: 'pointer',
+      position: 'relative',
+      overflow: 'hidden'
+    }
+  },
+    h('div', { style: { position: 'absolute', top: -24, right: -24, width: 90, height: 90, borderRadius: '50%', background: 'radial-gradient(circle,' + p.color + '22 0%,transparent 70%)', pointerEvents: 'none' } }),
+
+    h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+        h('div', { style: { width: 7, height: 7, borderRadius: '50%', background: p.color, boxShadow: '0 0 8px ' + p.color } }),
+        h('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 600 } }, '📅 ' + startStr + ' ~ ' + endStr)
+      ),
+      h('span', { style: { color: p.color, fontSize: 10, fontWeight: 800 } }, '상세 보기 ❯')
+    ),
+
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
+      h('div', { style: { fontSize: 36, filter: 'drop-shadow(0 0 12px ' + p.color + ')', flexShrink: 0 } },
+        ratio > 0.75 ? '🔴' : ratio > 0.50 ? '🟠' : ratio > 0.25 ? '💠' : '💎'
+      ),
+      h('div', { style: { flex: 1, minWidth: 0 } },
+        h('div', { style: { color: '#fff', fontSize: 15, fontWeight: 900, marginBottom: 5, letterSpacing: -0.3 } }, p.name),
+        h('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 } },
+          h('span', { style: { color: p.color, fontSize: 11, fontWeight: 700 } }, pct + '% 소진'),
+          h('div', { style: { width: 1, height: 10, background: 'rgba(255,255,255,0.2)' } }),
+          h('span', { style: { color: incColor, fontSize: 11, fontWeight: 700 } }, '수입대비 ' + incRatio + '%')
+        ),
+        h('div', { style: { height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' } },
+          h('div', { style: { height: '100%', width: pct + '%', background: 'linear-gradient(90deg,' + p.color + '88,' + p.color + ')', borderRadius: 4, transition: 'width 0.8s ease' } })
+        )
+      ),
+      h('div', { style: { textAlign: 'right', flexShrink: 0 } },
+        h('div', { style: { fontSize: 9, color: 'rgba(255,255,255,0.4)', marginBottom: 5 } }, '신용카드 합계'),
+        h('div', { style: { fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5 } }, fmt(cardAmt))
+      )
+    )
+  );
+})(),
+
+    showCS && h(CreditCardDetailSheet, {
+      txs:       txs,
+      billingDay:lsGet(LS_CARD_BILLING_DAY, 12),
+      baseDate:  baseDate,
+      totI:      totI,
+      onUpdate:  onUpdate,
+      onDelete:  onDelete,
+      onClose:   function() { setShowCS(false); }
+    }),
     (function(){
       return h(GCard,{ 
         className: isAnl ? 'holo-analyzing' : '',
@@ -4712,39 +5505,37 @@ function Analysis(props) {
   var budgetInput = useState(String(budget||'')); var setBudgetInput = budgetInput[1]; budgetInput = budgetInput[0];
   var memViewMode = useState('sub'); var setMemViewMode = memViewMode[1]; memViewMode = memViewMode[0];
   var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
+  var csArr = useState(false); var setShowCS = csArr[1]; var showCS = csArr[0];
 
   var ftx = useMemo(function(){ return fDash(txs, dp, baseDate, startDay); }, [txs, dp, baseDate, startDay]);
   var exp = ftx.filter(function(t){ return t.type==='expense' && t.catId!=='invest' && t.catId!=='travel_fund'; });
   var inc = ftx.filter(function(t){ return t.type==='income'; });
   var totE = exp.reduce(function(s,t){ return s+t.amount; }, 0);
   
-var totI = useMemo(function(){
+  var totI = useMemo(function(){
     var now = new Date();
     var sd = startDay || 1;
-    var curLY = now.getFullYear(), curLM = now.getMonth();
-    if(now.getDate() < sd) { curLM--; if(curLM<0){curLM=11; curLY--;} }
+    // 가계부 기준 현재 달의 시작일/종료일 계산 (fDash 로직과의 동기화)
+    var curFin = getFinMonth(now.toISOString(), sd);
     
     var monthlyIncTxs = txs.filter(function(t){
       if(t.type !== 'income') return false;
-      var dt = new Date(t.date);
-      var ty = dt.getFullYear(), tm = dt.getMonth();
-      if(dt.getDate() < sd) { tm--; if(tm<0){tm=11; ty--;} }
-      return ty === curLY && tm === curLM;
+      var f = getFinMonth(t.date, sd);
+      return f.y === curFin.y && f.m === curFin.m;
     });
     var monthlyTotI = monthlyIncTxs.reduce(function(s,t){ return s+t.amount; }, 0);
 
     if(period === '주간') {
-      var startDate = new Date(curLY, curLM, sd);
-      var endDate = new Date(curLM===11?curLY+1:curLY, curLM===11?0:curLM+1, sd-1);
-      var days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-      return Math.round((monthlyTotI / days) * 7);
+      var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+      return txs.filter(function(t){ return t.type==='income' && new Date(t.date) >= weekAgo; })
+                .reduce(function(s,t){ return s+t.amount; }, 0);
     } else if(period === '연간') {
       return inc.reduce(function(s,t){ return s+t.amount; }, 0);
     } else {
       return monthlyTotI;
     }
   }, [txs, period, inc, startDay]);
-
+ 
   var ALL_ANALYSIS_CATS = [{id:'all', name:'전체', icon:'📊', color:'#3D5AFE'}].concat(EX_CATS);
   function getCatTotal(catId) {
     if(catId === 'all') return totE;
@@ -5639,6 +6430,7 @@ function TxList(props) {
   var txs = props.txs;
   var onUpdate = props.onUpdate;
   var onDelete = props.onDelete;
+  var onUpdate = props.onUpdate;
   var onBulkDelete = props.onBulkDelete;
   
   var search  = useState('');    var setSearch  = search[1];  search  = search[0];
@@ -6111,6 +6903,7 @@ function Settings(props) {
       {icon:'📅',label:'가계부 시작일 설정',sub:'매월 '+startDay+'일 기준',id:'startDay'},
       {icon:'💳',label:'카드 관리',sub:'등록·수정·삭제',id:'cards'},
       {icon:'🧬',label:'AI API 키 설정 (Groq)',sub:hasGemini?'✅ Groq 연결됨':'⚠️ 미설정',id:'gemini'},
+      {icon:'💳',label:'카드 결제일 설정',sub:'현재: 매월 '+lsGet(LS_CARD_BILLING_DAY,12)+'일 결제',id:'billingDay'},
       {icon:'📥',label:'데이터 내보내기',sub:'Excel · HTML 지원',id:'export'},
       {icon:'🔒',label:'개인정보 보호',sub:'암호화·보안 안내',id:'privacy'},
       {icon:'🎨',label:'화면 및 글꼴 설정',sub:'테마 & 글꼴 변경',id:'display'},
@@ -6173,6 +6966,48 @@ function Settings(props) {
       ),
       h('button',{onClick:function(){ var d = parseInt(editStartDay)||1; setStartDay(d); lsSet(LS_START_DAY, d); alert('설정되었습니다!'); setModal(null); window.location.reload(); },style:{width:'100%',padding:14,borderRadius:12,border:'none',background:C.accent,color:'#fff',fontSize:15,fontWeight:800}},'설정 저장')
     ),
+modal==='billingDay' && h(Sheet,{title:'💳 카드 결제일 설정',onClose:function(){setModal(null);}},
+  h('div',{style:{background:'rgba(0,207,255,0.08)',borderRadius:12,padding:'14px 16px',
+    marginBottom:16,border:'1px solid rgba(0,207,255,0.25)'}},
+    h('p',{style:{color:'#00CFFF',fontSize:13,fontWeight:700,margin:'0 0 8px'}},'💡 결제일 계산 예시'),
+    h('p',{style:{color:C.muted,fontSize:12,margin:0,lineHeight:1.9}},
+      '결제일이 12일이면\n'
+      +'📅 전월 13일 ~ 당월 12일\n'
+      +'범위가 자동으로 계산됩니다.')
+  ),
+  h('p',{style:{color:C.muted,fontSize:12,margin:'0 0 10px'}},'매월 카드 대금 결제일 (1~28일)'),
+  h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:22}},
+    h('span',{style:{color:C.text,fontSize:15,fontWeight:700}},'매월'),
+    h('input',{
+      id:'bdInput', type:'tel', maxLength:2,
+      defaultValue:String(lsGet(LS_CARD_BILLING_DAY,12)),
+      onChange:function(e){
+        var v=e.target.value.replace(/\D/g,'');
+        if(parseInt(v)>28)v='28';
+        if(parseInt(v)<1&&v!=='')v='1';
+        e.target.value=v;
+      },
+      style:{width:72,padding:'12px 0',borderRadius:12,background:C.card2,
+        border:'2px solid rgba(0,207,255,0.6)',color:'#00CFFF',
+        fontSize:24,fontWeight:900,textAlign:'center',outline:'none'}
+    }),
+    h('span',{style:{color:C.text,fontSize:15,fontWeight:700}},'일')
+  ),
+  h('button',{
+    onClick:function(){
+      var inp=document.getElementById('bdInput');
+      var d=Math.max(1,Math.min(28,parseInt(inp?inp.value:12)||12));
+      lsSet(LS_CARD_BILLING_DAY,d);
+      setModal(null);
+      alert('✅ 카드 결제일이 매월 '+d+'일로 설정되었습니다!\n\n결제 범위: 전월 '+(d+1)+'일 ~ 당월 '+d+'일');
+      window.location.reload();
+    },
+    style:{width:'100%',padding:16,borderRadius:12,border:'none',
+      background:'linear-gradient(135deg,#7C4DFF,#00CFFF)',
+      color:'#fff',fontSize:15,fontWeight:900,cursor:'pointer',
+      boxShadow:'0 4px 16px rgba(0,207,255,0.35)'}
+  },'💾 결제일 저장')
+),
     modal==='gemini'  && h(GeminiKeyModal,{onClose:function(){setModal(null); setGeminiKey(lsGet(LS_GEMINI,''));},onSave:function(k){setGeminiKey(k);}}),
     modal==='cards' && h(Sheet,{title:'💳 카드 관리',onClose:function(){setModal(null);}},
       h('div',{style:{display:'flex',gap:6,marginBottom:14}},
@@ -7166,7 +8001,7 @@ function App() {
   if(!loggedIn) return h(AuthScreen, {onLogin: function(u){ lsSet(LS_USER,u); setCurUser(u); setLoggedIn(true); }});
 
   return h('div', {style:{ background:C.bg, minHeight:'100vh', color:C.text, fontFamily:"'Pretendard', sans-serif", maxWidth:430, margin:'0 auto', position:'relative' }},
-    tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:navTo, startDay:startDay, onAdd:addTx, onDelete:delTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
+    tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:navTo, startDay:startDay, onAdd:addTx, onDelete:delTx, onUpdate:updTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
     tab==='calendar'  && h(CalendarView, {txs:txs, startDay:startDay}),
     tab==='analysis'  && h(Analysis,   {txs:txs, startDay:startDay, dp:globalDp, baseDate:globalBaseDate}),
     tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:navBack, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx}),
