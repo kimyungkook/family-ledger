@@ -259,6 +259,7 @@ var LS_CARDS   = 'flai_cards';
 var LS_MEMBERS = 'flai_members';
 var LS_USERS   = 'flai_users';
 var LS_BUDGET  = 'flai_budget';
+var LS_CREDIT_LIMIT = 'flai_credit_limit';
 var LS_FIXED   = 'flai_fixed';
 var LS_GEMINI  = 'flai_gemini_key';
 var LS_BLACKLIST = 'flai_blacklist'; /* ★블랙리스트 저장 키 */
@@ -4088,176 +4089,306 @@ function CreditCardDetailSheet(props) {
   var onUpdate   = props.onUpdate || function(){};
   var onDelete   = props.onDelete || function(){};
 
-  var period   = getCardBillingPeriod(billingDay, baseDate);
-  var sDate    = new Date(period.start.getFullYear(), period.start.getMonth(), period.start.getDate(), 0, 0, 0);
-  var eDate    = new Date(period.end.getFullYear(), period.end.getMonth(), period.end.getDate(), 23, 59, 59);
-  var startStr = fmtBillingDate(period.start);
-  var endStr   = fmtBillingDate(period.end);
+  // ── 모든 상태 먼저 선언 ──
+  var smArr   = useState('all'); var setSelMem = smArr[1];      var selMem = smArr[0];
+  var ocArr   = useState({});    var setOpenCats = ocArr[1];    var openCats = ocArr[0];
+  var etArr   = useState(null);  var setEditTx = etArr[1];      var editTx = etArr[0];
+  var cmfArr  = useState({});    var setCatMemFilter = cmfArr[1]; var catMemFilter = cmfArr[0];
+  var smArr2  = useState(false); var setSheetModal = smArr2[1]; var sheetModal = smArr2[0];
+  /* ★ 수정: 모달 열 때 로컬 스토리지에 저장된 날짜를 불러옴 */
+  var cfArr   = useState(lsGet('flai_card_custom_start', ''));    var setCustomFrom = cfArr[1];  var customFrom = cfArr[0];
+  var ctArr   = useState(lsGet('flai_card_custom_end', ''));    var setCustomTo   = ctArr[1];  var customTo   = ctArr[0];
+  var clArr   = useState(lsGet(LS_CREDIT_LIMIT, 0)); var setCreditLimit = clArr[1]; var creditLimit = clArr[0];
+  var liArr   = useState('');    var setLimitInput = liArr[1];  var limitInput = liArr[0];
 
+  // ── 유효 날짜 계산 ──
+  var period   = getCardBillingPeriod(billingDay, baseDate);
+  var effStart = customFrom ? new Date(customFrom+'T00:00:00') : period.start;
+  var effEnd   = customTo   ? new Date(customTo+'T23:59:59')   : period.end;
+  var sDate    = new Date(effStart.getFullYear(), effStart.getMonth(), effStart.getDate(), 0, 0, 0);
+  var eDate    = new Date(effEnd.getFullYear(),   effEnd.getMonth(),   effEnd.getDate(),   23, 59, 59);
+  var startStr = fmtBillingDate(effStart);
+  var endStr   = fmtBillingDate(effEnd);
+
+  // ── 신용카드 필터링 ──
   var creditTxs = allTxs.filter(function(tx) {
     if (tx.type !== 'expense') return false;
     if (tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
     if (!isCredit(tx.method)) return false;
     var dp = (tx.date || '').split('-');
     if (dp.length < 3) return false;
-    var d = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]), 12, 0, 0);
+    var d = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]), 12, 0, 0);
     return d >= sDate && d <= eDate;
   });
 
-  var totalCredit = creditTxs.reduce(function(s, t) { return s + t.amount; }, 0);
-  var incRatio    = totI > 0 ? Math.round(totalCredit / totI * 100) : 0;
-  var incColor    = incRatio > 80 ? '#FF2266' : incRatio > 50 ? '#FF9E45' : '#00CFFF';
+  /* ★ 수정: 설정된 날짜 기간에 맞는 총 수입(totI)을 별도로 산출하여 수입대비 %를 구함 */
+  var periodIncTxs = allTxs.filter(function(tx) {
+    if (tx.type !== 'income') return false;
+    var dp = (tx.date || '').split('-');
+    if (dp.length < 3) return false;
+    var d = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]), 12, 0, 0);
+    return d >= sDate && d <= eDate;
+  });
+  var periodTotI = periodIncTxs.reduce(function(s,t){ return s+t.amount; }, 0);
 
-  var smArr = useState('all'); var setSelMem = smArr[1]; var selMem = smArr[0];
-  var ocArr = useState({});   var setOpenCats = ocArr[1]; var openCats = ocArr[0];
-  var etArr = useState(null); var setEditTx = etArr[1];   var editTx = etArr[0];
+  var totalCredit = creditTxs.reduce(function(s,t){ return s+t.amount; }, 0);
+  var incRatio    = periodTotI > 0 ? Math.round(totalCredit/periodTotI*100) : 0;
+  var incColor    = incRatio>80?'#FF2266':incRatio>50?'#FF9E45':'#00CFFF';
+  var limitRatio  = creditLimit>0 ? Math.min(totalCredit/creditLimit*100, 100) : 0;
 
-  var filteredTxs = selMem === 'all'
-    ? creditTxs
-    : creditTxs.filter(function(t) { return t.member === selMem; });
+  var filteredTxs = selMem==='all' ? creditTxs : creditTxs.filter(function(t){return t.member===selMem;});
 
-  var grouped = EX_CATS.map(function(cat) {
-    var items = filteredTxs.filter(function(t) { return t.catId === cat.id; });
-    var total = items.reduce(function(s, t) { return s + t.amount; }, 0);
-    return { cat: cat, items: items.sort(function(a, b) { return new Date(b.date) - new Date(a.date); }), total: total };
-  }).filter(function(g) { return g.items.length > 0; }).sort(function(a, b) { return b.total - a.total; });
+  var grouped = EX_CATS.map(function(cat){
+    var items = filteredTxs.filter(function(t){return t.catId===cat.id;});
+    var total = items.reduce(function(s,t){return s+t.amount;},0);
+    return {cat:cat, items:items.sort(function(a,b){return new Date(b.date)-new Date(a.date);}), total:total};
+  }).filter(function(g){return g.items.length>0;}).sort(function(a,b){return b.total-a.total;});
 
-  var grandTotal = filteredTxs.reduce(function(s, t) { return s + t.amount; }, 0);
-  var allOpen    = grouped.length > 0 && grouped.every(function(g) { return openCats[g.cat.id]; });
+  var grandTotal = filteredTxs.reduce(function(s,t){return s+t.amount;},0);
+  var allOpen    = grouped.length>0 && grouped.every(function(g){return openCats[g.cat.id];});
 
-  function toggleCat(id) {
-    setOpenCats(function(prev) { var n = Object.assign({}, prev); n[id] = !n[id]; return n; });
-  }
-  function doToggleAll() {
-    var n = {};
-    if (!allOpen) { grouped.forEach(function(g) { n[g.cat.id] = true; }); }
-    setOpenCats(n);
-  }
+  function toggleCat(id){ setOpenCats(function(p){var n=Object.assign({},p);n[id]=!n[id];return n;}); }
+  function doToggleAll(){ var n={}; if(!allOpen){grouped.forEach(function(g){n[g.cat.id]=true;});} setOpenCats(n); }
 
-  var tabs = [{ id: 'all', name: '전체', emoji: '👪', color: '#00CFFF' }]
-    .concat(MEMBERS.map(function(m) { return { id: m.id, name: m.name, emoji: m.emoji, color: m.color }; }));
+  var tabs = [{id:'all',name:'전체',emoji:'👪',color:'#00CFFF'}]
+    .concat(MEMBERS.map(function(m){return {id:m.id,name:m.name,emoji:m.emoji,color:m.color};}));
 
+  // ── 개별 거래 수정 모달 ──
   if (editTx) {
     return h(EditModal, {
-      tx: editTx,
-      onSave: function(u) { onUpdate(u); setEditTx(null); },
-      onDelete: function(id) { onDelete(id); setEditTx(null); },
-      onClose: function() { setEditTx(null); }
+      tx:editTx,
+      onSave:function(u){onUpdate(u);setEditTx(null);},
+      onDelete:function(id){onDelete(id);setEditTx(null);},
+      onClose:function(){setEditTx(null);}
     });
   }
 
-  return h('div', { style: { position: 'fixed', inset: 0, background: C.bg, color: C.text, zIndex: 3000, overflowY: 'auto', display: 'flex', justifyContent: 'center' } },
-    h('div', { style: { width: '100%', maxWidth: 430, paddingBottom: 100 } },
-
-      h('div', { style: { position: 'sticky', top: 0, zIndex: 10, background: C.bg, padding: '18px 16px 12px', borderBottom: '1px solid ' + C.border } },
-        h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
-          h('div', null,
-            h('p', { style: { color: '#7C4DFF', fontSize: 10, margin: '0 0 4px', fontWeight: 800, letterSpacing: 2 } }, '💳 신용카드 결제 분석'),
-            h('p', { style: { color: C.text, fontSize: 18, fontWeight: 900, margin: 0 } }, '신용카드 결제 내역')
-          ),
-          h('button', { onClick: onClose, style: { background: C.card2, border: '1px solid ' + C.border, color: C.text, padding: '6px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12 } }, '✕ 닫기')
+  // ── 설정 모달 (날짜 + 한도) ──
+  if (sheetModal) {
+    return h('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:4000,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}},
+      h('div',{style:{background:C.card,borderRadius:20,padding:'24px',width:'100%',maxWidth:380,border:'1px solid '+C.border}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
+          h('p',{style:{color:C.text,fontSize:16,fontWeight:800,margin:0}},'💳 신용카드 설정'),
+          h('button',{onClick:function(){setSheetModal(false);},
+            style:{background:'none',border:'none',color:C.muted,fontSize:22,cursor:'pointer',padding:4}},'✕')
         ),
+        h('p',{style:{color:'#7C4DFF',fontSize:11,fontWeight:700,margin:'0 0 8px',letterSpacing:1}},'📅 결제 기간 설정'),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:6}},
+          h('div',null,
+            h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'시작일'),
+            h('input',{type:'date',value:customFrom||period.start.toISOString().split('T')[0],
+              onChange:function(e){setCustomFrom(e.target.value);},
+              style:{width:'100%',padding:'9px 10px',borderRadius:9,background:C.card2,
+                border:'1px solid '+C.border,color:C.text,fontSize:13,outline:'none',boxSizing:'border-box'}})
+          ),
+          h('div',null,
+            h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 4px'}},'종료일'),
+            h('input',{type:'date',value:customTo||period.end.toISOString().split('T')[0],
+              onChange:function(e){setCustomTo(e.target.value);},
+              style:{width:'100%',padding:'9px 10px',borderRadius:9,background:C.card2,
+                border:'1px solid '+C.border,color:C.text,fontSize:13,outline:'none',boxSizing:'border-box'}})
+          )
+        ),
+        /* ★ 수정: 초기화 시 로컬스토리지 값도 삭제 */
+        h('button',{onClick:function(){setCustomFrom('');setCustomTo(''); lsDel('flai_card_custom_start'); lsDel('flai_card_custom_end');},
+          style:{width:'100%',padding:'6px',marginBottom:18,borderRadius:8,border:'1px solid '+C.border,
+            background:'transparent',color:C.muted,fontSize:11,cursor:'pointer'}},
+          '↩ 기간 초기화 (카드결제일 자동 계산)'),
+        h('p',{style:{color:'#7C4DFF',fontSize:11,fontWeight:700,margin:'0 0 8px',letterSpacing:1}},'💳 신용카드 한도 설정'),
+        // ... (중간 코드 생략) ...
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{onClick:function(){setSheetModal(false);},
+            style:{flex:1,padding:13,borderRadius:12,border:'1px solid '+C.border,
+              background:C.card2,color:C.muted,fontSize:13,fontWeight:700,cursor:'pointer'}},'취소'),
+          h('button',{onClick:function(){
+              var lv=parseInt(limitInput)||creditLimit;
+              setCreditLimit(lv); lsSet(LS_CREDIT_LIMIT,lv);
+              /* ★ 수정: 한도뿐만 아니라 날짜도 로컬 스토리지에 확실하게 저장되도록 추가 */
+              if(customFrom && customTo) { lsSet('flai_card_custom_start', customFrom); lsSet('flai_card_custom_end', customTo); }
+              else { lsDel('flai_card_custom_start'); lsDel('flai_card_custom_end'); }
+              setLimitInput(''); setSheetModal(false);
+            },
+            style:{flex:2,padding:13,borderRadius:12,border:'none',
+              background:'linear-gradient(135deg,#7C4DFF,#00CFFF)',
+              color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}},'✓ 저장')
+        )
+      )
+    );
+  }
 
-        h('div', { style: { padding: '14px 16px', background: 'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))', borderRadius: 14, border: '1px solid rgba(124,77,255,0.32)', marginBottom: 12 } },
-          h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
-            h('div', null,
-              h('p', { style: { color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 4px' } }, '📅 ' + startStr + ' ~ ' + endStr),
-              h('p', { style: { color: '#fff', fontSize: 22, fontWeight: 900, margin: '0 0 6px', letterSpacing: -0.5 } }, fmt(totalCredit)),
-              h('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
-                h('span', { style: { background: 'rgba(124,77,255,0.3)', color: '#C4A0FF', fontSize: 10, padding: '2px 8px', borderRadius: 6, fontWeight: 700 } }, creditTxs.length + '건'),
-                h('span', { style: { color: 'rgba(255,255,255,0.2)', fontSize: 10 } }, '|'),
-                h('span', { style: { color: incColor, fontSize: 10, fontWeight: 700 } }, '수입대비 ' + incRatio + '%')
-              )
-            ),
-            h('button', { onClick: doToggleAll, style: { background: 'rgba(124,77,255,0.25)', border: '1px solid rgba(124,77,255,0.45)', color: '#C4A0FF', padding: '7px 12px', borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: 'pointer' } },
-              allOpen ? '📁 전체접기' : '📂 전체펼치기')
+  // ── 메인 뷰 ──
+  return h('div',{style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:3000,overflowY:'auto',display:'flex',justifyContent:'center'}},
+    h('div',{style:{width:'100%',maxWidth:430,paddingBottom:100}},
+
+      h('div',{style:{position:'sticky',top:0,zIndex:10,background:C.bg,padding:'18px 16px 12px',borderBottom:'1px solid '+C.border}},
+
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+          h('div',null,
+            h('p',{style:{color:'#7C4DFF',fontSize:10,margin:'0 0 4px',fontWeight:800,letterSpacing:2}},'💳 신용카드 결제 분석'),
+            h('p',{style:{color:C.text,fontSize:18,fontWeight:900,margin:0}},'신용카드 결제 내역')
+          ),
+          h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+            h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
+              style:{background:'rgba(124,77,255,0.2)',border:'1px solid rgba(124,77,255,0.5)',
+                color:'#C4A0FF',padding:'5px 10px',borderRadius:8,cursor:'pointer',fontSize:11,fontWeight:700}},
+              '⚙️ 설정'),
+            h('button',{onClick:onClose,
+              style:{background:C.card2,border:'1px solid '+C.border,color:C.text,
+                padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},
+              '✕ 닫기')
           )
         ),
 
-        h('div', { style: { display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 4 } },
-          tabs.map(function(m) {
-            var isSel = selMem === m.id;
-            var mAmt  = m.id === 'all' ? totalCredit : creditTxs.filter(function(t) { return t.member === m.id; }).reduce(function(s, t) { return s + t.amount; }, 0);
-            return h('button', { key: m.id, onClick: function() { setSelMem(m.id); setOpenCats({}); },
-              style: { flexShrink: 0, padding: '8px 12px', borderRadius: 12, cursor: 'pointer', border: isSel ? '1.5px solid ' + m.color : '1px solid ' + C.border, background: isSel ? m.color + '25' : C.card2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62 } },
-              h('span', { style: { fontSize: 18 } }, m.emoji),
-              h('span', { style: { color: isSel ? m.color : C.muted, fontSize: 10, fontWeight: 700 } }, m.name),
-              h('span', { style: { color: isSel ? m.color : 'rgba(255,255,255,0.25)', fontSize: 9, fontWeight: 600 } }, fmtS(mAmt))
+        h('div',{style:{padding:'14px 16px',background:'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))',borderRadius:14,border:'1px solid rgba(124,77,255,0.32)',marginBottom:12}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+            h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
+              style:{display:'flex',alignItems:'center',gap:4,background:'rgba(124,77,255,0.15)',
+                border:'1px solid rgba(124,77,255,0.35)',borderRadius:8,padding:'4px 10px',cursor:'pointer'}},
+              h('span',{style:{color:'rgba(255,255,255,0.65)',fontSize:9,fontWeight:600}},'📅 '+startStr+' ~ '+endStr),
+              h('span',{style:{color:'#C4A0FF',fontSize:9}},' ✏️')
+            ),
+            h('button',{onClick:doToggleAll,
+              style:{background:'rgba(124,77,255,0.25)',border:'1px solid rgba(124,77,255,0.45)',
+                color:'#C4A0FF',padding:'5px 10px',borderRadius:8,fontSize:10,fontWeight:700,cursor:'pointer'}},
+              allOpen?'📁 전체접기':'📂 전체펼치기')
+          ),
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}},
+            h('div',null,
+              h('p',{style:{color:'#fff',fontSize:24,fontWeight:900,margin:'0 0 4px',letterSpacing:-0.5}},fmt(totalCredit)),
+              h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+                h('span',{style:{background:'rgba(124,77,255,0.3)',color:'#C4A0FF',fontSize:10,padding:'2px 8px',borderRadius:6,fontWeight:700}},creditTxs.length+'건'),
+                h('span',{style:{color:'rgba(255,255,255,0.2)',fontSize:10}},'|'),
+                h('span',{style:{color:incColor,fontSize:10,fontWeight:700}},'수입대비 '+incRatio+'%')
+              )
+            ),
+            creditLimit>0 && h('div',{style:{textAlign:'right'}},
+              h('p',{style:{color:'rgba(255,255,255,0.45)',fontSize:9,margin:'0 0 2px'}},'한도 '+fmtS(creditLimit)+' 중'),
+              h('p',{style:{color:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':'#00CFFF',fontSize:11,fontWeight:700,margin:0}},Math.round(limitRatio)+'% 사용')
+            )
+          ),
+          creditLimit>0 && h('div',{style:{marginTop:8,height:4,background:'rgba(255,255,255,0.1)',borderRadius:4,overflow:'hidden'}},
+            h('div',{style:{height:'100%',width:limitRatio+'%',borderRadius:4,transition:'width 0.8s ease',
+              background:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':'linear-gradient(90deg,#7C4DFF,#00CFFF)'}})
+          )
+        ),
+
+        h('div',{style:{display:'flex',gap:7,overflowX:'auto',paddingBottom:4}},
+          tabs.map(function(m){
+            var isSel=selMem===m.id;
+            var mAmt=m.id==='all'?totalCredit:creditTxs.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+            return h('button',{key:m.id,
+              onClick:function(){setSelMem(m.id);setOpenCats({});setCatMemFilter({});},
+              style:{flexShrink:0,padding:'8px 12px',borderRadius:12,cursor:'pointer',
+                border:isSel?'1.5px solid '+m.color:'1px solid '+C.border,
+                background:isSel?m.color+'25':C.card2,
+                display:'flex',flexDirection:'column',alignItems:'center',gap:2,minWidth:62}},
+              h('span',{style:{fontSize:18}},m.emoji),
+              h('span',{style:{color:isSel?m.color:C.muted,fontSize:10,fontWeight:700}},m.name),
+              h('span',{style:{color:isSel?m.color:'rgba(255,255,255,0.25)',fontSize:9,fontWeight:600}},fmtS(mAmt))
             );
           })
         )
       ),
 
-      h('div', { style: { padding: '14px 16px 0' } },
-        grouped.length === 0
-          ? h('div', { style: { textAlign: 'center', padding: '60px 20px' } },
-              h('p', { style: { fontSize: 48, marginBottom: 12 } }, '💳'),
-              h('p', { style: { color: C.text, fontSize: 15, fontWeight: 700, marginBottom: 8 } }, '신용카드 내역 없음'),
-              h('p', { style: { color: C.muted, fontSize: 12 } }, '📅 ' + startStr + ' ~ ' + endStr)
+      h('div',{style:{padding:'14px 16px 0'}},
+        grouped.length===0
+          ? h('div',{style:{textAlign:'center',padding:'60px 20px'}},
+              h('p',{style:{fontSize:48,marginBottom:12}},'💳'),
+              h('p',{style:{color:C.text,fontSize:15,fontWeight:700,marginBottom:8}},'신용카드 내역 없음'),
+              h('p',{style:{color:C.muted,fontSize:12}},'📅 '+startStr+' ~ '+endStr)
             )
-          : grouped.map(function(g) {
-              var cat    = g.cat;
-              var isOpen = openCats[cat.id];
-              var pct    = grandTotal > 0 ? Math.round(g.total / grandTotal * 100) : 0;
+          : grouped.map(function(g){
+              var cat=g.cat; var isOpen=openCats[cat.id];
+              var pct=grandTotal>0?Math.round(g.total/grandTotal*100):0;
+              var catMem=catMemFilter[cat.id];
 
-              return h('div', { key: cat.id, style: { marginBottom: 10, borderRadius: 14, overflow: 'hidden', border: '1px solid ' + (isOpen ? 'rgba(124,77,255,0.5)' : C.border), background: C.card, boxShadow: isOpen ? '0 4px 24px rgba(124,77,255,0.25)' : '0 2px 8px rgba(0,0,0,0.18)', transition: 'all 0.3s ease' } },
+              return h('div',{key:cat.id,style:{marginBottom:10,borderRadius:14,overflow:'hidden',
+                border:'1px solid '+(isOpen?'rgba(124,77,255,0.5)':C.border),
+                background:C.card,
+                boxShadow:isOpen?'0 4px 24px rgba(124,77,255,0.25)':'0 2px 8px rgba(0,0,0,0.18)',
+                transition:'all 0.3s ease'}},
 
-                h('div', { onClick: function() { toggleCat(cat.id); }, style: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: isOpen ? 'rgba(124,77,255,0.08)' : 'transparent', transition: 'background 0.3s' } },
-                  h('div', { style: { width: 44, height: 44, borderRadius: 13, background: cat.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, boxShadow: '0 2px 10px ' + cat.color + '33' } }, cat.icon),
-                  h('div', { style: { flex: 1, minWidth: 0 } },
-                    h('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 } },
-                      h('span', { style: { color: C.text, fontSize: 14, fontWeight: 800 } }, cat.name),
-                      h('span', { style: { background: 'rgba(124,77,255,0.28)', color: '#C4A0FF', fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 700 } }, pct + '%'),
-                      h('span', { style: { color: C.muted, fontSize: 10 } }, g.items.length + '건')
+                h('div',{onClick:function(){toggleCat(cat.id);},
+                  style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',cursor:'pointer',
+                    background:isOpen?'rgba(124,77,255,0.08)':'transparent',transition:'background 0.3s'}},
+                  h('div',{style:{width:44,height:44,borderRadius:13,background:cat.color+'22',
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    fontSize:22,flexShrink:0,boxShadow:'0 2px 10px '+cat.color+'33'}},cat.icon),
+                  h('div',{style:{flex:1,minWidth:0}},
+                    h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:5}},
+                      h('span',{style:{color:C.text,fontSize:14,fontWeight:800}},cat.name),
+                      h('span',{style:{background:'rgba(124,77,255,0.28)',color:'#C4A0FF',fontSize:10,padding:'2px 7px',borderRadius:6,fontWeight:700}},pct+'%'),
+                      h('span',{style:{color:C.muted,fontSize:10}},g.items.length+'건')
                     ),
-                    h('div', { style: { height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'hidden' } },
-                      h('div', { style: { height: '100%', width: pct + '%', background: 'linear-gradient(90deg,' + cat.color + ',#7C4DFF)', borderRadius: 4 } })
+                    h('div',{style:{height:3,background:'rgba(255,255,255,0.07)',borderRadius:4,overflow:'hidden'}},
+                      h('div',{style:{height:'100%',width:pct+'%',background:'linear-gradient(90deg,'+cat.color+',#7C4DFF)',borderRadius:4}})
                     )
                   ),
-                  h('div', { style: { textAlign: 'right', flexShrink: 0 } },
-                    h('p', { style: { color: cat.color, fontSize: 15, fontWeight: 800, margin: '0 0 4px' } }, fmt(g.total)),
-                    h('span', { style: { color: C.muted, fontSize: 13, display: 'inline-block', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' } }, '▶')
+                  h('div',{style:{textAlign:'right',flexShrink:0}},
+                    h('p',{style:{color:cat.color,fontSize:15,fontWeight:800,margin:'0 0 4px'}},fmt(g.total)),
+                    h('span',{style:{color:C.muted,fontSize:13,display:'inline-block',
+                      transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.3s ease'}},'▶')
                   )
                 ),
 
-                isOpen ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.05)' } },
-                  h('div', { style: { display: 'flex', gap: 7, padding: '10px 16px', background: 'rgba(0,0,0,0.2)', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.04)' } },
-                    MEMBERS.map(function(m) {
-                      var mAmt = g.items.filter(function(t) { return t.member === m.id; }).reduce(function(s, t) { return s + t.amount; }, 0);
-                      if (!mAmt) return null;
-                      return h('div', { key: m.id, style: { flexShrink: 0, textAlign: 'center', padding: '7px 12px', borderRadius: 10, background: m.color + '16', border: '1px solid ' + m.color + '38', minWidth: 62 } },
-                        h('span', { style: { fontSize: 18, display: 'block' } }, m.emoji),
-                        h('span', { style: { color: m.color, fontSize: 9, fontWeight: 700, display: 'block', marginTop: 2 } }, m.name),
-                        h('span', { style: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 800, display: 'block' } }, fmtS(mAmt))
+                isOpen ? h('div',{style:{borderTop:'1px solid rgba(255,255,255,0.05)'}},
+                  h('div',{style:{display:'flex',gap:7,padding:'10px 16px',background:'rgba(0,0,0,0.2)',overflowX:'auto',borderBottom:'1px solid rgba(255,255,255,0.04)'}},
+                    MEMBERS.map(function(m){
+                      var mAmt=g.items.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+                      if(!mAmt) return null;
+                      var isCatSel=catMem===m.id;
+                      return h('div',{key:m.id,
+                        onClick:function(e){
+                          e.stopPropagation();
+                          setCatMemFilter(function(prev){
+                            var n=Object.assign({},prev);
+                            if(n[cat.id]===m.id){delete n[cat.id];}
+                            else{n[cat.id]=m.id;}
+                            return n;
+                          });
+                        },
+                        style:{flexShrink:0,textAlign:'center',padding:'7px 12px',borderRadius:10,
+                          background:isCatSel?m.color+'40':m.color+'16',
+                          border:'1.5px solid '+(isCatSel?m.color:m.color+'38'),
+                          minWidth:62,cursor:'pointer',transition:'all 0.2s',
+                          boxShadow:isCatSel?'0 0 8px '+m.color+'55':'none'}},
+                        h('span',{style:{fontSize:18,display:'block'}},m.emoji),
+                        h('span',{style:{color:m.color,fontSize:9,fontWeight:isCatSel?800:700,display:'block',marginTop:2}},m.name),
+                        h('span',{style:{color:'rgba(255,255,255,0.85)',fontSize:11,fontWeight:800,display:'block'}},fmtS(mAmt))
                       );
                     })
                   ),
-                  g.items.map(function(tx, ti) {
-                    var mem  = getMem(tx.member);
-                    var mStr = String(tx.method || '').length > 12 ? String(tx.method || '').slice(0, 10) + '..' : String(tx.method || '');
-                    return h('div', { key: tx.id,
-                      onClick: function() { setEditTx(tx); },
-                      style: { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: ti < g.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', cursor: 'pointer' }
-                    },
-                      h('div', { style: { width: 36, height: 36, borderRadius: 11, background: mem.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, border: '1px solid ' + mem.color + '33' } }, mem.emoji),
-                      h('div', { style: { flex: 1, minWidth: 0 } },
-                        h('p', { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, tx.store || '미입력'),
-                        h('div', { style: { display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' } },
-                          h('span', { style: { color: mem.color, fontSize: 10, fontWeight: 600 } }, mem.name),
-                          h('span', { style: { color: 'rgba(255,255,255,0.2)' } }, '·'),
-                          h('span', { style: { color: C.muted, fontSize: 10 } }, tx.date),
-                          tx.subCat ? h('span', { style: { background: cat.color + '1E', color: cat.color, fontSize: 9, padding: '1px 5px', borderRadius: 4, marginLeft: 2 } }, tx.subCat) : null
+                  (catMem?g.items.filter(function(t){return t.member===catMem;}):g.items)
+                    .map(function(tx,ti,arr){
+                      var mem=getMem(tx.member);
+                      var mStr=String(tx.method||'').length>12?String(tx.method||'').slice(0,10)+'..':String(tx.method||'');
+                      return h('div',{key:tx.id,
+                        onClick:function(){setEditTx(tx);},
+                        style:{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',
+                          borderBottom:ti<arr.length-1?'1px solid rgba(255,255,255,0.04)':'none',
+                          cursor:'pointer'}},
+                        h('div',{style:{width:36,height:36,borderRadius:11,background:mem.color+'22',
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:18,flexShrink:0,border:'1px solid '+mem.color+'33'}},mem.emoji),
+                        h('div',{style:{flex:1,minWidth:0}},
+                          h('p',{style:{color:C.text,fontSize:13,fontWeight:700,margin:'0 0 3px',
+                            overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store||'미입력'),
+                          h('div',{style:{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}},
+                            h('span',{style:{color:mem.color,fontSize:10,fontWeight:600}},mem.name),
+                            h('span',{style:{color:'rgba(255,255,255,0.2)'}},'·'),
+                            h('span',{style:{color:C.muted,fontSize:10}},tx.date),
+                            tx.subCat?h('span',{style:{background:cat.color+'1E',color:cat.color,fontSize:9,padding:'1px 5px',borderRadius:4,marginLeft:2}},tx.subCat):null
+                          ),
+                          tx.memo?h('p',{style:{color:C.accent+'AA',fontSize:10,margin:'3px 0 0'}},'📝 '+tx.memo):null
                         ),
-                        tx.memo ? h('p', { style: { color: C.accent + 'AA', fontSize: 10, margin: '3px 0 0' } }, '📝 ' + tx.memo) : null
-                      ),
-                      h('div', { style: { textAlign: 'right', flexShrink: 0 } },
-                        h('p', { style: { color: '#C4A0FF', fontSize: 14, fontWeight: 800, margin: '0 0 3px' } }, fmt(tx.amount)),
-                        h('p', { style: { color: 'rgba(255,255,255,0.35)', fontSize: 9, margin: 0 } }, mStr),
-                        h('p', { style: { color: 'rgba(124,77,255,0.7)', fontSize: 9, margin: '2px 0 0', fontWeight: 700 } }, '✏️ 수정')
-                      )
-                    );
-                  })
-                ) : null
+                        h('div',{style:{textAlign:'right',flexShrink:0}},
+                          h('p',{style:{color:'#C4A0FF',fontSize:14,fontWeight:800,margin:'0 0 3px'}},fmt(tx.amount)),
+                          h('p',{style:{color:'rgba(255,255,255,0.35)',fontSize:9,margin:0}},mStr),
+                          h('p',{style:{color:'rgba(124,77,255,0.7)',fontSize:9,margin:'2px 0 0',fontWeight:700}},'✏️ 수정')
+                        )
+                      );
+                    })
+                ):null
               );
             })
       )
@@ -4492,6 +4623,14 @@ function Dashboard(props) {
   var guideData = useState(null); var setGuideData = guideData[1]; guideData = guideData[0];
   var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
   var csArr = useState(false); var setShowCS = csArr[1]; var showCS = csArr[0];
+  var anlModalArr = useState(null); var setAnlModal = anlModalArr[1]; var anlModal = anlModalArr[0];
+  var aefArr = useState(lsGet('flai_anl_ef','')); var setAnlExpFrom = aefArr[1]; var anlExpFrom = aefArr[0];
+  var aetArr = useState(lsGet('flai_anl_et','')); var setAnlExpTo   = aetArr[1]; var anlExpTo   = aetArr[0];
+  var aifArr = useState(lsGet('flai_anl_if','')); var setAnlIncFrom = aifArr[1]; var anlIncFrom = aifArr[0];
+  var aitArr = useState(lsGet('flai_anl_it','')); var setAnlIncTo   = aitArr[1]; var anlIncTo   = aitArr[0];
+  var cbArr    = useState(lsGet(LS_CREDIT_LIMIT, 2000000)); var cardBudget = cbArr[0]; var setCardBudget = cbArr[1];
+  var cbEArr   = useState(false); var isCbEdit = cbEArr[0]; var setIsCbEdit = cbEArr[1];
+  var cbInpArr = useState('');    var cbInput  = cbInpArr[0]; var setCbInput  = cbInpArr[1];  
   var showCreditSheet = useState(false); var setShowCreditSheet = showCreditSheet[1]; showCreditSheet = showCreditSheet[0];  
 
   var ftx = useMemo(function(){ return fDash(txs, dp, baseDate, 1); }, [txs, dp, baseDate]);
@@ -4507,6 +4646,7 @@ function Dashboard(props) {
 
   var curInc = ftx.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
   var curExp = ftx.filter(function(t){return t.type==='expense'&&t.catId!=='invest'&&t.catId!=='travel_fund';}).reduce(function(s,t){return s+t.amount;},0);
+  var curLoan = ftx.filter(function(t){return t.type==='expense'&&t.catId==='finance';}).reduce(function(s,t){return s+t.amount;},0); // ★ 대출상환액 계산 추가
   var curRate = curInc > 0 ? Math.round(curExp/curInc*100) : 0;
 
   var accNetSavings = useMemo(function(){
@@ -4634,43 +4774,81 @@ function Dashboard(props) {
      h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}},
       [
         {l:'총 수입', v:fmt(curInc), c:C.green, type:'income'},
-        {l:'총 지출', v:fmt(curExp), c:C.red, type:'expense'},
-        {l:'순 저축', v:fmt(accNetSavings), c:C.text, type:'net'},
+        {l:'총 지출', v:fmt(curExp), c:C.red, type:'expense', loan:fmt(curLoan)},
+        {l:'잔액', v:fmt(accNetSavings), c:C.text, type:'net'},
         {l:'📈 투자/자산', v:fmt(accInv), c:'#A29BFE', type:'invest'}
       ].map(function(k){
         var isClickable = k.type === 'income' || k.type === 'expense';
         return h(GCard,{key:k.l, onClick: isClickable ? function(){ setDetailType(k.type); } : undefined, style:{padding:'12px 14px', cursor: isClickable ? 'pointer' : 'default', border: isClickable ? '1px solid '+k.c+'33' : undefined}}, 
-          h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l),
-          h('p',{style:{color:k.c,fontSize:16,fontWeight:800,margin:'4px 0 0'}},k.v)
+          k.type === 'expense' ?
+            h('div', {style:{display:'flex', alignItems:'flex-end', whiteSpace:'nowrap'}},
+              h('div', null,
+                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '총 지출'),
+                h('p',{style:{color:C.red,fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.v)
+              ),
+              h('span', {style:{color:'rgba(255,255,255,0.15)', fontSize:16, fontWeight:300, margin:'0 6px 1px 6px'}}, '/'),
+              h('div', null,
+                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '대출금상환액'),
+                h('p',{style:{color:C.gold,fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.loan)
+              )
+            )
+          : h('div', null, 
+              h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l),
+              h('p',{style:{color:k.c,fontSize:16,fontWeight:800,margin:'4px 0 0'}},k.v)
+            )
         );
       })
     ),
     
-// [Dashboard 내부에 삽입할 카드 로직]
+// [Dashboard 내부에 삽입할 카드 로직 - 3종 테마 완벽 대응 및 인라인 달력/목표 설정]
 (function(){
+  // 1. 커스텀 날짜 상태 관리
+  var cStartArr = useState(lsGet('flai_card_custom_start', '')); var customStart = cStartArr[0]; var setCustomStart = cStartArr[1];
+  var cEndArr   = useState(lsGet('flai_card_custom_end', ''));   var customEnd   = cEndArr[0];   var setCustomEnd   = cEndArr[1];
+  var dateEditArr = useState(false); var isDateEdit = dateEditArr[0]; var setDateEdit = dateEditArr[1];
+
+  // 2. 목표 한도 금액 상태 관리
+  var bdgArr = useState(lsGet('flai_card_budget', 2000000)); var CARD_BUDGET = bdgArr[0]; var setCardBudget = bdgArr[1];
+  var bInpArr = useState(String(CARD_BUDGET)); var budgetInput = bInpArr[0]; var setBudgetInput = bInpArr[1];
+  var bdgEditArr = useState(false); var isBdgEdit = bdgEditArr[0]; var setBdgEdit = bdgEditArr[1];
+
+  // 3. 결제일 기간 로직
   var billingDay = lsGet(LS_CARD_BILLING_DAY, 12);
   var period     = getCardBillingPeriod(billingDay, baseDate);
-  var startStr   = fmtBillingDate(period.start);
-  var endStr     = fmtBillingDate(period.end);
+  var sDate, eDate, startStr, endStr;
+  
+  if (customStart && customEnd) {
+    var cs = new Date(customStart); var ce = new Date(customEnd);
+    sDate = new Date(cs.getFullYear(), cs.getMonth(), cs.getDate(), 0, 0, 0);
+    eDate = new Date(ce.getFullYear(), ce.getMonth(), ce.getDate(), 23, 59, 59);
+    startStr = fmtBillingDate(cs); endStr = fmtBillingDate(ce);
+  } else {
+    sDate = new Date(period.start.getFullYear(), period.start.getMonth(), period.start.getDate(), 0, 0, 0);
+    eDate = new Date(period.end.getFullYear(),   period.end.getMonth(),   period.end.getDate(),   23, 59, 59);
+    startStr = fmtBillingDate(period.start); endStr = fmtBillingDate(period.end);
+  }
 
-  // ★ isCredit() 전역함수로 신용카드만 필터 + 결제기간 적용
-  var sDate = new Date(period.start.getFullYear(), period.start.getMonth(), period.start.getDate(), 0, 0, 0);
-  var eDate = new Date(period.end.getFullYear(),   period.end.getMonth(),   period.end.getDate(),   23, 59, 59);
-
+ // 4. 필터링 및 합계 계산
   var cardTxs = txs.filter(function(tx) {
-    if (tx.type !== 'expense') return false;
-    if (tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
+    if (tx.type !== 'expense' || tx.catId === 'invest' || tx.catId === 'travel_fund') return false;
     if (!isCredit(tx.method)) return false;
     var d = new Date(tx.date + 'T12:00:00');
     return d >= sDate && d <= eDate;
   });
 
-  var cardAmt  = cardTxs.reduce(function(s, t) { return s + t.amount; }, 0);
-  var incRatio = totI > 0 ? Math.round(cardAmt / totI * 100) : 0;
-  var incColor = incRatio > 80 ? '#FF2266' : incRatio > 50 ? '#FF9E45' : '#00CFFF';
+  /* ★ 수정: Dashboard 카드 UI에서도 설정 날짜에 맞춰 총수입(periodTotI) 계산 */
+  var periodIncTxs = txs.filter(function(tx) {
+    if (tx.type !== 'income') return false;
+    var d = new Date(tx.date + 'T12:00:00');
+    return d >= sDate && d <= eDate;
+  });
 
-  var CARD_BUDGET = 2000000;
-  var ratio = cardAmt > 0 ? cardAmt / CARD_BUDGET : 0;
+  var cardAmt  = cardTxs.reduce(function(s, t) { return s + t.amount; }, 0);
+  var periodTotI = periodIncTxs.reduce(function(s, t) { return s + t.amount; }, 0);
+  var incRatio = periodTotI > 0 ? Math.round(cardAmt / periodTotI * 100) : 0;
+  var incColor = incRatio > 80 ? '#FF2266' : incRatio > 50 ? '#FF9E45' : '#00BFA5'; 
+  
+  var ratio = CARD_BUDGET > 0 ? cardAmt / CARD_BUDGET : 0;
   var pct   = Math.min(ratio * 100, 100).toFixed(1);
 
   var personas = [
@@ -4681,49 +4859,90 @@ function Dashboard(props) {
   ];
   var p = personas.find(function(x) { return ratio >= x.min; }) || personas[3];
 
+  // ★ 3가지 테마(라이트/다크/코지) 완벽 대응 색상 설정
+  var isLight = savedTheme === 'light';
+  var isCozy  = savedTheme === 'cozy';
+  
+  // 배경색: 테마별 고유의 질감과 톤을 그대로 반영
+  var cardBg = isLight ? 'linear-gradient(145deg, #FFFFFF, #F8FAFC)' : 
+               isCozy  ? 'linear-gradient(145deg, rgba(60,42,30,0.95), rgba(30,20,15,0.92))' : 
+                         'linear-gradient(145deg, rgba(25,32,50,0.95), rgba(15,20,35,0.92))';
+                         
+  var txtMain = C.text;   // 전역 테마 텍스트 색상 연동
+  var txtSub  = C.muted;  // 전역 테마 서브 텍스트 연동
+  var btnBg   = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+  var btnBdr  = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)';
+  var barBg   = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)';
+
   return h('div', {
-    onClick: function() { setShowCS(true); },
+    onClick: function() { if(!isDateEdit && !isBdgEdit) setShowCS(true); },
     style: {
-      marginBottom: 14,
-      background: 'linear-gradient(145deg,rgba(14,10,26,0.95),rgba(24,16,44,0.92))',
-      backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-      border: '1px solid ' + p.color + '44',
-      borderRadius: 20,
-      boxShadow: '0 8px 32px -8px ' + p.color + '55, inset 0 1px 0 rgba(255,255,255,0.06)',
-      padding: '18px 20px',
-      cursor: 'pointer',
-      position: 'relative',
-      overflow: 'hidden'
+      marginBottom: 14, background: cardBg,
+      backdropFilter: 'blur(24px)', border: '1px solid ' + (isLight ? p.color+'66' : p.color+'44'), borderRadius: 20,
+      boxShadow: '0 8px 32px -8px ' + p.color + (isLight?'22':'44') + ', inset 0 1px 0 '+(isLight?'rgba(255,255,255,0.8)':'rgba(255,255,255,0.05)'),
+      padding: '18px 20px', cursor: (isDateEdit||isBdgEdit) ? 'default' : 'pointer', position: 'relative', overflow: 'hidden'
     }
   },
-    h('div', { style: { position: 'absolute', top: -24, right: -24, width: 90, height: 90, borderRadius: '50%', background: 'radial-gradient(circle,' + p.color + '22 0%,transparent 70%)', pointerEvents: 'none' } }),
+    h('div', { style: { position: 'absolute', top: -24, right: -24, width: 90, height: 90, borderRadius: '50%', background: 'radial-gradient(circle,' + p.color + (isLight?'15':'22') + ' 0%,transparent 70%)', pointerEvents: 'none' } }),
 
-    h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-        h('div', { style: { width: 7, height: 7, borderRadius: '50%', background: p.color, boxShadow: '0 0 8px ' + p.color } }),
-        h('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 600 } }, '📅 ' + startStr + ' ~ ' + endStr)
-      ),
-      h('span', { style: { color: p.color, fontSize: 10, fontWeight: 800 } }, '상세 보기 ❯')
+    // ★ 상단 헤더
+    h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap:'wrap', gap:8 } },
+      
+      // 1) 날짜 영역
+      isDateEdit ? 
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, background: C.card2, padding:'6px 8px', borderRadius:8, border:'1px solid '+p.color, flex:1 }, onClick:function(e){e.stopPropagation();} },
+          h('input', { type:'date', value:customStart, onChange:function(e){ setCustomStart(e.target.value); }, style:{ flex:1, padding:'4px', borderRadius:4, border:'none', background:C.faint, color:txtMain, fontSize:11, outline:'none' } }),
+          h('span', { style:{color:txtSub, fontSize:12} }, '~'),
+          h('input', { type:'date', value:customEnd, onChange:function(e){ setCustomEnd(e.target.value); }, style:{ flex:1, padding:'4px', borderRadius:4, border:'none', background:C.faint, color:txtMain, fontSize:11, outline:'none' } }),
+          h('button', { onClick:function(){ 
+              if(customStart && customEnd) { lsSet('flai_card_custom_start', customStart); lsSet('flai_card_custom_end', customEnd); } 
+              else { lsDel('flai_card_custom_start'); lsDel('flai_card_custom_end'); }
+              setDateEdit(false);
+            }, style:{ background:p.color, color:'#fff', border:'none', padding:'4px 8px', borderRadius:4, fontSize:10, fontWeight:700, cursor:'pointer' } }, '저장')
+        )
+      : h('div', { 
+          onClick: function(e){ e.stopPropagation(); setDateEdit(true); setBdgEdit(false); },
+          style: { display: 'flex', alignItems: 'center', gap: 6, background: btnBg, padding:'4px 10px', borderRadius:6, cursor:'pointer', border: '1px solid '+btnBdr } 
+        },
+          h('div', { style: { width: 7, height: 7, borderRadius: '50%', background: p.color, boxShadow: '0 0 8px ' + p.color } }),
+          h('span', { style: { color: txtSub, fontSize: 11, fontWeight: 600 } }, '📅 ' + startStr + ' ~ ' + endStr + ' ✏️')
+        ),
+      
+      // 2) 목표 설정 영역
+      isBdgEdit ?
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, background: C.card2, padding:'4px 8px', borderRadius:8, border:'1px solid '+p.color }, onClick:function(e){e.stopPropagation();} },
+          h('input', { type:'tel', value:budgetInput, onChange:function(e){ setBudgetInput(e.target.value.replace(/[^0-9]/g, '')); }, placeholder:'목표 금액', style:{ width:80, padding:'4px', borderRadius:4, border:'none', background:C.faint, color:p.color, fontSize:12, fontWeight:700, outline:'none', textAlign:'right' } }),
+          h('button', { onClick:function(){ 
+              var num = parseInt(budgetInput) || 0;
+              if(num > 0) { setCardBudget(num); lsSet('flai_card_budget', num); }
+              setBdgEdit(false);
+            }, style:{ background:p.color, color:'#fff', border:'none', padding:'4px 8px', borderRadius:4, fontSize:10, fontWeight:700, cursor:'pointer' } }, '저장')
+        )
+      : h('div', {
+          onClick: function(e) { e.stopPropagation(); setBdgEdit(true); setDateEdit(false); setBudgetInput(String(CARD_BUDGET)); },
+          style: { background: btnBg, padding: '4px 10px', borderRadius: 8, fontSize: 11, color: txtSub, cursor: 'pointer', border: '1px solid '+btnBdr, display:'flex', gap:4, alignItems:'center' }
+        }, h('span', {style:{color:p.color, fontWeight:700}}, '목표'), h('span', null, fmtS(CARD_BUDGET)), h('span', {style:{fontSize:10, opacity:0.8}}, '✏️')),
+
+      (!isDateEdit && !isBdgEdit) ? h('span', { style: { color: p.color, fontSize: 11, fontWeight: 800 } }, '상세 보기 ❯') : null
     ),
 
+    // ★ 본문 (아이콘 및 퍼센트)
     h('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
-      h('div', { style: { fontSize: 36, filter: 'drop-shadow(0 0 12px ' + p.color + ')', flexShrink: 0 } },
-        ratio > 0.75 ? '🔴' : ratio > 0.50 ? '🟠' : ratio > 0.25 ? '💠' : '💎'
-      ),
+      h('div', { style: { fontSize: 36, filter: 'drop-shadow(0 0 12px ' + p.color + ')', flexShrink: 0 } }, ratio > 0.75 ? '🔴' : ratio > 0.50 ? '🟠' : ratio > 0.25 ? '💠' : '💎'),
       h('div', { style: { flex: 1, minWidth: 0 } },
-        h('div', { style: { color: '#fff', fontSize: 15, fontWeight: 900, marginBottom: 5, letterSpacing: -0.3 } }, p.name),
+        h('div', { style: { color: txtMain, fontSize: 15, fontWeight: 900, marginBottom: 5, letterSpacing: -0.3 } }, p.name),
         h('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 } },
           h('span', { style: { color: p.color, fontSize: 11, fontWeight: 700 } }, pct + '% 소진'),
-          h('div', { style: { width: 1, height: 10, background: 'rgba(255,255,255,0.2)' } }),
+          h('div', { style: { width: 1, height: 10, background: btnBdr } }),
           h('span', { style: { color: incColor, fontSize: 11, fontWeight: 700 } }, '수입대비 ' + incRatio + '%')
         ),
-        h('div', { style: { height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' } },
+        h('div', { style: { height: 4, background: barBg, borderRadius: 4, overflow: 'hidden' } },
           h('div', { style: { height: '100%', width: pct + '%', background: 'linear-gradient(90deg,' + p.color + '88,' + p.color + ')', borderRadius: 4, transition: 'width 0.8s ease' } })
         )
       ),
       h('div', { style: { textAlign: 'right', flexShrink: 0 } },
-        h('div', { style: { fontSize: 9, color: 'rgba(255,255,255,0.4)', marginBottom: 5 } }, '신용카드 합계'),
-        h('div', { style: { fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5 } }, fmt(cardAmt))
+        h('div', { style: { fontSize: 9, color: txtSub, marginBottom: 5 } }, '신용카드 합계'),
+        h('div', { style: { fontSize: 20, fontWeight: 900, color: txtMain, letterSpacing: -0.5 } }, fmt(cardAmt))
       )
     )
   );
@@ -5203,11 +5422,68 @@ function Dashboard(props) {
         )
       );
     })(),
-
-    guideData && h(ExpertGuideModal, { ai: guideData.ai, stats: guideData.stats, onClose: function(){ setGuideData(null); } }),
-    (modal === 'assets_invest' || modal === 'assets_travel') && h(AssetModal, { 
-      txs: txs, onAdd: onAdd, onDelete: onDelete, defaultCat: modal === 'assets_travel' ? 'travel_fund' : 'invest', onClose: function(){ setModal(null); } 
-    }),
+    anlModal && h('div',{
+      style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:9000,
+             display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'},
+      onClick:function(e){ if(e.target===e.currentTarget) setAnlModal(null); }
+    },
+      h('div',{style:{background:C.card,borderRadius:20,padding:'24px',width:'100%',
+                      maxWidth:380,border:'1px solid '+C.border}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}},
+          h('p',{style:{color:C.text,fontSize:16,fontWeight:800,margin:0}},
+            anlModal==='income'?'💰 수입 기간 설정':'💸 지출 기간 설정'),
+          h('button',{onClick:function(){setAnlModal(null);},
+            style:{background:'none',border:'none',color:C.muted,fontSize:22,cursor:'pointer',padding:4}},'✕')
+        ),
+        h('p',{style:{color:C.muted,fontSize:12,margin:'0 0 6px'}},'시작일'),
+        h('input',{type:'date',
+          value:anlModal==='income'?(anlIncFrom||''):(anlExpFrom||''),
+          onChange:function(e){
+            var v=e.target.value;
+            if(anlModal==='income'){setAnlIncFrom(v);lsSet('flai_anl_if',v);}
+            else{setAnlExpFrom(v);lsSet('flai_anl_ef',v);}
+          },
+          style:{width:'100%',padding:'11px 14px',borderRadius:10,background:C.card2,
+            border:'1px solid '+C.border,color:C.text,fontSize:15,marginBottom:12,
+            outline:'none',boxSizing:'border-box'}
+        }),
+        h('p',{style:{color:C.muted,fontSize:12,margin:'0 0 6px'}},'종료일'),
+        h('input',{type:'date',
+          value:anlModal==='income'?(anlIncTo||''):(anlExpTo||''),
+          onChange:function(e){
+            var v=e.target.value;
+            if(anlModal==='income'){setAnlIncTo(v);lsSet('flai_anl_it',v);}
+            else{setAnlExpTo(v);lsSet('flai_anl_et',v);}
+          },
+          style:{width:'100%',padding:'11px 14px',borderRadius:10,background:C.card2,
+            border:'1px solid '+C.border,color:C.text,fontSize:15,marginBottom:20,
+            outline:'none',boxSizing:'border-box'}
+        }),
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{
+            onClick:function(){
+              if(anlModal==='income'){
+                setAnlIncFrom('');setAnlIncTo('');
+                lsSet('flai_anl_if','');lsSet('flai_anl_it','');
+              } else {
+                setAnlExpFrom('');setAnlExpTo('');
+                lsSet('flai_anl_ef','');lsSet('flai_anl_et','');
+              }
+              setAnlModal(null);
+            },
+            style:{flex:1,padding:13,borderRadius:12,border:'1px solid '+C.border,
+              background:C.card2,color:C.muted,fontSize:13,fontWeight:700,cursor:'pointer'}
+          },'↩ 초기화'),
+          h('button',{onClick:function(){setAnlModal(null);},
+            style:{flex:2,padding:13,borderRadius:12,border:'none',
+              background:anlModal==='income'
+                ?'linear-gradient(135deg,#00b894,#00cec9)'
+                :'linear-gradient(135deg,#e17055,#d63031)',
+              color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}
+          },'✓ 확인')
+        )
+      )
+    ),
     (modal === 'monthPicker') && h(MonthSelectorModal, { baseDate: baseDate, sDay: startDay, onSelect: function(nd){ setBaseDate(nd); setModal(null); }, onClose: function(){ setModal(null); } }),
     mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}}),
     // ★★★ 수입/지출 상세 내역 시트 ★★★
@@ -5499,16 +5775,27 @@ function Analysis(props) {
   var baseDate = props.baseDate;
   var selCat   = useState(null);   var setSelCat  = selCat[1];   selCat   = selCat[0];
   var selMem   = useState(0);      var setSelMem  = selMem[1];   selMem   = selMem[0];
+  
+  /* ★ 이전 에러(detailType) 해결용 변수 추가 */
+  var detailTypeArr = useState(null); var setDetailType = detailTypeArr[1]; var detailType = detailTypeArr[0];
+
+  /* ★ 아래부터는 지워지면 안 되는 필수 원본 변수들입니다 */
   var budget   = useState(function(){ return lsGet(LS_BUDGET, 0); });
   var setBudget = budget[1]; budget = budget[0];
   var editBudget = useState(false); var setEditBudget = editBudget[1]; editBudget = editBudget[0];
   var budgetInput = useState(String(budget||'')); var setBudgetInput = budgetInput[1]; budgetInput = budgetInput[0];
-  var memViewMode = useState('sub'); var setMemViewMode = memViewMode[1]; memViewMode = memViewMode[0];
-  var detailType = useState(null); var setDetailType = detailType[1]; detailType = detailType[0];
+  var memViewMode = useState('sub'); var setMemViewMode = memViewMode[1]; memViewMode = memViewMode[0];  
   var csArr = useState(false); var setShowCS = csArr[1]; var showCS = csArr[0];
-
+  var anlModalArr = useState(null); var setAnlModal = anlModalArr[1]; var anlModal = anlModalArr[0];
+  var aefArr = useState(lsGet('flai_anl_ef','')); var setAnlExpFrom = aefArr[1]; var anlExpFrom = aefArr[0];
+  var aetArr = useState(lsGet('flai_anl_et','')); var setAnlExpTo   = aetArr[1]; var anlExpTo   = aetArr[0];
+  var aifArr = useState(lsGet('flai_anl_if','')); var setAnlIncFrom = aifArr[1]; var anlIncFrom = aifArr[0];
+  var aitArr = useState(lsGet('flai_anl_it','')); var setAnlIncTo   = aitArr[1]; var anlIncTo   = aitArr[0];
+  
   var ftx = useMemo(function(){ return fDash(txs, dp, baseDate, startDay); }, [txs, dp, baseDate, startDay]);
   var exp = ftx.filter(function(t){ return t.type==='expense' && t.catId!=='invest' && t.catId!=='travel_fund'; });
+  
+  /* ★ 문제 발생 지점(inc) 정상 복구 완료 */
   var inc = ftx.filter(function(t){ return t.type==='income'; });
   var totE = exp.reduce(function(s,t){ return s+t.amount; }, 0);
   
@@ -5647,30 +5934,84 @@ function Analysis(props) {
       )
     ),
       (function(){
-      var anlDates = ftx.map(function(t){ return t.date; }).filter(Boolean).sort();
-      function anlFmtDR(d) {
+      function anlFmtDR(d){
         if(!d) return '';
-        var p = d.split('-');
+        var p=d.split('-');
         return parseInt(p[1])+'월'+String(parseInt(p[2])).padStart(2,'0')+'일';
       }
-      var expDates = exp.map(function(t){ return t.date; }).filter(Boolean).sort();
-      var expDateRange = expDates.length > 0 ? anlFmtDR(expDates[0]) + ' ~ ' + anlFmtDR(expDates[expDates.length-1]) : '';
-      var incDates = inc.map(function(t){ return t.date; }).filter(Boolean).sort();
-      var incDateRange = incDates.length > 0 ? anlFmtDR(incDates[0]) + ' ~ ' + anlFmtDR(incDates[incDates.length-1]) : '';
+
+      // ★ exp/inc(현재기간) 기준 — 세부내역과 동일한 데이터 소스
+      var hasExpFilter = anlExpFrom && anlExpTo;
+      var hasIncFilter = anlIncFrom && anlIncTo;
+
+      // ★ 수정: 설정된 날짜가 있으면 현재 달(exp, inc)이 아닌 전체 데이터(txs)에서 가져오도록 변경
+      var displayExp = hasExpFilter
+        ? txs.filter(function(t){ return t.type==='expense' && t.catId!=='invest' && t.catId!=='travel_fund' && t.date>=anlExpFrom && t.date<=anlExpTo; })
+        : exp;
+      var displayInc = hasIncFilter
+        ? txs.filter(function(t){ return t.type==='income' && t.date>=anlIncFrom && t.date<=anlIncTo; })
+        : inc;
+
+      var displayTotE = displayExp.reduce(function(s,t){ return s+t.amount; },0);
+      var displayTotI = displayInc.reduce(function(s,t){ return s+t.amount; },0);
+      var displayPct  = displayTotI>0 ? Math.round(displayTotE/displayTotI*100) : incPct||0;
+
+      var expDates = displayExp.map(function(t){ return t.date; }).filter(Boolean).sort();
+      var incDates = displayInc.map(function(t){ return t.date; }).filter(Boolean).sort();
+
+      var expDateStr = hasExpFilter
+        ? anlFmtDR(anlExpFrom)+' ~ '+anlFmtDR(anlExpTo)
+        : expDates.length>0 ? anlFmtDR(expDates[0])+' ~ '+anlFmtDR(expDates[expDates.length-1]) : '';
+      var incDateStr = hasIncFilter
+        ? anlFmtDR(anlIncFrom)+' ~ '+anlFmtDR(anlIncTo)
+        : incDates.length>0 ? anlFmtDR(incDates[0])+' ~ '+anlFmtDR(incDates[incDates.length-1]) : '';
 
       return h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}},
-        h(GCard,{onClick:function(){ setDetailType('income'); }, style:{padding:'11px 13px', border:'1px solid '+C.green+'66', boxShadow:'0 2px 10px '+C.green+'15', cursor:'pointer'}},
+
+        h(GCard,{style:{padding:'11px 13px',border:'1px solid '+C.green+'66',boxShadow:'0 2px 10px '+C.green+'15'}},
           h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 3px'}},'총 수입'),
-          h('p',{style:{color:C.green,fontSize:17,fontWeight:800,margin:0}},fmtS(totI)),
-          incDateRange && h('p',{style:{color:C.green,fontSize:9,fontWeight:600,margin:'4px 0 0',opacity:0.8}}, '📅 '+incDateRange),
-          h('p',{style:{color:C.muted,fontSize:9,margin:'2px 0 0'}}, inc.length+'건 · 👆 터치→상세')
+          h('p',{
+            onClick:function(){ setDetailType('income'); },
+            style:{color:C.green,fontSize:17,fontWeight:800,margin:0,cursor:'pointer'}
+          }, fmtS(displayTotI)),
+          h('div',{
+            onClick:function(e){ e.stopPropagation(); setAnlModal('income'); },
+            style:{display:'inline-flex',alignItems:'center',gap:3,marginTop:5,cursor:'pointer',
+              background:'rgba(79,211,161,0.12)',borderRadius:6,padding:'3px 8px',
+              border:'1px solid rgba(79,211,161,0.3)'}
+          },
+            h('span',{style:{color:C.green,fontSize:9,fontWeight:700}},
+              '📅 '+(incDateStr||'날짜 설정')),
+            h('span',{style:{color:C.green,fontSize:9,opacity:0.7}},' ✏️')
+          ),
+          h('p',{
+            onClick:function(){ setDetailType('income'); },
+            style:{color:C.muted,fontSize:9,margin:'4px 0 0',cursor:'pointer'}
+          }, displayInc.length+'건 · 👆 터치→상세')
         ),
-        h(GCard,{onClick:function(){ setDetailType('expense'); }, style:{padding:'11px 13px', border:'1px solid '+C.red+'66', boxShadow:'0 2px 10px '+C.red+'15', cursor:'pointer'}},
+
+        h(GCard,{style:{padding:'11px 13px',border:'1px solid '+C.red+'66',boxShadow:'0 2px 10px '+C.red+'15'}},
           h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 3px'}},'총 지출'),
-          h('p',{style:{color:C.red,fontSize:17,fontWeight:800,margin:0}},fmtS(totE)),
-          expDateRange && h('p',{style:{color:C.red,fontSize:9,fontWeight:600,margin:'4px 0 0',opacity:0.8}}, '📅 '+expDateRange),
-          h('p',{style:{color:C.muted,fontSize:10,margin:'2px 0 0'}},
-            '수입대비 ',h('span',{style:{color:incPct>50?C.red:C.gold,fontWeight:700}},incPct+'%'),
+          h('p',{
+            onClick:function(){ setDetailType('expense'); },
+            style:{color:C.red,fontSize:17,fontWeight:800,margin:0,cursor:'pointer'}
+          }, fmtS(displayTotE)),
+          h('div',{
+            onClick:function(e){ e.stopPropagation(); setAnlModal('expense'); },
+            style:{display:'inline-flex',alignItems:'center',gap:3,marginTop:5,cursor:'pointer',
+              background:'rgba(255,82,82,0.12)',borderRadius:6,padding:'3px 8px',
+              border:'1px solid rgba(255,82,82,0.3)'}
+          },
+            h('span',{style:{color:C.red,fontSize:9,fontWeight:700}},
+              '📅 '+(expDateStr||'날짜 설정')),
+            h('span',{style:{color:C.red,fontSize:9,opacity:0.7}},' ✏️')
+          ),
+          h('p',{
+            onClick:function(){ setDetailType('expense'); },
+            style:{color:C.muted,fontSize:10,margin:'4px 0 0',cursor:'pointer'}
+          },
+            '수입대비 ',
+            h('span',{style:{color:displayPct>50?C.red:C.gold,fontWeight:700}},displayPct+'%'),
             ' · 👆 터치→상세')
         )
       );
@@ -5856,13 +6197,84 @@ h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:5,marginB
     // ★★★ 분석 메뉴 수입/지출 상세 내역 시트 ★★★
     detailType && h(TxDetailSheet, {
       type: detailType,
-      txs: ftx.filter(function(t){
-        if(detailType === 'income') return t.type === 'income';
-        return t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund';
+      // ★ 수정: 상세 내역 팝업을 띄울 때도 사용자가 설정한 날짜 필터가 있으면 전체 데이터(txs)에서 찾음
+      txs: txs.filter(function(t){
+        if(detailType === 'income') {
+          if(anlIncFrom && anlIncTo) return t.type === 'income' && t.date >= anlIncFrom && t.date <= anlIncTo;
+          return ftx.indexOf(t) >= 0 && t.type === 'income';
+        } else {
+          if(anlExpFrom && anlExpTo) return t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund' && t.date >= anlExpFrom && t.date <= anlExpTo;
+          return ftx.indexOf(t) >= 0 && t.type === 'expense' && t.catId !== 'invest' && t.catId !== 'travel_fund';
+        }
       }),
-      dateLabel: getAnalysisDateLabel(),
+      // ★ 수정: 설정된 날짜가 있으면 팝업창 상단 날짜 제목도 기간에 맞게 변경
+      dateLabel: detailType === 'income' && anlIncFrom ? anlIncFrom+' ~ '+anlIncTo : (detailType === 'expense' && anlExpFrom ? anlExpFrom+' ~ '+anlExpTo : getAnalysisDateLabel()),
       onClose: function(){ setDetailType(null); }
-    })
+    }),
+
+    // ★★★ [수정 추가] 날짜 설정 모달 팝업 ★★★
+    anlModal && h('div',{
+      style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:9000,
+             display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'},
+      onClick:function(e){ if(e.target===e.currentTarget) setAnlModal(null); }
+    },
+      h('div',{style:{background:C.card,borderRadius:20,padding:'24px',width:'100%',
+                      maxWidth:380,border:'1px solid '+C.border}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}},
+          h('p',{style:{color:C.text,fontSize:16,fontWeight:800,margin:0}},
+            anlModal==='income'?'💰 수입 기간 설정':'💸 지출 기간 설정'),
+          h('button',{onClick:function(){setAnlModal(null);},
+            style:{background:'none',border:'none',color:C.muted,fontSize:22,cursor:'pointer',padding:4}},'✕')
+        ),
+        h('p',{style:{color:C.muted,fontSize:12,margin:'0 0 6px'}},'시작일'),
+        h('input',{type:'date',
+          value:anlModal==='income'?(anlIncFrom||''):(anlExpFrom||''),
+          onChange:function(e){
+            var v=e.target.value;
+            if(anlModal==='income'){setAnlIncFrom(v);lsSet('flai_anl_if',v);}
+            else{setAnlExpFrom(v);lsSet('flai_anl_ef',v);}
+          },
+          style:{width:'100%',padding:'11px 14px',borderRadius:10,background:C.card2,
+            border:'1px solid '+C.border,color:C.text,fontSize:15,marginBottom:12,
+            outline:'none',boxSizing:'border-box'}
+        }),
+        h('p',{style:{color:C.muted,fontSize:12,margin:'0 0 6px'}},'종료일'),
+        h('input',{type:'date',
+          value:anlModal==='income'?(anlIncTo||''):(anlExpTo||''),
+          onChange:function(e){
+            var v=e.target.value;
+            if(anlModal==='income'){setAnlIncTo(v);lsSet('flai_anl_it',v);}
+            else{setAnlExpTo(v);lsSet('flai_anl_et',v);}
+          },
+          style:{width:'100%',padding:'11px 14px',borderRadius:10,background:C.card2,
+            border:'1px solid '+C.border,color:C.text,fontSize:15,marginBottom:20,
+            outline:'none',boxSizing:'border-box'}
+        }),
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{
+            onClick:function(){
+              if(anlModal==='income'){
+                setAnlIncFrom('');setAnlIncTo('');
+                lsSet('flai_anl_if','');lsSet('flai_anl_it','');
+              } else {
+                setAnlExpFrom('');setAnlExpTo('');
+                lsSet('flai_anl_ef','');lsSet('flai_anl_et','');
+              }
+              setAnlModal(null);
+            },
+            style:{flex:1,padding:13,borderRadius:12,border:'1px solid '+C.border,
+              background:C.card2,color:C.muted,fontSize:13,fontWeight:700,cursor:'pointer'}
+          },'↩ 초기화'),
+          h('button',{onClick:function(){setAnlModal(null);},
+            style:{flex:2,padding:13,borderRadius:12,border:'none',
+              background:anlModal==='income'
+                ?'linear-gradient(135deg,#00b894,#00cec9)'
+                :'linear-gradient(135deg,#e17055,#d63031)',
+              color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}
+          },'✓ 확인')
+        )
+      )
+    )
   );
 }
 
