@@ -873,7 +873,220 @@ function CubeIcon(props) {
     style: { width:size, height:size, flexShrink:0 }
   });
 }
+
+/* ── 카드번호 암호화 / 복호화 ── */
+function encryptCard(num) {
+  try { return btoa(num.split('').map(function(c,i){ return String.fromCharCode(c.charCodeAt(0)^(i%9+7)); }).join('')); }
+  catch(e){ return ''; }
+}
+function decryptCard(enc) {
+  try { return atob(enc).split('').map(function(c,i){ return String.fromCharCode(c.charCodeAt(0)^(i%9+7)); }).join(''); }
+  catch(e){ return ''; }
+}
+/* ── 카드 이미지 압축 (최대 500px, JPEG 72%) ── */
+function compressCardImg(file, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var MAX=500, r=Math.min(MAX/img.width, MAX/img.height, 1);
+      var canvas=document.createElement('canvas');
+      canvas.width=Math.round(img.width*r); canvas.height=Math.round(img.height*r);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      cb(canvas.toDataURL('image/jpeg',0.72));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 // ★★★ [STEP2 끝] ★★★
+
+function FutureCubeIcon(props) {
+  var ratio = props.ratio || 0;
+  var size  = props.size  || 52;
+  var S = String(size);
+
+  /* ── 퀀텀 젬 (0~25%) ── */
+  var svgGem =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+    +'<radialGradient id="qg1" cx="38%" cy="28%" r="70%"><stop offset="0%" stop-color="#ffffff"/><stop offset="22%" stop-color="#ccffff"/><stop offset="52%" stop-color="#00bbff"/><stop offset="86%" stop-color="#0033cc"/><stop offset="100%" stop-color="#000d44"/></radialGradient>'
+    +'<radialGradient id="qg2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#00eeff" stop-opacity="0.5"/><stop offset="100%" stop-color="#00eeff" stop-opacity="0"/></radialGradient>'
+    +'<linearGradient id="qgi" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff00cc" stop-opacity="0.5"/><stop offset="50%" stop-color="#00ffee" stop-opacity="0.28"/><stop offset="100%" stop-color="#8800ff" stop-opacity="0.5"/></linearGradient>'
+    +'<filter id="qgf"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'<filter id="qgs"><feGaussianBlur stdDeviation="1.2"/></filter>'
+    +'</defs>'
+    +'<circle cx="24" cy="26" r="21" fill="url(#qg2)"/>'
+    +'<polygon points="24,3 37,17 24,23 11,17" fill="url(#qg1)" filter="url(#qgf)"/>'
+    +'<polygon points="24,3 37,17 24,23" fill="rgba(220,255,255,0.52)"/>'
+    +'<polygon points="24,3 11,17 24,23" fill="rgba(100,210,255,0.26)"/>'
+    +'<polygon points="11,17 37,17 24,45" fill="url(#qg1)" opacity="0.7"/>'
+    +'<polygon points="37,17 24,45 24,23" fill="rgba(0,140,255,0.38)"/>'
+    +'<polygon points="11,17 24,45 24,23" fill="rgba(0,40,160,0.46)"/>'
+    +'<polygon points="24,3 37,17 24,45 11,17" fill="url(#qgi)" opacity="0.32"/>'
+    +'<polyline points="24,3 37,17 24,45 11,17 24,3" fill="none" stroke="rgba(150,240,255,0.85)" stroke-width="0.6"/>'
+    +'<line x1="11" y1="17" x2="37" y2="17" stroke="rgba(255,255,255,0.9)" stroke-width="0.7"/>'
+    +'<line x1="24" y1="3" x2="24" y2="23" stroke="rgba(255,255,255,0.38)" stroke-width="0.4"/>'
+    +'<line x1="11" y1="17" x2="24" y2="23" stroke="rgba(200,255,255,0.25)" stroke-width="0.32"/>'
+    +'<line x1="37" y1="17" x2="24" y2="23" stroke="rgba(200,255,255,0.25)" stroke-width="0.32"/>'
+    +'<line x1="11" y1="14" x2="37" y2="14" stroke="rgba(0,255,255,0.18)" stroke-width="0.42"/>'
+    +'<line x1="12" y1="28" x2="36" y2="28" stroke="rgba(0,200,255,0.14)" stroke-width="0.36"/>'
+    +'<line x1="15" y1="36" x2="33" y2="36" stroke="rgba(0,150,255,0.1)" stroke-width="0.3"/>'
+    +'<ellipse cx="19" cy="11" rx="5" ry="2.2" fill="rgba(255,255,255,0.9)" transform="rotate(-28,19,11)" filter="url(#qgs)"/>'
+    +'<ellipse cx="20" cy="10.5" rx="2.2" ry="1" fill="white" transform="rotate(-28,20,10.5)"/>'
+    +'<circle cx="30" cy="14" r="0.9" fill="rgba(255,255,255,0.75)" filter="url(#qgs)"/>'
+    +'<circle cx="30" cy="14" r="0.36" fill="white"/>'
+    +'<circle cx="7" cy="13" r="0.7" fill="rgba(0,255,230,0.75)" filter="url(#qgs)"/>'
+    +'<circle cx="41" cy="9" r="0.55" fill="rgba(180,100,255,0.85)"/>'
+    +'<circle cx="43" cy="28" r="0.5" fill="rgba(0,255,180,0.65)"/>'
+    +'<circle cx="5" cy="33" r="0.65" fill="rgba(100,200,255,0.7)"/>'
+    +'<circle cx="24" cy="17" r="1.3" fill="rgba(255,255,255,0.42)" filter="url(#qgs)"/>'
+    +'</svg>';
+
+  /* ── 네온 래티스 (25~50%) ── */
+  var svgCube =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+    +'<linearGradient id="nlT" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#cc88ff"/><stop offset="100%" stop-color="#5500ee"/></linearGradient>'
+    +'<linearGradient id="nlL" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3300bb"/><stop offset="100%" stop-color="#190066"/></linearGradient>'
+    +'<linearGradient id="nlR" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4400cc"/><stop offset="100%" stop-color="#220077"/></linearGradient>'
+    +'<filter id="nlf"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'<filter id="nls"><feGaussianBlur stdDeviation="1.5"/></filter>'
+    +'</defs>'
+    +'<ellipse cx="24" cy="28" rx="22" ry="18" fill="rgba(100,0,255,0.13)"/>'
+    +'<polygon points="24,6 40,16 24,24 8,16" fill="url(#nlT)" filter="url(#nlf)"/>'
+    +'<polygon points="24,6 40,16 24,24 8,16" fill="rgba(220,180,255,0.16)"/>'
+    +'<polygon points="8,16 24,24 24,43 8,35" fill="url(#nlL)"/>'
+    +'<polygon points="8,16 24,24 24,43 8,35" fill="rgba(0,0,60,0.28)"/>'
+    +'<polygon points="40,16 24,24 24,43 40,35" fill="url(#nlR)"/>'
+    +'<polygon points="40,16 24,24 24,43 40,35" fill="rgba(60,0,150,0.2)"/>'
+    +'<line x1="16" y1="20" x2="32" y2="12" stroke="rgba(200,150,255,0.4)" stroke-width="0.4"/>'
+    +'<line x1="20" y1="22" x2="36" y2="14" stroke="rgba(200,150,255,0.3)" stroke-width="0.32"/>'
+    +'<line x1="12" y1="14" x2="24" y2="22" stroke="rgba(200,150,255,0.4)" stroke-width="0.4"/>'
+    +'<line x1="28" y1="8" x2="40" y2="16" stroke="rgba(200,150,255,0.3)" stroke-width="0.32"/>'
+    +'<line x1="24" y1="24" x2="40" y2="16" stroke="rgba(150,100,255,0.3)" stroke-width="0.32"/>'
+    +'<line x1="24" y1="31" x2="40" y2="23" stroke="rgba(150,100,255,0.22)" stroke-width="0.28"/>'
+    +'<line x1="24" y1="38" x2="40" y2="30" stroke="rgba(150,100,255,0.16)" stroke-width="0.24"/>'
+    +'<line x1="32" y1="20" x2="32" y2="39" stroke="rgba(150,100,255,0.18)" stroke-width="0.28"/>'
+    +'<line x1="8" y1="16" x2="24" y2="24" stroke="rgba(100,50,255,0.28)" stroke-width="0.32"/>'
+    +'<line x1="8" y1="23" x2="24" y2="31" stroke="rgba(100,50,255,0.22)" stroke-width="0.28"/>'
+    +'<line x1="8" y1="30" x2="24" y2="38" stroke="rgba(100,50,255,0.16)" stroke-width="0.24"/>'
+    +'<line x1="16" y1="20" x2="16" y2="39" stroke="rgba(100,50,255,0.18)" stroke-width="0.28"/>'
+    +'<polygon points="24,6 40,16 24,24 8,16" fill="none" stroke="rgba(200,150,255,0.9)" stroke-width="0.7" filter="url(#nls)"/>'
+    +'<polygon points="24,6 40,16 24,24 8,16" fill="none" stroke="rgba(220,180,255,1)" stroke-width="0.48"/>'
+    +'<line x1="8" y1="16" x2="8" y2="35" stroke="rgba(150,80,255,0.85)" stroke-width="0.55"/>'
+    +'<line x1="8" y1="35" x2="24" y2="43" stroke="rgba(150,80,255,0.8)" stroke-width="0.55"/>'
+    +'<line x1="40" y1="16" x2="40" y2="35" stroke="rgba(180,100,255,0.85)" stroke-width="0.6"/>'
+    +'<line x1="40" y1="35" x2="24" y2="43" stroke="rgba(180,100,255,0.8)" stroke-width="0.6"/>'
+    +'<line x1="24" y1="24" x2="24" y2="43" stroke="rgba(200,130,255,0.6)" stroke-width="0.5"/>'
+    +'<circle cx="24" cy="6" r="2" fill="rgba(220,180,255,0.9)" filter="url(#nls)"/>'
+    +'<circle cx="40" cy="16" r="1.8" fill="rgba(200,150,255,0.88)" filter="url(#nls)"/>'
+    +'<circle cx="8" cy="16" r="1.8" fill="rgba(180,120,255,0.85)" filter="url(#nls)"/>'
+    +'<circle cx="24" cy="43" r="1.8" fill="rgba(160,100,255,0.82)" filter="url(#nls)"/>'
+    +'<circle cx="8" cy="35" r="1.5" fill="rgba(150,80,255,0.72)" filter="url(#nls)"/>'
+    +'<circle cx="40" cy="35" r="1.5" fill="rgba(160,90,255,0.72)" filter="url(#nls)"/>'
+    +'<circle cx="24" cy="24" r="1.5" fill="rgba(200,160,255,0.75)" filter="url(#nls)"/>'
+    +'<ellipse cx="21" cy="13" rx="4.5" ry="1.8" fill="rgba(255,255,255,0.65)" transform="rotate(-25,21,13)" filter="url(#nls)"/>'
+    +'<ellipse cx="22" cy="12.5" rx="2" ry="0.85" fill="rgba(255,255,255,0.92)" transform="rotate(-25,22,12.5)"/>'
+    +'<circle cx="44" cy="10" r="0.7" fill="rgba(180,100,255,0.82)"/>'
+    +'<circle cx="4" cy="12" r="0.6" fill="rgba(150,80,255,0.72)"/>'
+    +'<circle cx="3" cy="34" r="0.55" fill="rgba(140,70,255,0.62)"/>'
+    +'</svg>';
+
+  /* ── 크랙드 싱귤래리티 (50~75%) ── */
+  var svgCrack =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+    +'<radialGradient id="fsG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff8800"/><stop offset="28%" stop-color="#cc4400"/><stop offset="62%" stop-color="#661100"/><stop offset="100%" stop-color="#111111"/></radialGradient>'
+    +'<radialGradient id="fsGi" cx="45%" cy="40%" r="58%"><stop offset="0%" stop-color="#ffdd00" stop-opacity="0.9"/><stop offset="42%" stop-color="#ff6600" stop-opacity="0.46"/><stop offset="100%" stop-color="#440000" stop-opacity="0"/></radialGradient>'
+    +'<radialGradient id="fsGo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff6600" stop-opacity="0.4"/><stop offset="100%" stop-color="#ff4400" stop-opacity="0"/></radialGradient>'
+    +'<filter id="fsf"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'<filter id="fsc"><feGaussianBlur stdDeviation="1.2"/></filter>'
+    +'<filter id="fsg"><feGaussianBlur stdDeviation="3"/></filter>'
+    +'</defs>'
+    +'<circle cx="24" cy="24" r="23" fill="url(#fsGo)"/>'
+    +'<circle cx="24" cy="24" r="20" fill="url(#fsG)" filter="url(#fsf)"/>'
+    +'<circle cx="24" cy="24" r="13" fill="url(#fsGi)" opacity="0.84"/>'
+    +'<circle cx="24" cy="24" r="20" fill="rgba(8,0,0,0.52)"/>'
+    +'<path d="M28,5 L26,12 L31,16 L28,22 L33,28" stroke="rgba(255,160,0,0.88)" stroke-width="1.2" fill="none" stroke-linecap="round" filter="url(#fsc)"/>'
+    +'<path d="M28,5 L26,12 L31,16 L28,22 L33,28" stroke="rgba(255,220,80,1)" stroke-width="0.56" fill="none" stroke-linecap="round"/>'
+    +'<path d="M4,18 L11,21 L8,27 L14,30 L12,37" stroke="rgba(255,140,0,0.85)" stroke-width="1.0" fill="none" stroke-linecap="round" filter="url(#fsc)"/>'
+    +'<path d="M4,18 L11,21 L8,27 L14,30 L12,37" stroke="rgba(255,200,60,0.9)" stroke-width="0.5" fill="none" stroke-linecap="round"/>'
+    +'<path d="M22,43 L24,36 L20,32 L23,27" stroke="rgba(255,120,0,0.7)" stroke-width="0.8" fill="none" stroke-linecap="round" filter="url(#fsc)"/>'
+    +'<path d="M22,43 L24,36 L20,32 L23,27" stroke="rgba(255,180,50,0.8)" stroke-width="0.4" fill="none" stroke-linecap="round"/>'
+    +'<path d="M38,30 L33,28 L35,23 L31,19" stroke="rgba(255,130,0,0.65)" stroke-width="0.7" fill="none" stroke-linecap="round"/>'
+    +'<path d="M26,12 L22,9 M31,16 L35,13 M28,22 L24,24" stroke="rgba(255,180,40,0.54)" stroke-width="0.46" fill="none" stroke-linecap="round"/>'
+    +'<path d="M11,21 L9,17 M8,27 L5,26 M14,30 L16,26" stroke="rgba(255,160,30,0.5)" stroke-width="0.4" fill="none" stroke-linecap="round"/>'
+    +'<path d="M18,10 L20,14 M35,35 L32,38 M15,38 L17,35" stroke="rgba(255,140,0,0.34)" stroke-width="0.36" fill="none" stroke-linecap="round"/>'
+    +'<circle cx="28" cy="10" r="2" fill="rgba(255,200,50,0.7)" filter="url(#fsc)"/>'
+    +'<circle cx="8" cy="22" r="1.8" fill="rgba(255,170,30,0.65)" filter="url(#fsc)"/>'
+    +'<circle cx="13" cy="32" r="1.5" fill="rgba(255,150,20,0.6)" filter="url(#fsc)"/>'
+    +'<circle cx="31" cy="16" r="1.2" fill="rgba(255,230,100,0.8)" filter="url(#fsc)"/>'
+    +'<circle cx="28" cy="22" r="1" fill="rgba(255,220,80,0.74)"/>'
+    +'<circle cx="26" cy="22" r="5" fill="rgba(255,200,80,0.34)" filter="url(#fsg)"/>'
+    +'<circle cx="26" cy="22" r="2" fill="rgba(255,240,150,0.6)" filter="url(#fsc)"/>'
+    +'<circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,100,0,0.34)" stroke-width="0.56"/>'
+    +'</svg>';
+
+  /* ── 스텔라 코어 (75~100%) ── */
+  var svgSun =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="'+S+'" height="'+S+'">'
+    +'<defs>'
+    +'<radialGradient id="scG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffffff"/><stop offset="14%" stop-color="#ffffaa"/><stop offset="34%" stop-color="#ffdd00"/><stop offset="54%" stop-color="#ff6600"/><stop offset="76%" stop-color="#cc1100"/><stop offset="100%" stop-color="#330000"/></radialGradient>'
+    +'<radialGradient id="scGo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff4400" stop-opacity="0.54"/><stop offset="72%" stop-color="#ff2200" stop-opacity="0.15"/><stop offset="100%" stop-color="#ff0000" stop-opacity="0"/></radialGradient>'
+    +'<filter id="scf"><feGaussianBlur stdDeviation="2.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +'<filter id="scfg"><feGaussianBlur stdDeviation="3.5"/></filter>'
+    +'<filter id="scfc"><feGaussianBlur stdDeviation="1.5"/></filter>'
+    +'</defs>'
+    +'<circle cx="24" cy="24" r="24" fill="url(#scGo)"/>'
+    +'<path d="M24,4 Q34,2 38,8 Q35,12 30,11 Q28,7 24,8" fill="rgba(255,180,0,0.54)" filter="url(#scfc)"/>'
+    +'<path d="M40,20 Q46,16 46,24 Q42,28 38,25 Q40,22 40,20" fill="rgba(255,140,0,0.44)" filter="url(#scfc)"/>'
+    +'<path d="M24,44 Q16,46 12,40 Q15,36 18,38 Q20,42 24,42" fill="rgba(255,100,0,0.4)" filter="url(#scfc)"/>'
+    +'<path d="M8,28 Q2,20 6,14 Q10,15 10,19 Q7,22 8,28" fill="rgba(255,120,0,0.4)" filter="url(#scfc)"/>'
+    +'<path d="M38,10 Q44,8 45,15" stroke="rgba(255,160,0,0.62)" stroke-width="1.5" fill="none" stroke-linecap="round" filter="url(#scfc)"/>'
+    +'<path d="M10,38 Q4,40 3,33" stroke="rgba(255,130,0,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round" filter="url(#scfc)"/>'
+    +'<path d="M30,5 Q36,2 38,7" stroke="rgba(255,200,0,0.5)" stroke-width="1" fill="none" stroke-linecap="round"/>'
+    +'<path d="M8,20 Q3,17 3,22" stroke="rgba(255,140,0,0.44)" stroke-width="0.9" fill="none" stroke-linecap="round"/>'
+    +'<path d="M20,44 Q16,48 13,44" stroke="rgba(255,120,0,0.42)" stroke-width="0.85" fill="none" stroke-linecap="round"/>'
+    +'<path d="M44,27 Q47,32 44,36" stroke="rgba(255,100,0,0.4)" stroke-width="0.8" fill="none" stroke-linecap="round"/>'
+    +'<circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,120,0,0.4)" stroke-width="1.5" filter="url(#scfg)"/>'
+    +'<circle cx="24" cy="24" r="17" fill="url(#scG)" filter="url(#scf)"/>'
+    +'<circle cx="18" cy="20" r="3.5" fill="rgba(255,180,0,0.17)"/>'
+    +'<circle cx="29" cy="18" r="3" fill="rgba(255,160,0,0.15)"/>'
+    +'<circle cx="22" cy="30" r="2.8" fill="rgba(255,140,0,0.14)"/>'
+    +'<circle cx="31" cy="28" r="2.2" fill="rgba(255,200,0,0.16)"/>'
+    +'<circle cx="15" cy="27" r="2" fill="rgba(255,100,0,0.11)"/>'
+    +'<ellipse cx="27" cy="26" rx="2.5" ry="2" fill="rgba(120,20,0,0.54)"/>'
+    +'<ellipse cx="23" cy="27" rx="1.8" ry="1.5" fill="rgba(100,15,0,0.5)"/>'
+    +'<circle cx="24" cy="24" r="8" fill="rgba(255,255,220,0.22)" filter="url(#scfg)"/>'
+    +'<circle cx="24" cy="24" r="5" fill="rgba(255,255,200,0.3)" filter="url(#scfc)"/>'
+    +'<circle cx="24" cy="24" r="3" fill="rgba(255,255,255,0.4)" filter="url(#scfc)"/>'
+    +'<circle cx="24" cy="24" r="1.5" fill="rgba(255,255,255,0.7)"/>'
+    +'<circle cx="24" cy="24" r="17" fill="none" stroke="rgba(255,200,100,0.34)" stroke-width="2"/>'
+    +'<circle cx="39" cy="7" r="1" fill="rgba(255,200,50,0.7)" filter="url(#scfc)"/>'
+    +'<circle cx="42" cy="22" r="0.8" fill="rgba(255,180,0,0.65)"/>'
+    +'<circle cx="5" cy="38" r="0.9" fill="rgba(255,150,0,0.6)"/>'
+    +'<circle cx="10" cy="7" r="0.7" fill="rgba(255,170,20,0.55)"/>'
+    +'<circle cx="44" cy="34" r="0.6" fill="rgba(255,130,0,0.5)"/>'
+    +'</svg>';
+
+  var svgStr = ratio > 0.75 ? svgSun
+             : ratio > 0.50 ? svgCrack
+             : ratio > 0.25 ? svgCube
+             :                svgGem;
+
+  var glowColor = ratio > 0.75 ? 'rgba(255,68,0,0.8)'
+                : ratio > 0.50 ? 'rgba(255,136,0,0.75)'
+                : ratio > 0.25 ? 'rgba(136,68,255,0.75)'
+                :                'rgba(0,200,255,0.75)';
+
+  return h('div', {
+    dangerouslySetInnerHTML: { __html: svgStr },
+    style: { width:size, height:size, flexShrink:0,
+             filter:'drop-shadow(0 0 8px '+glowColor+')' }
+  });
+}
 
 
 
@@ -1629,7 +1842,7 @@ function EditModal(props) {
     '📝','🍪','☕','🍦','🍱','🥗','🛒',
     '📦','🛍️','🏪','🚗','🚌','✈️','⛽',
     '🏠','🏥','🎬','📖','💐','🎂','🎁',
-    '❤️','⭐','💡','💊','💵','💳','💸',
+    '❤️','🚬','💡','💊','💵','💳','💸',
     '😊','😢','😡','🥰','🤗','😴','💪'
   ];
 
@@ -1976,30 +2189,48 @@ function SavingsModal(props) {
 }
 
 function CardRegisterModal(props) {
-  var onSave       = props.onSave;
-  var onClose      = props.onClose;
-  var defaultMember= props.defaultMember || 'dad';
-  var editCard     = props.editCard || null;
+  var onSave        = props.onSave;
+  var onClose       = props.onClose;
+  var defaultMember = props.defaultMember || 'dad';
+  var editCard      = props.editCard || null;
   var isEdit = !!editCard;
-  var type   = useState(editCard?editCard.type:'credit');   var setType   = type[1];   type   = type[0];
-  var bank   = useState(editCard?editCard.bank:'');          var setBank   = bank[1];   bank   = bank[0];
-  var name   = useState(editCard?editCard.name:'');          var setName   = name[1];   name   = name[0];
-  var last4  = useState(editCard?editCard.last4:'');         var setLast4  = last4[1];  last4  = last4[0];
-  var color  = useState(editCard?editCard.color:'#4A9EFF');  var setColor  = color[1];  color  = color[0];
-  var memId  = useState(editCard?editCard.memberId:defaultMember); var setMemId = memId[1]; memId = memId[0];
-  var BANKS  = ['신한','KB국민','하나','우리','IBK기업','NH농협','카카오뱅크','토스뱅크','현대','삼성','롯데','BC'];
-  var COLORS = C.chart;
-  var masked = '****-****-****-'+(last4||'????');
+
+  var typeArr    = useState(editCard?editCard.type:(props.defaultType||'credit'));                 var setType    = typeArr[1];    var type    = typeArr[0];
+  var bankArr    = useState(editCard?editCard.bank:'');                       var setBank    = bankArr[1];    var bank    = bankArr[0];
+  var nameArr    = useState(editCard?editCard.name:'');                       var setName    = nameArr[1];    var name    = nameArr[0];
+  var last4Arr   = useState(editCard?editCard.last4:'');                      var setLast4   = last4Arr[1];   var last4   = last4Arr[0];
+  var fullNumArr = useState('');                                              var setFullNum = fullNumArr[1]; var fullNum = fullNumArr[0];
+  var colorArr   = useState(editCard?editCard.color:'#4A9EFF');               var setColor   = colorArr[1];   var color   = colorArr[0];
+  var memIdArr   = useState(editCard?editCard.memberId:defaultMember);        var setMemId   = memIdArr[1];   var memId   = memIdArr[0];
+  var imgArr     = useState(editCard?(editCard.imageBase64||null):null);      var setImg     = imgArr[1];     var img     = imgArr[0];
+  var upArr      = useState(false);                                           var setUploading = upArr[1];    var uploading = upArr[0];
+
+  var BANKS = ['신한','KB국민','하나','우리','IBK기업','NH농협','카카오뱅크','토스뱅크','현대','삼성','롯데','BC'];
   var memObj = getMem(memId);
+  var rawDigits     = fullNum.replace(/\D/g,'');
+  var fmtNum        = rawDigits.replace(/(.{4})/g,'$1 ').trim();
+  var computedLast4 = rawDigits.length>=4 ? rawDigits.slice(-4) : last4;
+  var canSave = bank && name && computedLast4.length===4;
+
+  function pickImage() {
+    var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+    inp.onchange=function(e){ var f=e.target.files[0]; if(!f) return; setUploading(true);
+      compressCardImg(f,function(b64){ setImg(b64); setUploading(false); }); };
+    inp.click();
+  }
+
   return h(Sheet,{title:isEdit?'💳 카드 수정':'💳 카드 등록',onClose:onClose},
+
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드 종류'),
     h('div',{style:{display:'flex',gap:8,marginBottom:14}},
       [['credit','신용카드'],['check','체크카드']].map(function(v){
         return h('button',{key:v[0],onClick:function(){setType(v[0]);},
           style:{flex:1,padding:10,borderRadius:10,border:'none',cursor:'pointer',
-            background:type===v[0]?C.accent:C.faint,color:type===v[0]?'#fff':C.muted,fontSize:13,fontWeight:700}},v[1]);
+            background:type===v[0]?C.accent:C.faint,
+            color:type===v[0]?'#fff':C.muted,fontSize:13,fontWeight:700}},v[1]);
       })
     ),
+
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드 소유자'),
     h('div',{style:{display:'flex',gap:8,marginBottom:14}},
       MEMBERS.map(function(m){
@@ -2013,56 +2244,119 @@ function CardRegisterModal(props) {
         );
       })
     ),
+
     h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드사'),
     h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:14}},
       BANKS.map(function(b){
         return h('button',{key:b,onClick:function(){setBank(b);},
           style:{padding:'5px 11px',borderRadius:16,border:'none',cursor:'pointer',
-            background:bank===b?C.accent+'44':C.faint,color:bank===b?C.accent:C.muted,fontSize:12}},b);
+            background:bank===b?C.accent+'44':C.faint,
+            color:bank===b?C.accent:C.muted,fontSize:12}},b);
       })
     ),
-    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카드 이름'),
-    h('input',{value:name,onChange:function(e){setName(e.target.value);},placeholder:'예: 아이사랑행복카드',
-      style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,border:'1px solid '+C.border,
-        color:C.text,fontSize:14,margin:'0 0 12px',boxSizing:'border-box',outline:'none'}}),
-    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카드 뒷 4자리'),
-    h('input',{value:last4,onChange:function(e){setLast4(e.target.value.replace(/\D/g,'').slice(0,4));},
-      placeholder:'예: 1234',type:'tel',maxLength:4,
-      style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,border:'1px solid '+C.border,
-        color:C.text,fontSize:14,margin:'0 0 4px',boxSizing:'border-box',outline:'none'}}),
-    h('p',{style:{color:C.faint,fontSize:11,margin:'0 0 14px'}},'저장 형식: '+masked),
-    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드 색상'),
-    h('div',{style:{display:'flex',gap:8,marginBottom:16}},
-      COLORS.map(function(cl){
-        return h('div',{key:cl,onClick:function(){setColor(cl);},
-          style:{width:28,height:28,borderRadius:'50%',background:cl,cursor:'pointer',
-            border:color===cl?'3px solid #fff':'3px solid transparent',flexShrink:0}});
-      })
+
+    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카드 별칭'),
+    h('input',{value:name,onChange:function(e){setName(e.target.value);},
+      placeholder:'예: 신한 체크카드',
+      style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,
+        border:'1px solid '+C.border,color:C.text,fontSize:14,
+        margin:'0 0 12px',boxSizing:'border-box',outline:'none'}}),
+
+    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 6px'}},'카드 번호 (16자리)'),
+    h('input',{
+      value:fmtNum,
+      onChange:function(e){
+        var d=e.target.value.replace(/\D/g,'').slice(0,16);
+        setFullNum(d);
+        },
+      placeholder:'1234 5678 9012 3456',
+      type:'tel', maxLength:19,
+      style:{width:'100%',padding:'10px 14px',borderRadius:10,background:C.card2,
+        border:'1px solid '+C.border,color:C.text,fontSize:15,letterSpacing:2,
+        margin:'0 0 4px',boxSizing:'border-box',outline:'none',fontFamily:'monospace'}}),
+    h('p',{style:{color:C.faint,fontSize:10,margin:'0 0 14px'}},
+      rawDigits.length>0
+        ? '🔒 암호화 저장 · 표시: •••• •••• •••• '+computedLast4
+        : isEdit?'비워두면 기존 번호 유지':'카드 전면 16자리 숫자 입력'),
+
+    h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드 실물 사진 (선택)'),
+    h('div',{style:{marginBottom:14}},
+      img
+        ? h('div',{style:{position:'relative',width:'100%',height:80,borderRadius:10,overflow:'hidden'}},
+            h('img',{src:img,style:{width:'100%',height:'100%',objectFit:'cover'}}),
+            h('div',{style:{position:'absolute',inset:0,background:'rgba(0,0,0,0.38)',
+              display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+              h('button',{onClick:pickImage,
+                style:{background:'rgba(255,255,255,0.25)',border:'none',borderRadius:8,
+                  padding:'6px 12px',color:'#fff',fontSize:11,cursor:'pointer'}},'📷 변경'),
+              h('button',{onClick:function(){setImg(null);},
+                style:{background:'rgba(220,50,50,0.55)',border:'none',borderRadius:8,
+                  padding:'6px 12px',color:'#fff',fontSize:11,cursor:'pointer'}},'✕ 삭제')
+            )
+          )
+        : h('button',{onClick:pickImage,
+            style:{width:'100%',padding:12,borderRadius:10,
+              border:'1px dashed '+C.border,background:C.card2,
+              color:uploading?C.accent:C.muted,fontSize:12,cursor:'pointer',
+              textAlign:'center',boxSizing:'border-box'}},
+            uploading?'⏳ 이미지 압축 중...':'📷 카드 앞면 사진 업로드 (카드 뒷면 CVV 제외!)')
     ),
-    bank&&name&&last4 && h(GCard,{style:{marginBottom:14,border:'1px solid '+color+'44',background:color+'11'}},
-      h('p',{style:{color:C.muted,fontSize:10,margin:'0 0 4px'}},'미리보기'),
-      h('div',{style:{display:'flex',alignItems:'center',gap:8}},
-        h('span',{style:{fontSize:20}},memObj.emoji),
-        h('div',null,
-          h('p',{style:{color:color,fontSize:14,fontWeight:700,margin:0}},bank+'_'+name),
-          h('p',{style:{color:C.muted,fontSize:12,margin:'2px 0 0'}},masked+' ('+memObj.name+')')
-        )
+
+    (bank||img||computedLast4.length===4) && h('div',{
+      style:{width:'100%',aspectRatio:'1.586',borderRadius:14,
+        position:'relative',overflow:'hidden',marginBottom:14,
+        background:img?'#111':('linear-gradient(135deg,'+color+'cc,'+color+'44)')}
+    },
+      img && h('img',{src:img,style:{width:'100%',height:'100%',objectFit:'cover',
+        display:'block',position:'absolute',inset:0}}),
+      h('div',{style:{position:'absolute',inset:0,
+        background:'linear-gradient(160deg,rgba(0,0,0,0.05),rgba(0,0,0,0.65))',
+        padding:14,boxSizing:'border-box'}},
+        h('p',{style:{color:'rgba(255,255,255,0.88)',fontSize:10,fontWeight:700,letterSpacing:1.5,margin:0}},
+          ((bank||'BANK')+' '+(type==='credit'?'CREDIT':'CHECK')).toUpperCase()),
+        h('p',{style:{position:'absolute',top:12,right:14,color:'rgba(255,255,255,0.72)',fontSize:10,margin:0}},name||''),
+        h('div',{style:{position:'absolute',top:'44%',left:14,transform:'translateY(-50%)',
+          width:30,height:22,borderRadius:4,
+          background:'linear-gradient(135deg,#c8a84b,#f0d060)',opacity:0.9}}),
+        h('p',{style:{position:'absolute',bottom:32,left:14,
+          color:'#fff',fontSize:13,letterSpacing:3,fontFamily:'monospace',fontWeight:500,margin:0}},
+          '•••• •••• •••• '+(computedLast4||'????')),
+        h('p',{style:{position:'absolute',bottom:12,left:14,
+          color:'rgba(255,255,255,0.68)',fontSize:10,margin:0}},
+          memObj.name.toUpperCase())
       )
     ),
+
+    !img && h('div',null,
+      h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 8px'}},'카드 배경 색상 (사진 없을 때)'),
+      h('div',{style:{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}},
+        (C.chart||[]).map(function(cl){
+          return h('div',{key:cl,onClick:function(){setColor(cl);},
+            style:{width:26,height:26,borderRadius:'50%',background:cl,cursor:'pointer',
+              border:color===cl?'3px solid #fff':'3px solid transparent',flexShrink:0}});
+        })
+      )
+    ),
+
     h('button',{
       onClick:function(){
-        if(!bank||!name||!last4) return;
-        var cardData = {
+        if(!canSave) return;
+        onSave({
           id: isEdit?editCard.id:('c'+Date.now()),
-          type:type, bank:bank, name:name, last4:last4, color:color, memberId:memId
-        };
-        onSave(cardData);
+          type:type, bank:bank, name:name,
+          last4: computedLast4,
+          encryptedNumber: rawDigits?encryptCard(rawDigits):(editCard&&editCard.encryptedNumber||''),
+          color:color, memberId:memId,
+          imageBase64: img||null,
+          createdAt: isEdit?(editCard.createdAt||Date.now()):Date.now()
+        });
       },
-      disabled:!bank||!name||!last4,
-      style:{width:'100%',padding:14,borderRadius:12,border:'none',cursor:'pointer',
-        background:bank&&name&&last4?'linear-gradient(135deg,'+C.accent+',#536DFE)':C.faint,
-        color:bank&&name&&last4?'#fff':C.muted,fontSize:15,fontWeight:700}
-    }, isEdit?'카드 수정 저장':'카드 등록하기')
+      disabled:!canSave,
+      style:{width:'100%',padding:14,borderRadius:12,border:'none',
+        cursor:canSave?'pointer':'default',
+        background:canSave?'linear-gradient(135deg,'+C.accent+',#536DFE)':C.faint,
+        color:canSave?'#fff':C.muted,fontSize:15,fontWeight:700}
+    }, isEdit?'✅ 카드 수정 저장':'💳 카드 등록하기')
   );
 }
 
@@ -2169,7 +2463,7 @@ function ManualIn(props) {
     '📝','🍪','☕','🍦','🍡','🍱','🥗','🥩','🐟','🛒',
     '📦','🛍️','🏪','📺','🚗','🚕','🚌','🚆','✈️','⛽',
     '🅿️','🛣️','🏠','🏥','⚱️','🎬','📖','💐','🎂','🎁',
-    '❤️','⭐','💡','🔋','💊','💵','💳','🎫','🥇','🥈',
+    '❤️','🚬','💡','🔋','💊','💵','💳','🎫','🥇','🥈',
     '💸','💰','📈','📉','🌍','🌊','☁️','🤖','🔥','⚽'
   ];
   // ⭐️ 메모 및 아이콘 상태 추가
@@ -2400,6 +2694,7 @@ showCS && h(CardSelectModal,{
     showCR && h(CardRegisterModal,{
       editCard:editCardData,
       defaultMember:member,
+      defaultType: payType,
       onSave:function(card){
         // 2. 직접 로컬 스토리지에 접근하여 수정 및 등록 처리
         var currentCards = lsGet(LS_CARDS, INIT_CARDS);
@@ -4928,7 +5223,7 @@ function Dashboard(props) {
 
     // ★ 본문 (아이콘 및 퍼센트)
     h('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
-      h('div', { style: { fontSize: 36, filter: 'drop-shadow(0 0 12px ' + p.color + ')', flexShrink: 0 } }, ratio > 0.75 ? '🔴' : ratio > 0.50 ? '🟠' : ratio > 0.25 ? '💠' : '💎'),
+    h(FutureCubeIcon, { ratio: ratio, size: 52 }),
       h('div', { style: { flex: 1, minWidth: 0 } },
         h('div', { style: { color: txtMain, fontSize: 15, fontWeight: 900, marginBottom: 5, letterSpacing: -0.3 } }, p.name),
         h('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 } },
@@ -7422,31 +7717,115 @@ modal==='billingDay' && h(Sheet,{title:'💳 카드 결제일 설정',onClose:fu
 ),
     modal==='gemini'  && h(GeminiKeyModal,{onClose:function(){setModal(null); setGeminiKey(lsGet(LS_GEMINI,''));},onSave:function(k){setGeminiKey(k);}}),
     modal==='cards' && h(Sheet,{title:'💳 카드 관리',onClose:function(){setModal(null);}},
-      h('div',{style:{display:'flex',gap:6,marginBottom:14}},
-        MEMBERS.map(function(m){ return h('button',{key:m.id,onClick:function(){setCardMgrMember(m.id);}, style:{flex:1,padding:'9px 4px',borderRadius:10,border:'none',cursor:'pointer', background:cardMgrMember===m.id?m.color+'33':C.faint, outline:cardMgrMember===m.id?'2px solid '+m.color:'none', display:'flex',flexDirection:'column',alignItems:'center',gap:3}}, h('span',{style:{fontSize:20}},m.emoji), h('span',{style:{color:cardMgrMember===m.id?m.color:C.muted,fontSize:11}},m.name) ); })
-      ),
-      h('button',{onClick:function(){setEditCardData(null);setModal('addCard');}, style:{width:'100%',marginTop:12,padding:11,borderRadius:10, border:'1px dashed '+C.accent+'66',background:C.accent+'11', color:C.accent,fontSize:13,fontWeight:600,cursor:'pointer'}}, '+ 카드 새로 등록하기')
-    ),
+  h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+    MEMBERS.map(function(m){
+      return h('button',{key:m.id,onClick:function(){setCardMgrMember(m.id);},
+        style:{flex:1,padding:'9px 4px',borderRadius:10,border:'none',cursor:'pointer',
+          background:cardMgrMember===m.id?m.color+'33':C.faint,
+          outline:cardMgrMember===m.id?'2px solid '+m.color:'none',
+          display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
+        h('span',{style:{fontSize:20}},m.emoji),
+        h('span',{style:{color:cardMgrMember===m.id?m.color:C.muted,fontSize:11}},m.name)
+      );
+    })
+  ),
+  (function(){
+    var allCards = lsGet(LS_CARDS, INIT_CARDS) || [];
+    var myCards  = allCards.filter(function(c){ return c.memberId===cardMgrMember; });
+    if(myCards.length===0) return h('div',{style:{textAlign:'center',padding:'24px 0 16px'}},
+      h('div',{style:{fontSize:48,marginBottom:8}},'💳'),
+      h('p',{style:{color:C.muted,fontSize:14}},getMem(cardMgrMember).name+'님의 등록 카드가 없어요')
+    );
+    return h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:4}},
+      myCards.map(function(card){
+        return h('div',{key:card.id,style:{
+          width:'100%',aspectRatio:'1.586',borderRadius:14,
+          position:'relative',overflow:'hidden',
+          background:card.imageBase64?'#111':('linear-gradient(135deg,'+card.color+'cc,'+card.color+'55)')
+        }},
+          card.imageBase64 && h('img',{src:card.imageBase64,
+            style:{width:'100%',height:'100%',objectFit:'cover',display:'block',position:'absolute',inset:0}}),
+          h('div',{style:{position:'absolute',inset:0,
+            background:'linear-gradient(160deg,rgba(0,0,0,0.05),rgba(0,0,0,0.65))',
+            padding:14,boxSizing:'border-box'}},
+            h('p',{style:{color:'rgba(255,255,255,0.88)',fontSize:10,fontWeight:700,letterSpacing:1.5,margin:0}},
+              ((card.bank||'')+' '+(card.type==='credit'?'CREDIT':'CHECK')).toUpperCase()),
+            h('p',{style:{position:'absolute',top:12,right:14,color:'rgba(255,255,255,0.72)',fontSize:10,margin:0}},
+              card.name),
+            h('div',{style:{position:'absolute',top:'44%',left:14,transform:'translateY(-50%)',
+              width:30,height:22,borderRadius:4,
+              background:'linear-gradient(135deg,#c8a84b,#f0d060)',opacity:0.9}}),
+            h('p',{style:{position:'absolute',bottom:32,left:14,
+              color:'#fff',fontSize:13,letterSpacing:3,fontFamily:'monospace',fontWeight:500,margin:0}},
+              '•••• •••• •••• '+card.last4),
+            h('p',{style:{position:'absolute',bottom:12,left:14,
+              color:'rgba(255,255,255,0.68)',fontSize:10,margin:0}},
+              getMem(card.memberId).name.toUpperCase()),
+            h('div',{style:{position:'absolute',bottom:10,right:10,display:'flex',gap:5}},
+              h('button',{
+                onClick:function(e){ e.stopPropagation();
+                  var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+                  inp.onchange=function(ev){
+                    var f=ev.target.files[0]; if(!f) return;
+                    compressCardImg(f,function(b64){
+                      var all=lsGet(LS_CARDS,INIT_CARDS)||[];
+                      var upd=all.map(function(c){ return c.id===card.id?Object.assign({},c,{imageBase64:b64}):c; });
+                      lsSet(LS_CARDS,upd);
+                      if(typeof db!=='undefined'&&db) db.ref('cards/'+card.id+'/imageBase64').set(b64);
+                      setModal(null); setTimeout(function(){setModal('cards');},50);
+                    });
+                  }; inp.click();
+                },
+                style:{background:'rgba(255,255,255,0.22)',border:'none',borderRadius:8,
+                  padding:'5px 9px',color:'#fff',fontSize:11,cursor:'pointer'}
+              },'📷 사진'),
+              h('button',{
+                onClick:function(e){ e.stopPropagation(); setEditCardData(card); setModal('addCard'); },
+                style:{background:'rgba(255,255,255,0.22)',border:'none',borderRadius:8,
+                  padding:'5px 9px',color:'#fff',fontSize:11,cursor:'pointer'}
+              },'✏️ 수정'),
+              h('button',{
+                onClick:function(e){ e.stopPropagation();
+                  if(!window.confirm('카드를 삭제할까요? 복구할 수 없습니다.')) return;
+                  var all=lsGet(LS_CARDS,INIT_CARDS)||[];
+                  lsSet(LS_CARDS, all.filter(function(c){ return c.id!==card.id; }));
+                  if(typeof db!=='undefined'&&db) db.ref('cards/'+card.id).remove();
+                  setModal(null); setTimeout(function(){setModal('cards');},50);
+                },
+                style:{background:'rgba(220,50,50,0.45)',border:'none',borderRadius:8,
+                  padding:'5px 8px',color:'#fff',fontSize:11,cursor:'pointer'}
+              },'🗑️')
+            )
+          )
+        );
+      })
+    );
+  })(),
+
+  h('button',{onClick:function(){setEditCardData(null);setModal('addCard');},
+    style:{width:'100%',marginTop:12,padding:11,borderRadius:10,
+      border:'1px dashed '+C.accent+'66',background:C.accent+'11',
+      color:C.accent,fontSize:13,fontWeight:600,cursor:'pointer'}},
+    '+ 카드 새로 등록하기')
+    ), 
 
    /* ★ 카드 등록 모달 연결 */
     modal==='addCard' && h(CardRegisterModal, {
-      defaultMember: cardMgrMember,
-      onSave: function(newCard){ 
-        // 1. 로컬 스토리지에서 최신 카드 목록을 가져옵니다.
-        var currentCards = lsGet(LS_CARDS, INIT_CARDS); 
-        // 2. 새로운 카드를 배열의 맨 앞에 추가합니다.
-        var n = [newCard].concat(currentCards); 
-        // 3. 로컬 스토리지에 저장합니다.
-        lsSet(LS_CARDS, n); 
-        // 4. 모달창을 이전 '카드 관리' 창으로 되돌립니다(닫힘 효과).
-        setModal('cards'); 
-        // 5. App 전역 상태(AddMenu 결제수단 등)에 새 카드가 즉시 갱신되도록 리로드합니다.
-        alert('카드가 성공적으로 등록되었습니다.');
-        window.location.reload(); 
-      },
-      onClose: function(){ setModal('cards'); }
-    }),
-
+  defaultMember: cardMgrMember,
+  editCard: editCardData,
+  onSave: function(newCard){
+    var editing = !!editCardData;
+    var cur = lsGet(LS_CARDS, INIT_CARDS) || [];
+    var n = editing
+      ? cur.map(function(c){ return c.id===newCard.id ? newCard : c; })
+      : [newCard].concat(cur);
+    lsSet(LS_CARDS, n);
+    if(typeof db!=='undefined'&&db) db.ref('cards/'+newCard.id).set(newCard);
+    setEditCardData(null);
+    setModal('cards');
+  },
+  onClose: function(){ setEditCardData(null); setModal('cards'); }
+}),        
     modal==='logout' && h(LogoutModal,{onClose:function(){setModal(null);},onLogout:onLogout}),
    /* ★가족 멤버 수정 기능 완벽 복구 */
     editFam && h(Sheet, {title:'👨‍👩‍👧 가족 멤버 수정', onClose:function(){setEditFam(null);}},
