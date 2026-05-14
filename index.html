@@ -4095,44 +4095,137 @@ function AlarmModal(props) {
   var onClose = props.onClose;
   var settings = props.settings;
   var onChange = props.onChange;
+  var testResult = useState(''); var setTestResult = testResult[1]; testResult = testResult[0];
+  var permStatus = useState(
+    'Notification' in window ? Notification.permission : 'unsupported'
+  );
+  var setPermStatus = permStatus[1]; permStatus = permStatus[0];
+
   var alarms = [
     {key:'newTx',   label:'새 지출 입력 알림',   desc:'가족이 지출을 입력하면 즉시 알림'},
-    {key:'budget',  label:'예산 초과 경고',       desc:'카테고리별 예산 80% 이상 시'},
+    {key:'budget',  label:'예산 초과 경고',       desc:'예산 80% 이상 사용 시 경고'},
     {key:'monthly', label:'월말 지출 요약',        desc:'매월 말일 가계부 요약 발송'},
     {key:'ai',      label:'AI 과소비 감지',        desc:'이상 지출 패턴 감지 시'},
-    {key:'income',  label:'수입 입력 알림',         desc:'급여 등 수입 입력 시'}
+    {key:'income',  label:'수입 입력 알림',        desc:'급여 등 수입 입력 시'}
   ];
+
+  // ★ 알림 권한 요청 함수
+  function requestPermission(callback) {
+    if(!('Notification' in window)) {
+      alert('이 브라우저는 알림을 지원하지 않습니다.');
+      return;
+    }
+    if(Notification.permission === 'granted') {
+      if(callback) callback();
+      return;
+    }
+    Notification.requestPermission().then(function(perm) {
+      setPermStatus(perm);
+      if(perm === 'granted') {
+        if(callback) callback();
+      } else {
+        alert('⚠️ 알림 권한이 거부되었습니다.\n\n스마트폰: 설정 → 앱 → 브라우저 → 알림 허용\nPC: 브라우저 주소창 옆 🔒 아이콘 → 알림 허용');
+      }
+    });
+  }
+
+  // ★ 테스트 알림 발송
+  function sendTestNotification() {
+    requestPermission(function() {
+      try {
+        new Notification('🔔 알림 테스트 성공!', {
+          body: 'FamilyLedger 알림이 정상적으로 작동합니다 ✅\n지출 입력 시 이런 알림이 울려요!',
+          icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+          tag: 'test-' + Date.now()
+        });
+        setTestResult('success');
+        setTimeout(function(){ setTestResult(''); }, 3000);
+      } catch(e) {
+        setTestResult('fail');
+        console.error('[테스트 알림 오류]', e);
+      }
+    });
+  }
+
   return h(Sheet, {title:'🔔 알림 설정', onClose:onClose},
-    h(GCard,{style:{marginBottom:14,background:C.accent+'11',border:'1px solid '+C.accent+'44'}},
-      h('p',{style:{color:C.accent,fontSize:12,fontWeight:700,margin:'0 0 6px'}},'알림 기능이란?'),
-      h('p',{style:{color:C.muted,fontSize:12,margin:0,lineHeight:1.7}},
-        '가족 구성원이 지출을 입력하면 다른 구성원에게 실시간 푸시 알림을 보냅니다. 예산 초과, AI 과소비 경고 등도 알림으로 받을 수 있습니다.')
-    ),
-    alarms.map(function(item){
-      return h('div',{key:item.key,style:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid '+C.faint}},
-        h('div',{style:{flex:1}},
-          h('p',{style:{color:C.text,fontSize:14,fontWeight:600,margin:'0 0 2px'}},item.label),
-          h('p',{style:{color:C.muted,fontSize:11,margin:0}},item.desc)
+
+    // ★ 권한 상태 배너
+    h('div', {style:{
+      background: permStatus === 'granted' ? C.green+'15' : C.red+'15',
+      border: '1px solid ' + (permStatus === 'granted' ? C.green+'44' : C.red+'44'),
+      borderRadius: 12, padding: '10px 14px', marginBottom: 14
+    }},
+      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center'}},
+        h('div', null,
+          h('p', {style:{color: permStatus==='granted'?C.green:C.red, fontSize:13, fontWeight:700, margin:0}},
+            permStatus === 'granted' ? '✅ 알림 권한 허용됨' :
+            permStatus === 'denied'  ? '❌ 알림 권한 차단됨 (기기 설정에서 변경)' :
+            permStatus === 'unsupported' ? '❌ 이 브라우저는 알림 미지원' :
+            '⚠️ 알림 권한 미설정'
+          ),
+          permStatus !== 'granted' && h('p', {style:{color:C.muted, fontSize:10, margin:'3px 0 0'}},
+            permStatus === 'denied'
+              ? '기기 설정 → 브라우저 → 알림 → 허용으로 변경하세요'
+              : '아래 토글을 켜면 권한 요청 팝업이 나타납니다'
+          )
         ),
-         h('div',{
-          onClick:function(){
-            // ★ 추가: 실제 기기 알림 권한 묻기
-            if (!settings[item.key] && 'Notification' in window) {
-              Notification.requestPermission().then(function(perm){
-                if(perm === 'granted') {
-                  onChange(item.key, true);
-                  new Notification('알람 권한 설정 완료', {body: item.label + '이(가) 활성화되었습니다.', icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png'});
-                } else {
-                  alert('기기 설정에서 웹 알림 권한을 허용해야 실제 알림이 울립니다.');
-                }
+        permStatus !== 'granted' && permStatus !== 'denied' && h('button', {
+          onClick: function(){ requestPermission(); },
+          style:{background:C.accent, border:'none', color:'#fff', padding:'6px 12px', borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer'}
+        }, '권한 요청')
+      )
+    ),
+
+    // ★ 테스트 알림 버튼
+    h('button', {
+      onClick: sendTestNotification,
+      style:{
+        width:'100%', padding:'12px', borderRadius:12, border:'none', cursor:'pointer',
+        background: testResult==='success' ? C.green : testResult==='fail' ? C.red : 'linear-gradient(135deg,'+C.accent+',#536DFE)',
+        color:'#fff', fontSize:13, fontWeight:700, marginBottom:14
+      }
+    },
+      testResult === 'success' ? '✅ 알림 발송 성공! 확인하세요' :
+      testResult === 'fail'    ? '❌ 알림 발송 실패 (권한 확인)' :
+      '🔔 테스트 알림 보내기 (눌러서 확인)'
+    ),
+
+    h(GCard, {style:{marginBottom:14, background:C.accent+'11', border:'1px solid '+C.accent+'44'}},
+      h('p', {style:{color:C.accent, fontSize:12, fontWeight:700, margin:'0 0 6px'}}, '알림 기능이란?'),
+      h('p', {style:{color:C.muted, fontSize:12, margin:0, lineHeight:1.7}},
+        '가족이 지출을 입력하면 다른 구성원에게 실시간 알림을 보냅니다.\nPWA 앱으로 설치 시 백그라운드에서도 알림이 옵니다.')
+    ),
+
+    alarms.map(function(item) {
+      return h('div', {key:item.key, style:{display:'flex', alignItems:'center', gap:12, padding:'12px 0', borderBottom:'1px solid '+C.faint}},
+        h('div', {style:{flex:1}},
+          h('p', {style:{color:C.text, fontSize:14, fontWeight:600, margin:'0 0 2px'}}, item.label),
+          h('p', {style:{color:C.muted, fontSize:11, margin:0}}, item.desc)
+        ),
+        h('div', {
+          onClick: function() {
+            if(!settings[item.key]) {
+              requestPermission(function() {
+                onChange(item.key, true);
               });
             } else {
-              onChange(item.key, !settings[item.key]);
+              onChange(item.key, false);
             }
           },
-          style:{width:44,height:24,borderRadius:12,background:settings[item.key]?C.green:C.faint, position:'relative',cursor:'pointer',flexShrink:0}
+          style:{
+            width:44, height:24, borderRadius:12,
+            background: settings[item.key] ? C.green : C.faint,
+            position:'relative', cursor:'pointer', flexShrink:0,
+            transition:'background 0.3s'
+          }
         },
-          h('div',{style:{width:18,height:18,borderRadius:'50%',background:'#fff', position:'absolute',top:3,left:settings[item.key]?23:3}})
+          h('div', {style:{
+            width:18, height:18, borderRadius:'50%', background:'#fff',
+            position:'absolute', top:3,
+            left: settings[item.key] ? 23 : 3,
+            transition:'left 0.3s',
+            boxShadow:'0 1px 4px rgba(0,0,0,0.3)'
+          }})
         )
       );
     })
@@ -8714,42 +8807,27 @@ function App() {
             var alarms = lsGet(LS_ALARMS, {newTx:true, budget:true, monthly:true, ai:true, income:false});
             if('Notification' in window && Notification.permission === 'granted') {
               var arrSnap = arr;
-              setTimeout(function() {
-                var tx = latestNewTx;
-                var memObj = MEMBERS.find(function(m){return m.id===tx.member}) || {name:'가족'};
-                var catObj = EX_CATS.find(function(c){return c.id===tx.catId}) || {name:'기타'};
-                if(tx.type === 'income' && alarms.income) {
-                  new Notification('💵 수입 입력', {
-                    body: memObj.name + '님이 수입을 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
-                    icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                    vibrate: [200, 100, 200],
-                    tag: 'income-' + tx.id
-                  });
-                }
-                if(tx.type === 'expense' && alarms.newTx) {
-                  new Notification('💰 가계부 업데이트', {
-                    body: memObj.name + '님이 ' + catObj.name + '을(를) 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
-                    icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                    vibrate: [200, 100, 200],
-                    tag: 'expense-' + tx.id
-                  });
-                  if(alarms.budget) {
-                    var budgetSet = lsGet('flai_budget', 0);
-                    if(budgetSet > 0) {
-                      var curMonth = new Date().toISOString().slice(0,7);
-                      var curTotE = arrSnap.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
-                      if(curTotE >= budgetSet * 0.8 && (curTotE - tx.amount) < budgetSet * 0.8) {
-                        new Notification('🚨 예산 경고', {
-                          body: '이번 달 지출이 예산의 80%를 돌파했습니다!\n현재 ' + curTotE.toLocaleString() + '원 / 예산 ' + budgetSet.toLocaleString() + '원',
-                          icon: 'https://i.ibb.co/pP6Z3vG/PB-LOGO.png',
-                          vibrate: [300, 200, 300, 200, 300],
-                          tag: 'budget-warning'
-                        });
-                      }
-                    }
-                  }
-                }
-              }, 3000);
+              // ★ 수정: 3000ms 지연 제거 → 즉시 실행
+(function() {
+  var tx = latestNewTx;
+  var memObj = MEMBERS.find(function(m){return m.id===tx.member}) || {name:'가족'};
+  var catObj = EX_CATS.find(function(c){return c.id===tx.catId}) || {name:'기타'};
+  var alarms = lsGet(LS_ALARMS, {newTx:true, budget:true, monthly:true, ai:true, income:false});
+  if(tx.type === 'income' && alarms.income) {
+    new Notification('💵 수입 입력', {
+      body: memObj.name + '님이 수입을 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
+      icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+      tag: 'income-' + tx.id
+    });
+  }
+  if(tx.type === 'expense' && alarms.newTx) {
+    new Notification('💰 가계부 업데이트', {
+      body: memObj.name + '님이 ' + catObj.name + ' 입력\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
+      icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+      tag: 'expense-' + tx.id
+    });
+  }
+})();
             }
           }
         }
@@ -8764,11 +8842,64 @@ function App() {
     var rf = fbRef('fixed'); if(rf) rf.on('value', function(snap){ var data = snap.val(); if(data){ var arr = Object.values(data); setFixedExps(arr); lsSet(LS_FIXED, arr); } });
   }, []);
 
-  function doSaveTx(tx, isFixed, msg) {
-    if(fbDb) { fbSaveTx(tx); if(isFixed) fbSaveFixed(tx); }
-    else { setTxs(function(p){ var n=[tx].concat(p); lsSet(LS_TXS,n); return n; }); if(isFixed) setFixedExps(function(p){ var n=p.concat([tx]); lsSet(LS_FIXED,n); return n; }); }
-    setToast(msg || '저장되었습니다'); navBack(); setTimeout(function(){setToast(null);},2000);
-  }
+ function doSaveTx(tx, isFixed, msg) {
+  if(fbDb) { fbSaveTx(tx); if(isFixed) fbSaveFixed(tx); }
+  else { setTxs(function(p){ var n=[tx].concat(p); lsSet(LS_TXS,n); return n; }); if(isFixed) setFixedExps(function(p){ var n=p.concat([tx]); lsSet(LS_FIXED,n); return n; }); }
+
+  // ★★★ [알림 발송] 저장 즉시 알림 ★★★
+  (function(){
+    try {
+      var alarmSettings = lsGet(LS_ALARMS, {newTx:true, income:false, budget:true});
+      if(!('Notification' in window)) return;
+      if(Notification.permission !== 'granted') return;
+      var memObj = MEMBERS.find(function(m){ return m.id === tx.member; }) || {name:'가족'};
+      var catObj = ALL_CATS.find(function(c){ return c.id === tx.catId; }) || {name:'기타', icon:'💸'};
+      var isInc = tx.type === 'income';
+      if(isInc && !alarmSettings.income) return;
+      if(!isInc && !alarmSettings.newTx) return;
+      var title = isInc ? '💵 수입 등록' : '💰 지출 등록';
+      var body  = memObj.name + '님 · ' + (tx.store || '미입력') + '\n' + (isInc ? '+' : '-') + (tx.amount||0).toLocaleString() + '원 · ' + catObj.name;
+      new Notification(title, {
+        body: body,
+        icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+        badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+        tag: 'tx-' + tx.id,
+        requireInteraction: false,
+        silent: false
+      });
+      // ★ 예산 초과 경고 알림
+      if(!isInc && alarmSettings.budget) {
+        var budgetSet = lsGet(LS_BUDGET, 0);
+        if(budgetSet > 0) {
+          var curMonth = new Date().toISOString().slice(0,7);
+          var allTxs2 = lsGet(LS_TXS, []);
+          var curTotE = allTxs2.filter(function(t){ return t.type==='expense' && t.date && t.date.startsWith(curMonth); }).reduce(function(s,t){return s+t.amount;},0);
+          var ratio = Math.round(curTotE / budgetSet * 100);
+          if(ratio >= 80 && ratio < 110) {
+            setTimeout(function(){
+              new Notification('🚨 예산 경고!', {
+                body: '이번 달 예산의 ' + ratio + '% 사용 중\n' + curTotE.toLocaleString() + '원 / ' + budgetSet.toLocaleString() + '원',
+                icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+                tag: 'budget-warn'
+              });
+            }, 1500);
+          } else if(ratio >= 110) {
+            setTimeout(function(){
+              new Notification('🔴 예산 초과!', {
+                body: '예산을 ' + (ratio-100) + '% 초과했습니다!\n' + curTotE.toLocaleString() + '원 사용',
+                icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+                tag: 'budget-over'
+              });
+            }, 1500);
+          }
+        }
+      }
+    } catch(notifErr) { console.warn('[알림 오류]', notifErr); }
+  })();
+  // ★★★ [알림 발송 끝] ★★★
+
+  setToast(msg || '저장되었습니다'); navBack(); setTimeout(function(){setToast(null);},2000);
+}
 
   function addTx(tx, isFixed) {
     if(!tx.amount || parseInt(tx.amount) <= 0) return;
