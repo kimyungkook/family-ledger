@@ -4131,17 +4131,20 @@ function AlarmModal(props) {
 
   // ★ 테스트 알림 발송
   function sendTestNotification() {
-    requestPermission(function() {
-      try {
-        sendNotif('🔔 알림 테스트 성공!', 'FamilyLedger 알림이 정상 작동합니다 ✅\n지출 입력 시 이런 알림이 울려요!', 'test-' + Date.now());
-        setTestResult('success');
-        setTimeout(function(){ setTestResult(''); }, 3000);
-      } catch(e) {
-        setTestResult('fail');
-        console.error('[테스트 알림 오류]', e);
-      }
+  requestPermission(function() {
+    sendNotif(
+      '🔔 알림 테스트 성공!',
+      'FamilyLedger 알림이 정상 작동합니다 ✅\n지출 입력 시 이런 알림이 울려요!',
+      'test-' + Date.now()
+    ).then(function() {
+      setTestResult('success');
+      setTimeout(function(){ setTestResult(''); }, 3000);
+    }).catch(function(e) {
+      console.error('[테스트알림실패]', String(e));
+      setTestResult('fail');
     });
-  }
+  });
+}
 
   return h(Sheet, {title:'🔔 알림 설정', onClose:onClose},
 
@@ -8832,29 +8835,30 @@ function App() {
 
 /* ★★★ [공통 알림 발송 함수] 모바일/PC 모두 대응 ★★★ */
 function sendNotif(title, body, tag) {
-  if(!('Notification' in window)) return;
-  if(Notification.permission !== 'granted') return;
+  if(!('Notification' in window)) return Promise.reject('미지원 브라우저');
+  if(Notification.permission !== 'granted') return Promise.reject('권한없음');
   var opts = {
-    body: body,
+    body: body || '',
     icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
     badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
     tag: tag || ('notif-' + Date.now()),
     vibrate: [200, 100, 200],
     requireInteraction: false
   };
-  /* 모바일: Service Worker 방식 */
   if('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(function(reg) {
-      reg.showNotification(title, opts);
-    }).catch(function() {
-      /* PC 폴백 */
-      try { new Notification(title, opts); } catch(e) {}
+    return navigator.serviceWorker.getRegistrations().then(function(regs) {
+      if(regs && regs.length > 0) {
+        return regs[0].showNotification(title, opts);
+      } else {
+        return new Notification(title, opts);
+      }
     });
-  } else {
-    /* PC 직접 방식 */
-    try { new Notification(title, opts); } catch(e) {}
   }
-}
+  return new Promise(function(resolve, reject) {
+    try { new Notification(title, opts); resolve(); }
+    catch(e) { reject(e); }
+  });
+} 
 /* ★★★ [공통 알림 함수 끝] ★★★ */
 
  function doSaveTx(tx, isFixed, msg) {
