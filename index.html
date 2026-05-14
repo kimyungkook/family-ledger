@@ -4133,11 +4133,7 @@ function AlarmModal(props) {
   function sendTestNotification() {
     requestPermission(function() {
       try {
-        new Notification('🔔 알림 테스트 성공!', {
-          body: 'FamilyLedger 알림이 정상적으로 작동합니다 ✅\n지출 입력 시 이런 알림이 울려요!',
-          icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-          tag: 'test-' + Date.now()
-        });
+        sendNotif('🔔 알림 테스트 성공!', 'FamilyLedger 알림이 정상 작동합니다 ✅\n지출 입력 시 이런 알림이 울려요!', 'test-' + Date.now());
         setTestResult('success');
         setTimeout(function(){ setTestResult(''); }, 3000);
       } catch(e) {
@@ -8814,18 +8810,10 @@ function App() {
   var catObj = EX_CATS.find(function(c){return c.id===tx.catId}) || {name:'기타'};
   var alarms = lsGet(LS_ALARMS, {newTx:true, budget:true, monthly:true, ai:true, income:false});
   if(tx.type === 'income' && alarms.income) {
-    new Notification('💵 수입 입력', {
-      body: memObj.name + '님이 수입을 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
-      icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-      tag: 'income-' + tx.id
-    });
+    sendNotif('💵 수입 입력', memObj.name + '님이 수입을 입력했어요\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원', 'income-' + tx.id);
   }
   if(tx.type === 'expense' && alarms.newTx) {
-    new Notification('💰 가계부 업데이트', {
-      body: memObj.name + '님이 ' + catObj.name + ' 입력\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원',
-      icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-      tag: 'expense-' + tx.id
-    });
+    sendNotif('💰 가계부 업데이트', memObj.name + '님이 ' + catObj.name + ' 입력\n' + (tx.store || '상호명 없음') + ' | ' + (tx.amount||0).toLocaleString() + '원', 'expense-' + tx.id);
   }
 })();
             }
@@ -8841,6 +8829,33 @@ function App() {
     });
     var rf = fbRef('fixed'); if(rf) rf.on('value', function(snap){ var data = snap.val(); if(data){ var arr = Object.values(data); setFixedExps(arr); lsSet(LS_FIXED, arr); } });
   }, []);
+
+/* ★★★ [공통 알림 발송 함수] 모바일/PC 모두 대응 ★★★ */
+function sendNotif(title, body, tag) {
+  if(!('Notification' in window)) return;
+  if(Notification.permission !== 'granted') return;
+  var opts = {
+    body: body,
+    icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    tag: tag || ('notif-' + Date.now()),
+    vibrate: [200, 100, 200],
+    requireInteraction: false
+  };
+  /* 모바일: Service Worker 방식 */
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.showNotification(title, opts);
+    }).catch(function() {
+      /* PC 폴백 */
+      try { new Notification(title, opts); } catch(e) {}
+    });
+  } else {
+    /* PC 직접 방식 */
+    try { new Notification(title, opts); } catch(e) {}
+  }
+}
+/* ★★★ [공통 알림 함수 끝] ★★★ */
 
  function doSaveTx(tx, isFixed, msg) {
   if(fbDb) { fbSaveTx(tx); if(isFixed) fbSaveFixed(tx); }
@@ -8859,14 +8874,7 @@ function App() {
       if(!isInc && !alarmSettings.newTx) return;
       var title = isInc ? '💵 수입 등록' : '💰 지출 등록';
       var body  = memObj.name + '님 · ' + (tx.store || '미입력') + '\n' + (isInc ? '+' : '-') + (tx.amount||0).toLocaleString() + '원 · ' + catObj.name;
-      new Notification(title, {
-        body: body,
-        icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-        badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-        tag: 'tx-' + tx.id,
-        requireInteraction: false,
-        silent: false
-      });
+      sendNotif(title, body, 'tx-' + tx.id);
       // ★ 예산 초과 경고 알림
       if(!isInc && alarmSettings.budget) {
         var budgetSet = lsGet(LS_BUDGET, 0);
@@ -8877,19 +8885,11 @@ function App() {
           var ratio = Math.round(curTotE / budgetSet * 100);
           if(ratio >= 80 && ratio < 110) {
             setTimeout(function(){
-              new Notification('🚨 예산 경고!', {
-                body: '이번 달 예산의 ' + ratio + '% 사용 중\n' + curTotE.toLocaleString() + '원 / ' + budgetSet.toLocaleString() + '원',
-                icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-                tag: 'budget-warn'
-              });
+              sendNotif('🚨 예산 경고!', '이번 달 예산의 ' + ratio + '% 사용 중\n' + curTotE.toLocaleString() + '원 / ' + budgetSet.toLocaleString() + '원', 'budget-warn');
             }, 1500);
           } else if(ratio >= 110) {
             setTimeout(function(){
-              new Notification('🔴 예산 초과!', {
-                body: '예산을 ' + (ratio-100) + '% 초과했습니다!\n' + curTotE.toLocaleString() + '원 사용',
-                icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-                tag: 'budget-over'
-              });
+              sendNotif('🔴 예산 초과!', '예산을 ' + (ratio-100) + '% 초과했습니다!\n' + curTotE.toLocaleString() + '원 사용', 'budget-over');
             }, 1500);
           }
         }
