@@ -268,6 +268,7 @@ var LS_ALARMS  = 'flai_alarms'; /* ★수정: 알림 저장 키 추가 */
 var LS_MEMOS   = 'flai_cal_memos'; /* ★달력 메모 저장 키 */
 var LS_ASSETS  = 'flai_assets'; // 자산 관리 키 추가
 var LS_START_DAY = 'flai_start_day'; /* ★추가: 가계부 시작일 저장 키 */
+var LS_AUTO_RECORDED = 'flai_auto_recorded'; /* ★추가: 고정지출 자동기록 추적 키 */
 var LS_GOALS = 'flai_goals';   // 가족 목표 저장소
 var LS_CARD_ARCHIVE = 'flai_card_archive'; // 카드명세 보관함
 if(!lsGet(LS_CARD_ARCHIVE,null)) lsSet(LS_CARD_ARCHIVE,[]);
@@ -7278,7 +7279,7 @@ function TxList(props) {
   var hasF = fCat!=='all'||fMem!=='all'||dFrom||dTo||minAmt!==''||maxAmt!=='';
   var selCount = Object.keys(selected).filter(function(k){return selected[k];}).length;
 // ★★★ [추가] 월별로 그룹화 ★★★
-  var groupedByMonth = useMemo(function(){
+ var groupedByMonth = useMemo(function(){
     var groups = {};
     filtered.forEach(function(tx){
       var rawDate = tx.date || '';
@@ -7289,6 +7290,10 @@ function TxList(props) {
         tx.date = rawDate;
       }
       var ym = rawDate.slice(0,7); // "2026-05" 형식
+      // ★★★ [버그수정] 날짜 없는 항목은 건너뜀 → "년 NaN월" 방지 ★★★
+      if(!ym || ym.length < 7 || ym.indexOf('-') < 0) return;
+      var ymParts = ym.split('-');
+      if(isNaN(parseInt(ymParts[0])) || isNaN(parseInt(ymParts[1]))) return;
       if(!groups[ym]) groups[ym] = [];
       groups[ym].push(tx);
     });
@@ -8006,14 +8011,152 @@ function BNav(props) {
 }
 
 function FixedManager(props) {
-  return h(Sheet,{title:'📌 고정지출 관리',onClose:props.onClose},
-    props.fixedList.length===0 ? h('p',{style:{textAlign:'center',padding:'30px 0',color:C.muted}},'등록된 고정지출이 없습니다') :
-    props.fixedList.map(function(fx){
-      return h('div',{key:fx.id, style:{display:'flex',alignItems:'center',gap:10,padding:'12px 0',borderBottom:'1px solid '+C.faint}},
-        h('div',{style:{flex:1}}, h('p',{style:{color:C.text,fontSize:14,fontWeight:700,margin:0}},fx.store), h('p',{style:{color:C.gold,fontSize:11,margin:0}},'매월 '+fx.dayOfMonth+'일 · '+fmt(fx.amount)) ),
-        h('button',{onClick:function(){props.onDelete(fx.id);}, style:{padding:'5px 10px',borderRadius:6,border:'none',background:C.red+'22',color:C.red,fontSize:11}},'삭제')
-      );
-    })
+  var editFx    = useState(null);  var setEditFx    = editFx[1];    editFx    = editFx[0];
+  var editStore = useState('');    var setEditStore = editStore[1];  editStore = editStore[0];
+  var editAmt   = useState('');    var setEditAmt   = editAmt[1];   editAmt   = editAmt[0];
+  var editDay   = useState('');    var setEditDay   = editDay[1];   editDay   = editDay[0];
+
+  function openEdit(fx) {
+    setEditFx(fx);
+    setEditStore(fx.store || '');
+    setEditAmt(String(fx.amount || ''));
+    setEditDay(String(fx.dayOfMonth || ''));
+  }
+
+  function saveEdit() {
+    if(!editStore || !editAmt || !editDay) { alert('모든 항목을 입력해주세요'); return; }
+    var dayNum = Math.max(1, Math.min(28, parseInt(editDay) || 1));
+    var updated = Object.assign({}, editFx, {
+      store: editStore,
+      amount: parseInt(editAmt) || editFx.amount,
+      dayOfMonth: dayNum
+    });
+    /* App의 updFixed가 Firebase + localStorage 모두 처리 */
+    if(props.onUpdate) props.onUpdate(updated);
+    setEditFx(null);
+  }
+
+  function confirmDelete(fx) {
+    if(!confirm('🗑️ "' + fx.store + '" 고정지출을 삭제할까요?\n삭제 후 복구할 수 없습니다.')) return;
+    props.onDelete(fx.id);
+    /* Firebase에서도 삭제 */
+    var rf = fbRef('fixed/fx_'+fx.id);
+    if(rf) rf.remove().catch(function(e){ console.warn('[고정지출 삭제]', e); });
+  }
+
+  return h(Sheet, {title:'📌 고정지출 관리', onClose:props.onClose},
+
+    /* ── 안내 배너 ── */
+    h('div', {style:{background:C.gold+'15', border:'1px solid '+C.gold+'44', borderRadius:10, padding:'10px 14px', marginBottom:14}},
+      h('p', {style:{color:C.gold, fontSize:12, fontWeight:700, margin:'0 0 4px'}}, '💡 고정지출이란?'),
+      h('p', {style:{color:C.muted, fontSize:11, margin:0, lineHeight:1.7}},
+        '매월 정해진 날짜에 자동으로 내역에 기록되는 항목입니다.\n앱 실행 시 해당 날짜가 되면 자동으로 지출 내역에 추가됩니다.')
+    ),
+
+    /* ── 목록 없음 ── */
+    props.fixedList.length === 0 ?
+      h('div', {style:{textAlign:'center', padding:'30px 0'}},
+        h('span', {style:{fontSize:48}}, '📌'),
+        h('p', {style:{color:C.muted, fontSize:13, margin:'12px 0 0'}}, '등록된 고정지출이 없습니다'),
+        h('p', {style:{color:C.faint, fontSize:11}}, '수동 입력 → 고정지출 탭에서 등록하세요')
+      )
+    :
+
+    /* ── 고정지출 목록 ── */
+    h('div', {style:{display:'flex', flexDirection:'column', gap:10}},
+      props.fixedList.map(function(fx) {
+        var cat = getCat(fx.catId);
+        return h('div', {key:fx.id, style:{
+          background:C.card2, borderRadius:12, padding:'12px 14px',
+          border:'1px solid '+C.gold+'33', position:'relative', overflow:'hidden'
+        }},
+          /* 왼쪽 컬러 바 */
+          h('div', {style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:C.gold, borderRadius:'3px 0 0 3px'}}),
+          h('div', {style:{paddingLeft:10}},
+            /* 상단: 이름 + 금액 */
+            h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6}},
+              h('div', null,
+                h('p', {style:{color:C.text, fontSize:14, fontWeight:800, margin:0}}, cat.icon+' '+fx.store),
+                h('p', {style:{color:C.gold, fontSize:12, fontWeight:700, margin:'3px 0 0'}},
+                  '📅 매월 '+fx.dayOfMonth+'일 자동기록')
+              ),
+              h('p', {style:{color:C.red, fontSize:16, fontWeight:900, margin:0}}, fmt(fx.amount))
+            ),
+            /* 하단: 버튼 */
+            h('div', {style:{display:'flex', gap:8, marginTop:8}},
+              h('button', {
+                onClick: function(){ openEdit(fx); },
+                style:{flex:1, padding:'7px 0', borderRadius:8, border:'1px solid '+C.accent+'55',
+                  background:C.accent+'11', color:C.accent, fontSize:12, fontWeight:700, cursor:'pointer'}
+              }, '✏️ 수정'),
+              h('button', {
+                onClick: function(){ confirmDelete(fx); },
+                style:{flex:1, padding:'7px 0', borderRadius:8, border:'1px solid '+C.red+'55',
+                  background:C.red+'11', color:C.red, fontSize:12, fontWeight:700, cursor:'pointer'}
+              }, '🗑️ 삭제')
+            )
+          )
+        );
+      })
+    ),
+
+    /* ── 수정 모달 ── */
+    editFx && h('div', {style:{position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:900}},
+      h('div', {style:{background:C.card, borderRadius:20, padding:'24px 20px', width:'90%', maxWidth:360, border:'1px solid '+C.gold+'55', boxShadow:'0 8px 40px rgba(255,196,0,0.3)'}},
+        h('p', {style:{color:C.gold, fontSize:16, fontWeight:800, margin:'0 0 16px', textAlign:'center'}}, '✏️ 고정지출 수정'),
+
+        h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 4px'}}, '상호명'),
+        h('input', {
+          value: editStore, onChange: function(e){ setEditStore(e.target.value); },
+          placeholder: '예: 넷플릭스, 관리비',
+          style:{width:'100%', padding:'10px 14px', borderRadius:10, background:C.card2,
+            border:'1px solid '+C.gold+'66', color:C.text, fontSize:14, outline:'none',
+            marginBottom:10, boxSizing:'border-box'}
+        }),
+
+        h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 4px'}}, '금액 (원)'),
+        h('input', {
+          value: editAmt ? parseInt(editAmt).toLocaleString() : '',
+          onChange: function(e){ setEditAmt(e.target.value.replace(/\D/g,'')); },
+          type:'tel', placeholder:'예: 15000',
+          style:{width:'100%', padding:'10px 14px', borderRadius:10, background:C.card2,
+            border:'1px solid '+C.gold+'66', color:C.red, fontSize:16, fontWeight:800,
+            outline:'none', marginBottom:10, boxSizing:'border-box', textAlign:'right'}
+        }),
+
+        h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 4px'}}, '매월 자동기록 일 (1~28일)'),
+        h('div', {style:{display:'flex', alignItems:'center', gap:8, marginBottom:16}},
+          h('input', {
+            value: editDay,
+            onChange: function(e){
+              var v = e.target.value.replace(/\D/g,'');
+              if(parseInt(v) > 28) v = '28';
+              if(parseInt(v) < 1 && v !== '') v = '1';
+              setEditDay(v);
+            },
+            type:'tel', maxLength:2, placeholder:'15',
+            style:{width:70, padding:'10px', borderRadius:10, background:C.card2,
+              border:'2px solid '+C.gold+'88', color:C.gold, fontSize:24, fontWeight:900,
+              textAlign:'center', outline:'none'}
+          }),
+          h('span', {style:{color:C.muted, fontSize:13}}, '일마다 자동기록')
+        ),
+
+        h('div', {style:{display:'flex', gap:10}},
+          h('button', {
+            onClick: function(){ setEditFx(null); },
+            style:{flex:1, padding:14, borderRadius:12, border:'1px solid '+C.border,
+              background:C.card2, color:C.muted, fontSize:14, fontWeight:700, cursor:'pointer'}
+          }, '취소'),
+          h('button', {
+            onClick: saveEdit,
+            style:{flex:1, padding:14, borderRadius:12, border:'none',
+              background:'linear-gradient(135deg,'+C.gold+',#FFA500)',
+              color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer'}
+          }, '💾 저장')
+        )
+      )
+    )
   );
 }
 /* ★ 엑셀/CSV 카드명세 대량 업로드 + AI 자동분류 */
@@ -8509,7 +8652,7 @@ function AddMenu(props) {
   if(mode==='capture') return h(CaptureIn,{onAdd:props.onAdd,onBack:function(){setMode('menu');}});
   if(mode==='voice') return h(VoiceIn, {onAdd:props.onAdd, onBack:function(){setMode('menu');}});
   if(mode==='bulk') return h(BulkImportIn, { onAdd:props.onAdd, onBack:function(){setMode('menu');} });
-  if(mode==='fixedMgr') return h(FixedManager,{ fixedList:props.fixedList, onDelete:props.onDeleteFixed, onClose:function(){setMode('menu');} });
+ if(mode==='fixedMgr') return h(FixedManager,{ fixedList:props.fixedList, onDelete:props.onDeleteFixed, onUpdate:props.onUpdateFixed, onClose:function(){setMode('menu');} });
   if(mode==='archive') return h(CardArchiveModal, { onClose:function(){setMode('menu');}, onReAdd:props.onAdd });
   
   var archiveCount = lsGet(LS_CARD_ARCHIVE, []).length;
@@ -8780,6 +8923,112 @@ function App() {
   var dupModal  = useState(null);          var setDupModal  = dupModal[1];  dupModal  = dupModal[0];
   var pendingTx = useState(null);          var setPendingTx = pendingTx[1]; pendingTx = pendingTx[0];
 
+/* ★★★ [고정지출 자동기록 v2] 중복방지 + 확인창 ★★★ */
+  useEffect(function() {
+    try {
+      var today = new Date();
+      var todayDay  = today.getDate();
+      var monthKey  = today.toISOString().slice(0, 7); /* YYYY-MM */
+      var recorded  = lsGet(LS_AUTO_RECORDED, {});
+      var currentFixed = lsGet(LS_FIXED, []);
+      var existingTxs  = lsGet(LS_TXS, []);
+
+      /* ─── 이번 달에 아직 자동기록 안 된 항목만 추림 ─── */
+      var toRecord = currentFixed.filter(function(fx) {
+        if(!fx.dayOfMonth) return false;
+        /* 아직 해당 날짜가 안 됐으면 건너뜀 */
+        if(todayDay < parseInt(fx.dayOfMonth)) return false;
+
+        /* 방어막 1: LS_AUTO_RECORDED 체크 */
+        var recordKey = String(fx.id) + '_' + monthKey;
+        if(recorded[recordKey]) return false;
+
+        /* 방어막 2: 실제 txs에서도 같은 항목 이미 있는지 체크
+           (앱 재설치 / localStorage 초기화 대비) */
+        var alreadyExists = existingTxs.some(function(t) {
+          return t.source === 'auto_fixed'
+              && t.date && t.date.startsWith(monthKey)
+              && String(t.amount) === String(fx.amount)
+              && (t.store || '') === (fx.store || '');
+        });
+        if(alreadyExists) {
+          /* txs엔 있는데 recorded엔 없으면 동기화 */
+          recorded[recordKey] = true;
+          lsSet(LS_AUTO_RECORDED, recorded);
+          return false;
+        }
+
+        return true;
+      });
+
+      if(toRecord.length === 0) return;
+
+      /* ─── 확인창 (중복 방지의 마지막 방어선) ─── */
+      var msg = '📌 오늘 자동기록할 고정지출 ' + toRecord.length + '건:\n\n'
+        + toRecord.map(function(fx) {
+            return '• ' + (fx.store||'미입력') + '  ' + fmt(fx.amount)
+              + '  (매월 ' + fx.dayOfMonth + '일)';
+          }).join('\n')
+        + '\n\n지출 내역에 자동 기록할까요?';
+
+      if(!window.confirm(msg)) return;
+
+      /* ─── LS_AUTO_RECORDED를 먼저 한 번에 저장 (중복 방지 핵심!) ─── */
+      var newRecorded = Object.assign({}, recorded);
+      toRecord.forEach(function(fx) {
+        newRecorded[String(fx.id) + '_' + monthKey] = true;
+      });
+      lsSet(LS_AUTO_RECORDED, newRecorded); /* 동기 저장 → 이후 중복 차단 */
+
+      /* ─── 실제 저장 ─── */
+      var todayStr = today.toISOString().split('T')[0];
+      toRecord.forEach(function(fx, idx) {
+        var autoTx = {
+          id: Date.now() + idx,
+          type: 'expense',
+          amount: fx.amount,
+          catId: fx.catId || 'other',
+          subCat: fx.subCat || '',
+          store: fx.store || '고정지출',
+          memo: '📌 자동기록 (매월 ' + fx.dayOfMonth + '일)',
+          member: fx.member || 'dad',
+          date: todayStr,
+          method: fx.method || '기타',
+          source: 'auto_fixed'
+        };
+        if(fbDb) {
+          fbSaveTx(autoTx);
+        } else {
+          setTxs(function(prev) {
+            var n = [autoTx].concat(prev);
+            lsSet(LS_TXS, n);
+            return n;
+          });
+        }
+      });
+
+      /* ─── 완료 토스트 ─── */
+      setTimeout(function() {
+        setToast('📌 고정지출 ' + toRecord.length + '건 자동기록 완료!');
+        setTimeout(function(){ setToast(null); }, 3000);
+      }, 800);
+
+      /* ─── 알림 발송 ─── */
+      if('Notification' in window && Notification.permission === 'granted') {
+        setTimeout(function() {
+          sendNotif(
+            '📌 고정지출 자동기록 완료',
+            toRecord.length + '건이 오늘 자동으로 기록되었습니다',
+            'auto-fixed-' + Date.now()
+          );
+        }, 2000);
+      }
+    } catch(autoErr) { console.warn('[자동기록 오류]', autoErr); }
+  }, []);
+  /* ★★★ [자동기록 끝] ★★★ */
+
+  // ★ 추가: 알림 무한반복을 막기 위한 방어벽
+
   // ★ 추가: 알림 무한반복을 막기 위한 방어벽
    // ★ 알림: 첫 Firebase 스냅샷은 무시, 이후에는 "이전에 없던 id"만 새 내역으로 판정 (arr[0]은 날짜 정렬이라 틀릴 수 있음)
   var isFirstLoad = useRef(true);
@@ -8833,7 +9082,7 @@ function App() {
     var rf = fbRef('fixed'); if(rf) rf.on('value', function(snap){ var data = snap.val(); if(data){ var arr = Object.values(data); setFixedExps(arr); lsSet(LS_FIXED, arr); } });
   }, []);
 
-/* ★★★ [공통 알림 발송 함수] 모바일/PC 모두 대응 ★★★ */
+/* ★★★ [공통 알림 발송 함수] 모바일/PC 모두 대응 — PWA 수정 완료 ★★★ */
 function sendNotif(title, body, tag) {
   if(!('Notification' in window)) return Promise.reject('미지원 브라우저');
   if(Notification.permission !== 'granted') return Promise.reject('권한없음');
@@ -8845,20 +9094,21 @@ function sendNotif(title, body, tag) {
     vibrate: [200, 100, 200],
     requireInteraction: false
   };
+  /* ★ 핵심수정: getRegistrations() 대신 serviceWorker.ready 사용
+     → PWA 앱 모드에서도 항상 활성 서비스워커를 정확히 가져옴 */
   if('serviceWorker' in navigator) {
-    return navigator.serviceWorker.getRegistrations().then(function(regs) {
-      if(regs && regs.length > 0) {
-        return regs[0].showNotification(title, opts);
-      } else {
-        return new Notification(title, opts);
-      }
+    return navigator.serviceWorker.ready.then(function(reg) {
+      return reg.showNotification(title, opts);
+    }).catch(function(swErr) {
+      console.warn('[SW알림실패, 직접발송]', swErr);
+      try { return new Notification(title, opts); } catch(e2) {}
     });
   }
   return new Promise(function(resolve, reject) {
     try { new Notification(title, opts); resolve(); }
     catch(e) { reject(e); }
   });
-} 
+}
 /* ★★★ [공통 알림 함수 끝] ★★★ */
 
  function doSaveTx(tx, isFixed, msg) {
@@ -8920,17 +9170,40 @@ function sendNotif(title, body, tag) {
     else { doSaveTx(tx, isFixed); }
   }
 
+  /* ★★★ [고정지출 수정 전용 함수] fixedExps 상태 + localStorage + Firebase 동기화 ★★★ */
+  function updFixed(u) {
+    /* 1. React 상태(fixedExps) 업데이트 */
+    setFixedExps(function(p) {
+      var n = p.map(function(f) { return String(f.id) === String(u.id) ? u : f; });
+      lsSet(LS_FIXED, n);
+      return n;
+    });
+    /* 2. Firebase 동기화 */
+    var rf = fbRef('fixed/fx_' + u.id);
+    if(rf) rf.set(u).catch(function(e) { console.error('[고정지출수정]', e); });
+  }
+  /* ★★★ [updFixed 끝] ★★★ */
   function updTx(u) { if(fbDb){ fbSaveTx(u); } else { setTxs(function(p){ var n=p.map(function(t){return t.id===u.id?u:t;}); lsSet(LS_TXS,n); return n; }); } }
   function delTx(id) { if(fbDb){ fbDelTx(id); } else { setTxs(function(p){ var n=p.filter(function(t){return t.id!==id;}); lsSet(LS_TXS,n); return n; }); } }
   function bulkDel(ids) { ids.forEach(function(id){ delTx(id); }); }
 
+  /* ★★★ [고정지출 수정 전용 함수] ★★★ */
+  function updFixed(u) {
+    setFixedExps(function(p) {
+      var n = p.map(function(f) { return String(f.id) === String(u.id) ? u : f; });
+      lsSet(LS_FIXED, n);
+      return n;
+    });
+    var rf = fbRef('fixed/fx_' + u.id);
+    if(rf) rf.set(u).catch(function(e) { console.error('[고정지출수정]', e); });
+  }  
   if(!loggedIn) return h(AuthScreen, {onLogin: function(u){ lsSet(LS_USER,u); setCurUser(u); setLoggedIn(true); }});
 
   return h('div', {style:{ background:C.bg, minHeight:'100vh', color:C.text, fontFamily:"'Pretendard', sans-serif", maxWidth:430, margin:'0 auto', position:'relative' }},
     tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:navTo, startDay:startDay, onAdd:addTx, onDelete:delTx, onUpdate:updTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
     tab==='calendar'  && h(CalendarView, {txs:txs, startDay:startDay}),
     tab==='analysis'  && h(Analysis,   {txs:txs, startDay:startDay, dp:globalDp, baseDate:globalBaseDate}),
-    tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:navBack, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx}),
+    tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:navBack, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx, onUpdateFixed:updFixed}),
     tab==='list'      && h(TxList,     {txs:txs, onUpdate:updTx, onDelete:delTx, onBulkDelete:bulkDel}),
     tab==='settings'  && h(Settings,   {txs:txs, onLogout:function(){lsDel(LS_USER); setLoggedIn(false);}, curUser:curUser, startDay:startDay, setStartDay:setStartDay}),
     h(BNav, {active:tab, onTab:navTo}),
