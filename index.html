@@ -236,6 +236,7 @@ var FB_CONFIG = {
   appId: "1:16831275395:web:3a794324d64d7087d396b6"
 };
 var FAM_CODE = "FAMILY2025"; // 가족 공유 코드
+var JOIN_CODE = "scfjhk2026"; /* ★ 회원가입 전용 코드 */
 var fbDb = null;
 try {
   if(typeof firebase !== 'undefined') {
@@ -245,6 +246,30 @@ try {
   }
 } catch(e){ console.error('[Firebase 오류]', e); }
 function fbRef(p){ return fbDb ? fbDb.ref('families/'+FAM_CODE+'/'+p) : null; }
+/* ★★★ [크로스 디바이스] Firebase 유저 관리 함수 ★★★ */
+function fbUserRef(userId) {
+  return fbDb ? fbDb.ref('families/'+FAM_CODE+'/users/'+userId) : null;
+}
+function fbSaveUser(user) {
+  var r = fbUserRef(user.userId);
+  if(r) r.set(user).catch(function(e){ console.error('[FB유저저장]',e); });
+}
+function fbGetUser(userId, cb) {
+  var r = fbUserRef(userId);
+  if(!r) { cb(null); return; }
+  r.once('value').then(function(snap){
+    cb(snap.val());
+  }).catch(function(){ cb(null); });
+}
+function fbGetAllUsers(cb) {
+  var r = fbDb ? fbDb.ref('families/'+FAM_CODE+'/users') : null;
+  if(!r) { cb([]); return; }
+  r.once('value').then(function(snap){
+    var data = snap.val();
+    cb(data ? Object.values(data) : []);
+  }).catch(function(){ cb([]); });
+}
+/* ★★★ [Firebase 유저 함수 끝] ★★★ */
 function fbSaveTx(tx){ var r=fbRef('txs/tx_'+tx.id); if(r) r.set(tx).catch(function(e){console.error('[FB저장]',e);}); }
 function fbDelTx(id){  var r=fbRef('txs/tx_'+id);    if(r) r.remove().catch(function(e){console.error('[FB삭제]',e);}); }
 function fbSaveFixed(fx){ var r=fbRef('fixed/fx_'+fx.id); if(r) r.set(fx).catch(function(e){console.error('[FB고정]',e);}); }
@@ -270,6 +295,8 @@ var LS_ASSETS  = 'flai_assets'; // 자산 관리 키 추가
 var LS_START_DAY = 'flai_start_day'; /* ★추가: 가계부 시작일 저장 키 */
 var LS_AUTO_RECORDED = 'flai_auto_recorded'; /* ★추가: 고정지출 자동기록 추적 키 */
 var LS_GOALS = 'flai_goals';   // 가족 목표 저장소
+var LS_BUDGET_CATS = 'flai_budget_cats'; /* ★ 카테고리별 예산 저장 키 */
+var LS_BUDGET_SUBS = 'flai_budget_subs'; /* ★ 세부항목별 예산 저장 키 */
 var LS_CARD_ARCHIVE = 'flai_card_archive'; // 카드명세 보관함
 if(!lsGet(LS_CARD_ARCHIVE,null)) lsSet(LS_CARD_ARCHIVE,[]);
 
@@ -1700,7 +1727,7 @@ function PrivacyModal(props) {
      detail:'JWT(JSON Web Token): 로그인 성공 시 임시 열쇠 발급 → 1시간 후 자동 만료 → 30일간 자동 갱신. 열쇠 없이는 가족 데이터 접근 불가.'},
     {icon:'☁️',title:'저장 위치 (Firebase)',
      desc:'Google Firebase 싱가포르 서버',
-     detail:'가족 코드(FAMILY2025)로 분리 저장됩니다. 가족 코드를 모르면 접근 불가. 매일 자동 백업.'},
+     detail:'가족 데이터는 공유 코드로 분리 저장됩니다. 코드를 모르면 접근 불가. 매일 자동 백업.'},
     {icon:'🗑️',title:'데이터 삭제 방법',
      desc:'개별 삭제 또는 계정 탈퇴 시 완전 삭제',
      detail:'[즉시] 내역 탭 → 항목 길게 눌러 선택 → 삭제\n[계정탈퇴] 설정 → 로그아웃 후 Firebase 콘솔에서 데이터 삭제 가능'},
@@ -6188,6 +6215,917 @@ function ExpertGuideModal(props) {
   );
 }
 
+function Budget(props) {
+  var txs = props.txs || [];
+  var dp = props.dp || '이번달';
+  var baseDate = props.baseDate || new Date();
+  var startDay = props.startDay || 1;
+
+  /* ── 서브탭 상태 ── */
+  var subTab = useState('budget'); var setSubTab = subTab[1]; subTab = subTab[0];
+
+  /* ── 예산 상태 ── */
+  var budgetCats = useState(function(){ return lsGet(LS_BUDGET_CATS, {}); });
+  var setBudgetCats = budgetCats[1]; budgetCats = budgetCats[0];
+  var budgetSubs = useState(function(){ return lsGet(LS_BUDGET_SUBS, {}); });
+  var setBudgetSubs = budgetSubs[1]; budgetSubs = budgetSubs[0];
+  var editMode = useState(null); var setEditMode = editMode[1]; editMode = editMode[0];
+  var editVal = useState(''); var setEditVal = editVal[1]; editVal = editVal[0];
+  var openCat = useState(null); var setOpenCat = openCat[1]; openCat = openCat[0];
+  var viewMode = useState('cat'); var setViewMode = viewMode[1]; viewMode = viewMode[0];
+
+  /* ── 자산 상태 ── */
+  var LS_ASSETS_LIST = 'flai_assets_list';
+  var assetList = useState(function(){ return lsGet(LS_ASSETS_LIST, []); });
+  var setAssetList = assetList[1]; assetList = assetList[0];
+  var showAssetForm = useState(false); var setShowAssetForm = showAssetForm[1]; showAssetForm = showAssetForm[0];
+  var editAsset = useState(null); var setEditAsset = editAsset[1]; editAsset = editAsset[0];
+  var assetName = useState(''); var setAssetName = assetName[1]; assetName = assetName[0];
+  var assetAmount = useState(''); var setAssetAmount = assetAmount[1]; assetAmount = assetAmount[0];
+  var assetType = useState('save'); var setAssetType = assetType[1]; assetType = assetType[0];
+  var assetMember = useState('dad'); var setAssetMember = assetMember[1]; assetMember = assetMember[0];
+  var assetNote = useState(''); var setAssetNote = assetNote[1]; assetNote = assetNote[0];
+
+  /* ── 카드결제일 기준 기간 계산 ── */
+  var billingDay = lsGet(LS_CARD_BILLING_DAY, 12);
+  var defPeriod  = getCardBillingPeriod(billingDay, baseDate);
+
+  /* ★ 사용자 커스텀 날짜 상태 */
+  var customStart = useState(lsGet('flai_budget_start', ''));
+  var setCustomStart = customStart[1]; customStart = customStart[0];
+  var customEnd = useState(lsGet('flai_budget_end', ''));
+  var setCustomEnd = customEnd[1]; customEnd = customEnd[0];
+  var showDatePicker = useState(false);
+  var setShowDatePicker = showDatePicker[1]; showDatePicker = showDatePicker[0];
+  var tempStart = useState(customStart || defPeriod.start.toISOString().split('T')[0]);
+  var setTempStart = tempStart[1]; tempStart = tempStart[0];
+  var tempEnd = useState(customEnd || defPeriod.end.toISOString().split('T')[0]);
+  var setTempEnd = tempEnd[1]; tempEnd = tempEnd[0];
+
+  /* ★ 실제 적용 날짜 */
+  var sDate = customStart
+    ? new Date(customStart + 'T00:00:00')
+    : defPeriod.start;
+  var eDate = customEnd
+    ? new Date(customEnd + 'T23:59:59')
+    : defPeriod.end;
+
+  /* ★ 날짜 라벨 */
+  function fmtShort(d) {
+    if(!d) return '';
+    var p = d.split('-');
+    return parseInt(p[1])+'월'+parseInt(p[2])+'일';
+  }
+  var startStr = customStart ? fmtShort(customStart) : fmtBillingDate(defPeriod.start);
+  var endStr   = customEnd   ? fmtShort(customEnd)   : fmtBillingDate(defPeriod.end);
+  var periodLabel = startStr + ' ~ ' + endStr;
+  var isCustom = !!(customStart && customEnd);
+
+ /* ── 기간 내 지출 필터 (딜레이 없이 즉시 반영) ── */
+  var expTxs = useMemo(function(){
+    var s = customStart
+      ? new Date(customStart + 'T00:00:00')
+      : defPeriod.start;
+    var e = customEnd
+      ? new Date(customEnd + 'T23:59:59')
+      : defPeriod.end;
+    return txs.filter(function(t){
+      if(t.type !== 'expense') return false;
+      if(t.catId === 'invest' || t.catId === 'travel_fund') return false;
+      var d = new Date(t.date + 'T12:00:00');
+      return d >= s && d <= e;
+    });
+  }, [txs, customStart, customEnd, billingDay, baseDate]);
+
+  /* ── 카테고리별 실제 지출 ── */
+  function getCatSpent(catId) {
+    return expTxs.filter(function(t){ return t.catId === catId; })
+      .reduce(function(s,t){ return s+t.amount; }, 0);
+  }
+  function getSubSpent(catId, subName) {
+    return expTxs.filter(function(t){ return t.catId === catId && t.subCat === subName; })
+      .reduce(function(s,t){ return s+t.amount; }, 0);
+  }
+
+  /* ── 총예산 수동입력 상태 ── */
+  var LS_TOTAL_BUDGET = 'flai_total_budget_manual';
+  var totalBudgetManual = useState(function(){ return lsGet(LS_TOTAL_BUDGET, 0); });
+  var setTotalBudgetManual = totalBudgetManual[1]; totalBudgetManual = totalBudgetManual[0];
+  var editTotalBudget = useState(false); var setEditTotalBudget = editTotalBudget[1]; editTotalBudget = editTotalBudget[0];
+  var totalBudgetInput = useState(''); var setTotalBudgetInput = totalBudgetInput[1]; totalBudgetInput = totalBudgetInput[0];
+
+  /* ── 전체 예산 합계 ── */
+  var catBudgetSum = Object.values(budgetCats).reduce(function(s,v){ return s+(parseInt(v)||0); }, 0);
+  var totalBudget  = totalBudgetManual > 0 ? totalBudgetManual : catBudgetSum;
+  var totalSpent   = expTxs.reduce(function(s,t){ return s+t.amount; }, 0);
+  var totalPct     = totalBudget > 0 ? Math.round(totalSpent/totalBudget*100) : 0;
+  var totalLeft    = Math.max(totalBudget - totalSpent, 0);
+  var totalLeftPct = totalBudget > 0 ? Math.round(totalLeft/totalBudget*100) : 0;
+
+  /* ── 자산 합계 ── */
+  var totalAssets = assetList.reduce(function(s,a){ return s+(parseInt(a.amount)||0); }, 0);
+
+  /* ── 이번달 순저축 ── */
+  /* ── 이번달 순저축 = 자산 추가 금액 합산 ── */
+  var netSaving = assetList.reduce(function(s,a){
+    return s + (parseInt(a.amount)||0);
+  }, 0);
+  var savingRate = netSaving > 0
+    ? Math.round(netSaving / (netSaving + totalSpent) * 100)
+    : 0;
+
+  /* ── 예산 저장 ── */
+  function saveBudget(catId, val, isSub, subName) {
+    var num = parseInt((val||'').replace(/[^\d]/g,'')) || 0;
+    if(isSub) {
+      var newSubs = Object.assign({}, budgetSubs);
+      if(!newSubs[catId]) newSubs[catId] = {};
+      newSubs[catId][subName] = num;
+      setBudgetSubs(newSubs); lsSet(LS_BUDGET_SUBS, newSubs);
+    } else {
+      var newCats = Object.assign({}, budgetCats);
+      newCats[catId] = num;
+      setBudgetCats(newCats); lsSet(LS_BUDGET_CATS, newCats);
+    }
+    setEditMode(null); setEditVal('');
+  }
+
+  /* ── 자산 저장 ── */
+  function saveAsset() {
+    if(!assetName || !assetAmount) return;
+    var item = {
+      id: editAsset ? editAsset.id : Date.now(),
+      name: assetName,
+      amount: parseInt(assetAmount.replace(/[^\d]/g,'')),
+      type: assetType,
+      member: assetMember,
+      note: assetNote,
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+    var newList = editAsset
+      ? assetList.map(function(a){ return a.id===item.id ? item : a; })
+      : assetList.concat([item]);
+    setAssetList(newList); lsSet(LS_ASSETS_LIST, newList);
+    setShowAssetForm(false); setEditAsset(null);
+    setAssetName(''); setAssetAmount(''); setAssetType('save'); setAssetMember('dad'); setAssetNote('');
+  }
+
+  function deleteAsset(id) {
+    if(!confirm('삭제할까요?')) return;
+    var newList = assetList.filter(function(a){ return a.id !== id; });
+    setAssetList(newList); lsSet(LS_ASSETS_LIST, newList);
+  }
+
+  function startEditAsset(a) {
+    setEditAsset(a); setAssetName(a.name);
+    setAssetAmount(String(a.amount)); setAssetType(a.type);
+    setAssetMember(a.member); setAssetNote(a.note||'');
+    setShowAssetForm(true);
+  }
+
+  /* ── 바 색상 ── */
+  function barColor(pct) {
+    if(pct >= 100) return C.red;
+    if(pct >= 80)  return C.gold;
+    return C.green;
+  }
+
+  /* ── % 배지 ── */
+  function PctBadge(p) {
+    var pct = p.pct;
+    var bg  = pct >= 100 ? C.red+'22' : pct >= 80 ? C.gold+'22' : C.green+'22';
+    var col = pct >= 100 ? C.red      : pct >= 80 ? C.gold      : C.green;
+    return h('span', {style:{
+      fontSize:10, fontWeight:700, padding:'2px 7px',
+      borderRadius:10, background:bg, color:col, flexShrink:0
+    }}, pct >= 100 ? '초과!' : pct+'%');
+  }
+
+  /* ── 자산 종류 ── */
+  var ASSET_TYPES = [
+    {id:'save',   label:'예적금', icon:'🏦'},
+    {id:'stock',  label:'주식/코인', icon:'📈'},
+    {id:'insure', label:'보험',   icon:'🛡️'},
+    {id:'travel', label:'여가비', icon:'✈️'},
+    {id:'real',   label:'부동산', icon:'🏠'},
+    {id:'other',  label:'기타',   icon:'💼'}
+  ];
+  function getAssetType(id) {
+    return ASSET_TYPES.find(function(t){ return t.id===id; }) || ASSET_TYPES[5];
+  }
+
+  /* ── 자산 종류별 합계 ── */
+  var assetByType = ASSET_TYPES.map(function(t) {
+    var sum = assetList.filter(function(a){ return a.type===t.id; })
+      .reduce(function(s,a){ return s+(parseInt(a.amount)||0); }, 0);
+    var pct = totalAssets > 0 ? Math.round(sum/totalAssets*100) : 0;
+    return { id:t.id, label:t.label, icon:t.icon, sum:sum, pct:pct };
+  }).filter(function(t){ return t.sum > 0; });
+
+  return h('div', {style:{height:'100vh', display:'flex', flexDirection:'column', overflow:'hidden'}},
+
+    /* ── 상단 고정 헤더 ── */
+    h('div', {style:{flexShrink:0, padding:'18px 16px 0', background:C.bg}},
+      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}},
+        h('p', {style:{color:C.text, fontSize:20, fontWeight:800, margin:0}}, '💰 재무관리'),
+        h('div', {style:{display:'flex', alignItems:'center', gap:6}},
+          /* ★ 커스텀 적용중이면 초기화 버튼 */
+        h('button', {
+            onClick:function(){
+              if(props.onBack) {
+                props.onBack();
+              } else {
+                window.history.back();
+              }
+            },
+            style:{fontSize:10, color:C.muted, background:C.card2,
+              border:'1px solid '+C.border, borderRadius:6,
+              padding:'3px 8px', cursor:'pointer', fontWeight:700}
+          }, '✕ 닫기'),
+          /* ★ 날짜 클릭 버튼 */
+          h('button', {
+            onClick:function(){ setShowDatePicker(true); },
+            style:{fontSize:10, color: isCustom ? C.accent : C.muted,
+              background: isCustom ? C.accent+'15' : C.card2,
+              border:'1px solid '+(isCustom ? C.accent+'55' : C.border),
+              borderRadius:8, padding:'5px 10px', cursor:'pointer',
+              fontWeight: isCustom ? 700 : 400}
+          }, '📅 '+periodLabel+' ✏️')
+        )
+      ),
+
+      /* ★ 날짜 선택 팝업 */
+      showDatePicker && h('div', {
+        style:{position:'fixed', inset:0, background:'rgba(0,0,0,0.7)',
+          zIndex:999, display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'20px'},
+        onClick:function(e){ if(e.target===e.currentTarget) setShowDatePicker(false); }
+      },
+        h('div', {style:{background:C.card, borderRadius:20, padding:'24px',
+          width:'100%', maxWidth:360, border:'1px solid '+C.border}},
+
+          h('div', {style:{display:'flex', justifyContent:'space-between',
+            alignItems:'center', marginBottom:20}},
+            h('p', {style:{color:C.text, fontSize:16, fontWeight:800, margin:0}},
+              '📅 기간 선택'),
+            h('button', {onClick:function(){ setShowDatePicker(false); },
+              style:{background:'none', border:'none', color:C.muted,
+                fontSize:22, cursor:'pointer'}}, '✕')
+          ),
+
+          /* 빠른 선택 버튼 */
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 8px'}}, '⚡ 빠른 선택'),
+          h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:16}},
+            [
+              {label:'이번달 (카드결제일)', fn:function(){
+                setTempStart(defPeriod.start.toISOString().split('T')[0]);
+                setTempEnd(defPeriod.end.toISOString().split('T')[0]);
+              }},
+              {label:'이번 달력월', fn:function(){
+                var y = baseDate.getFullYear();
+                var m = String(baseDate.getMonth()+1).padStart(2,'0');
+                var last = new Date(y, baseDate.getMonth()+1, 0).getDate();
+                setTempStart(y+'-'+m+'-01');
+                setTempEnd(y+'-'+m+'-'+String(last).padStart(2,'0'));
+              }},
+              {label:'최근 30일', fn:function(){
+                var now = new Date();
+                var ago = new Date(); ago.setDate(ago.getDate()-30);
+                setTempStart(ago.toISOString().split('T')[0]);
+                setTempEnd(now.toISOString().split('T')[0]);
+              }},
+              {label:'최근 90일', fn:function(){
+                var now = new Date();
+                var ago = new Date(); ago.setDate(ago.getDate()-90);
+                setTempStart(ago.toISOString().split('T')[0]);
+                setTempEnd(now.toISOString().split('T')[0]);
+              }}
+            ].map(function(q, i){
+              return h('button', {key:i, onClick:q.fn,
+                style:{padding:'9px 6px', borderRadius:8, border:'1px solid '+C.border,
+                  background:C.card2, color:C.muted, fontSize:11,
+                  fontWeight:600, cursor:'pointer', textAlign:'center'}
+              }, q.label);
+            })
+          ),
+
+          /* 직접 입력 */
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 8px'}}, '📆 직접 입력'),
+          h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20}},
+            h('div', null,
+              h('p', {style:{color:C.muted, fontSize:10, margin:'0 0 4px'}}, '시작일'),
+              h('input', {type:'date', value:tempStart,
+                onChange:function(e){ setTempStart(e.target.value); },
+                style:{width:'100%', padding:'10px', borderRadius:9,
+                  background:C.card2, border:'1px solid '+C.accent+'66',
+                  color:C.text, fontSize:13, outline:'none', boxSizing:'border-box'}})
+            ),
+            h('div', null,
+              h('p', {style:{color:C.muted, fontSize:10, margin:'0 0 4px'}}, '종료일'),
+              h('input', {type:'date', value:tempEnd,
+                onChange:function(e){ setTempEnd(e.target.value); },
+                style:{width:'100%', padding:'10px', borderRadius:9,
+                  background:C.card2, border:'1px solid '+C.accent+'66',
+                  color:C.text, fontSize:13, outline:'none', boxSizing:'border-box'}})
+            )
+          ),
+
+          /* 선택된 기간 미리보기 */
+          tempStart && tempEnd && h('div', {style:{
+            background:C.accent+'11', border:'1px solid '+C.accent+'33',
+            borderRadius:10, padding:'10px 14px', marginBottom:16, textAlign:'center'}},
+            h('p', {style:{color:C.accent, fontSize:12, fontWeight:700, margin:0}},
+              '📅 '+fmtShort(tempStart)+' ~ '+fmtShort(tempEnd)),
+            h('p', {style:{color:C.muted, fontSize:10, margin:'4px 0 0'}},
+              (function(){
+                if(!tempStart||!tempEnd) return '';
+                var days = Math.round((new Date(tempEnd)-new Date(tempStart))/(1000*60*60*24))+1;
+                return days+'일 기간';
+              })())
+          ),
+
+          /* 적용/취소 버튼 */
+          h('div', {style:{display:'flex', gap:10}},
+            h('button', {
+              onClick:function(){
+                setCustomStart(''); setCustomEnd('');
+                lsDel('flai_budget_start'); lsDel('flai_budget_end');
+                setShowDatePicker(false);
+              },
+              style:{flex:1, padding:13, borderRadius:12,
+                border:'1px solid '+C.border, background:C.card2,
+                color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer'}
+            }, '↩ 카드결제일 기준'),
+            h('button', {
+              onClick:function(){
+                if(!tempStart || !tempEnd) return;
+                setCustomStart(tempStart); setCustomEnd(tempEnd);
+                lsSet('flai_budget_start', tempStart);
+                lsSet('flai_budget_end', tempEnd);
+                setShowDatePicker(false);
+              },
+              disabled:!tempStart||!tempEnd,
+              style:{flex:2, padding:13, borderRadius:12, border:'none',
+                cursor:tempStart&&tempEnd?'pointer':'default',
+                background:tempStart&&tempEnd
+                  ?'linear-gradient(135deg,'+C.accent+',#536DFE)':C.faint,
+                color:tempStart&&tempEnd?'#fff':C.muted,
+                fontSize:13, fontWeight:700}
+            }, '✅ 이 기간으로 적용')
+          )
+        )
+      ),
+
+      /* ── 서브탭 ── */
+      h('div', {style:{display:'flex', gap:6, background:C.card2,
+        padding:4, borderRadius:12, marginBottom:14}},
+        [
+          {id:'budget', icon:'💰', label:'예산 관리'},
+          {id:'asset',  icon:'📈', label:'자산 관리'}
+        ].map(function(t){
+          var isActive = subTab === t.id;
+          return h('button', {key:t.id,
+            onClick:function(){
+              setSubTab(t.id);
+              setOpenCat(null);
+              setShowAssetForm(false);
+            },
+            style:{flex:1, padding:'11px 0', borderRadius:9, border:'none', cursor:'pointer',
+              background: isActive ? 'linear-gradient(135deg,'+C.accent+',#536DFE)' : 'transparent',
+              color: isActive ? '#fff' : C.muted,
+              fontSize:13, fontWeight:700, transition:'all 0.25s'}
+          }, t.icon+' '+t.label);
+        })
+      )
+    ),
+
+    /* ══════════════════════════════════════════ */
+    /* ── 스크롤 영역 ── */
+    /* ══════════════════════════════════════════ */
+    h('div', {style:{flex:1, overflowY:'auto', padding:'0 16px 95px'}},
+
+      /* ════════════════ 예산 탭 ════════════════ */
+      subTab === 'budget' && h('div', null,
+
+       /* 전체 예산 요약 */
+        h(GCard, {style:{marginBottom:12, border:'1px solid '+C.accent+'44'}},
+
+          /* ★ 총예산 입력 영역 */
+          h('div', {style:{display:'flex', alignItems:'center',
+            justifyContent:'space-between', marginBottom:12,
+            paddingBottom:10, borderBottom:'1px solid '+C.faint}},
+            h('p', {style:{color:C.muted, fontSize:11, margin:0, fontWeight:700}},
+              '💰 총 예산'),
+            editTotalBudget
+              ? h('div', {style:{display:'flex', alignItems:'center', gap:6}},
+                  h('input', {
+                    value: totalBudgetInput
+                      ? parseInt(totalBudgetInput).toLocaleString()+'원'
+                      : '',
+                    onChange:function(e){
+                      var v = e.target.value.replace(/[^\d]/g,'');
+                      setTotalBudgetInput(v);
+                    },
+                    placeholder:'총 예산 입력',
+                    type:'tel', autoFocus:true,
+                    style:{width:140, padding:'7px 10px', borderRadius:8,
+                      background:C.card2, border:'1px solid '+C.accent,
+                      color:C.accent, fontSize:14, fontWeight:800,
+                      outline:'none', textAlign:'right'}
+                  }),
+                  h('button', {
+                    onClick:function(){
+                      var num = parseInt(totalBudgetInput)||0;
+                      setTotalBudgetManual(num);
+                      lsSet(LS_TOTAL_BUDGET, num);
+                      setEditTotalBudget(false);
+                      setTotalBudgetInput('');
+                    },
+                    style:{padding:'7px 12px', borderRadius:8, border:'none',
+                      background:C.accent, color:'#fff',
+                      fontWeight:700, cursor:'pointer', fontSize:12}
+                  }, '저장'),
+                  h('button', {
+                    onClick:function(){
+                      setEditTotalBudget(false);
+                      setTotalBudgetInput('');
+                    },
+                    style:{padding:'7px 10px', borderRadius:8,
+                      border:'1px solid '+C.border, background:C.card2,
+                      color:C.muted, cursor:'pointer', fontSize:12}
+                  }, '취소')
+                )
+              : h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+                  h('span', {style:{color:C.text, fontSize:16, fontWeight:800}},
+                    totalBudget > 0 ? fmt(totalBudget) : '미설정'),
+                  h('button', {
+                    onClick:function(){
+                      setEditTotalBudget(true);
+                      setTotalBudgetInput(
+                        totalBudgetManual > 0 ? String(totalBudgetManual) : ''
+                      );
+                    },
+                    style:{padding:'4px 10px', borderRadius:6,
+                      border:'1px dashed '+C.accent+'66',
+                      background:C.accent+'11', color:C.accent,
+                      fontSize:11, fontWeight:700, cursor:'pointer'}
+                  }, totalBudget > 0 ? '✏️ 수정' : '+ 입력')
+                )
+          ),
+
+          /* 사용/잔여 요약 */
+          h('div', {style:{display:'flex', justifyContent:'space-between', marginBottom:10}},
+            h('div', null,
+              h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '사용'),
+              h('p', {style:{color:C.red, fontSize:16, fontWeight:800, margin:'2px 0 0'}},
+                fmt(totalSpent)+' ('+totalPct+'%)')
+            ),
+            h('div', {style:{textAlign:'right'}},
+              h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '잔여'),
+              h('p', {style:{color:C.green, fontSize:16, fontWeight:800, margin:'2px 0 0'}},
+                fmt(totalLeft)+' ('+totalLeftPct+'%)')
+            )
+          ),
+
+          totalBudget > 0 && h('div', null,
+            h('div', {style:{background:C.faint, borderRadius:6,
+              height:10, overflow:'hidden', marginBottom:5}},
+              h('div', {style:{width:Math.min(totalPct,100)+'%', height:'100%',
+                background:barColor(totalPct), borderRadius:6,
+                transition:'width 0.5s'}})
+            ),
+            h('div', {style:{display:'flex', justifyContent:'space-between'}},
+              h('span', {style:{fontSize:10, color:barColor(totalPct), fontWeight:700}},
+                totalPct >= 100 ? '🚨 예산 초과!' :
+                totalPct >= 80  ? '⚠️ 주의구간'   : '✅ 양호'),
+              h('span', {style:{fontSize:10, color:C.muted}},
+                '총 '+totalPct+'% 사용')
+            )
+          )
+        ),
+
+        /* 보기 모드 전환 */
+        h('div', {style:{display:'flex', gap:8, marginBottom:12,
+          background:C.card2, padding:4, borderRadius:10}},
+          [{id:'cat', label:'📂 카테고리별'}, {id:'sub', label:'📌 세부항목별'}].map(function(v){
+            return h('button', {key:v.id, onClick:function(){setViewMode(v.id); setOpenCat(null);},
+              style:{flex:1, padding:'9px 0', borderRadius:8, border:'none', cursor:'pointer',
+                background: viewMode===v.id ? C.accent : 'transparent',
+                color: viewMode===v.id ? '#fff' : C.muted,
+                fontSize:12, fontWeight:700}
+            }, v.label);
+          })
+        ),
+
+        /* 카테고리별 보기 */
+        viewMode === 'cat' && h('div', null,
+          EX_CATS.map(function(cat) {
+            var spent   = getCatSpent(cat.id);
+            var budget  = parseInt(budgetCats[cat.id]) || 0;
+            var pct     = budget > 0 ? Math.round(spent/budget*100) : 0;
+            var left    = Math.max(budget - spent, 0);
+            var leftPct = budget > 0 ? Math.round(left/budget*100) : 0;
+            var isOpen  = openCat === cat.id;
+            var isEdit  = editMode === cat.id;
+            var hasSubs = SUB_CATS[cat.id] && SUB_CATS[cat.id].length > 0;
+
+            return h('div', {key:cat.id, style:{marginBottom:8}},
+              h(GCard, {style:{padding:'12px 14px',
+                border:'1px solid '+(isOpen ? cat.color+'66' : C.border),
+                boxShadow: isOpen ? '0 4px 12px '+cat.color+'22' : 'none'}},
+
+                h('div', {onClick:function(){ if(!isEdit) setOpenCat(isOpen?null:cat.id); },
+                  style:{display:'flex', alignItems:'center', gap:10, cursor:'pointer',
+                    marginBottom: isEdit||budget>0 ? 10 : 0}},
+                  h('div', {style:{width:36, height:36, borderRadius:9,
+                    background:cat.color+'22', display:'flex', alignItems:'center',
+                    justifyContent:'center', fontSize:18, flexShrink:0}}, cat.icon),
+                  h('div', {style:{flex:1, minWidth:0}},
+                    h('p', {style:{color:C.text, fontSize:13, fontWeight:700, margin:0}}, cat.name),
+                    budget > 0
+                      ? h('p', {style:{color:C.muted, fontSize:10, margin:'2px 0 0'}},
+                          '사용 '+fmt(spent)+' ('+pct+'%) / 예산 '+fmt(budget))
+                      : h('p', {style:{color:C.muted, fontSize:10, margin:'2px 0 0'}}, '예산 미설정')
+                  ),
+                  budget > 0 && h(PctBadge, {pct:pct}),
+                  hasSubs && h('span', {style:{color:C.muted, fontSize:12, marginLeft:4,
+                    transform:isOpen?'rotate(90deg)':'rotate(0deg)',
+                    display:'inline-block', transition:'transform 0.3s'}}, '▶')
+                ),
+
+                budget > 0 && h('div', null,
+                  h('div', {style:{background:C.faint, borderRadius:5, height:7, overflow:'hidden', marginBottom:5}},
+                    h('div', {style:{width:Math.min(pct,100)+'%', height:'100%',
+                      background:barColor(pct), borderRadius:5, transition:'width 0.5s'}})
+                  ),
+                  h('div', {style:{display:'flex', justifyContent:'space-between'}},
+                    h('span', {style:{fontSize:10, color:C.red}}, '사용 '+fmt(spent)+' ('+pct+'%)'),
+                    h('span', {style:{fontSize:10, color:C.green}}, '잔여 '+fmt(left)+' ('+leftPct+'%)')
+                  )
+                ),
+
+                isEdit
+                  ? h('div', {style:{display:'flex', gap:8, marginTop:10}},
+                      h('input', {value:editVal ? parseInt(editVal).toLocaleString() : '',
+                        onChange:function(e){setEditVal(e.target.value.replace(/[^\d]/g,''));},
+                        placeholder:'예산 금액', type:'tel', autoFocus:true,
+                        style:{flex:1, padding:'8px 12px', borderRadius:8, background:C.card2,
+                          border:'1px solid '+cat.color, color:cat.color,
+                          fontSize:14, fontWeight:800, outline:'none'}}),
+                      h('button', {onClick:function(){ saveBudget(cat.id, editVal); },
+                        style:{padding:'8px 14px', borderRadius:8, border:'none',
+                          background:cat.color, color:'#fff', fontWeight:700, cursor:'pointer'}}, '저장'),
+                      h('button', {onClick:function(){ setEditMode(null); setEditVal(''); },
+                        style:{padding:'8px 10px', borderRadius:8, border:'1px solid '+C.border,
+                          background:C.card2, color:C.muted, cursor:'pointer'}}, '취소')
+                    )
+                  : h('button', {
+                      onClick:function(e){ e.stopPropagation();
+                        setEditMode(cat.id);
+                        setEditVal(budget > 0 ? String(budget) : '');
+                      },
+                      style:{marginTop:10, width:'100%', padding:'7px 0', borderRadius:8,
+                        border:'1px dashed '+cat.color+'66', background:cat.color+'11',
+                        color:cat.color, fontSize:12, fontWeight:700, cursor:'pointer'}
+                    }, budget > 0 ? '✏️ 예산 수정 ('+fmt(budget)+')' : '+ 예산 설정하기')
+              ),
+
+              /* 세부항목 펼침 */
+              isOpen && hasSubs && h('div', {style:{background:C.bg,
+                border:'1px solid '+cat.color+'33', borderTop:'none',
+                borderRadius:'0 0 12px 12px', padding:'8px 12px'}},
+                h('p', {style:{color:cat.color, fontSize:11, fontWeight:700, margin:'0 0 8px'}},
+                  '📌 '+cat.name+' 세부항목별 예산'),
+                SUB_CATS[cat.id].map(function(subName) {
+                  var subSpent  = getSubSpent(cat.id, subName);
+                  var subBudget = (budgetSubs[cat.id] && budgetSubs[cat.id][subName])
+                    ? parseInt(budgetSubs[cat.id][subName]) : 0;
+                  var subPct    = subBudget > 0 ? Math.round(subSpent/subBudget*100) : 0;
+                  var subLeft   = Math.max(subBudget - subSpent, 0);
+                  var subLeftPct= subBudget > 0 ? Math.round(subLeft/subBudget*100) : 0;
+                  var subKey    = cat.id+'_'+subName;
+                  var isSubEdit = editMode === subKey;
+
+                  return h('div', {key:subName, style:{padding:'10px 0',
+                    borderBottom:'1px solid '+C.faint}},
+                    h('div', {style:{display:'flex', alignItems:'center', gap:8, marginBottom:6}},
+                      h('span', {style:{color:C.text, fontSize:12, fontWeight:600, flex:1}}, subName),
+                      subBudget > 0 && h(PctBadge, {pct:subPct})
+                    ),
+                    subBudget > 0 && h('div', null,
+                      h('div', {style:{background:C.faint, borderRadius:4,
+                        height:5, overflow:'hidden', marginBottom:4}},
+                        h('div', {style:{width:Math.min(subPct,100)+'%', height:'100%',
+                          background:barColor(subPct), borderRadius:4}})
+                      ),
+                      h('div', {style:{display:'flex', justifyContent:'space-between', marginBottom:5}},
+                        h('span', {style:{fontSize:10, color:C.red}},
+                          '사용 '+fmt(subSpent)+' ('+subPct+'%)'),
+                        h('span', {style:{fontSize:10, color:C.green}},
+                          '잔여 '+fmt(subLeft)+' ('+subLeftPct+'%)')
+                      )
+                    ),
+                    isSubEdit
+                      ? h('div', {style:{display:'flex', gap:6}},
+                          h('input', {value:editVal ? parseInt(editVal).toLocaleString() : '',
+                            onChange:function(e){setEditVal(e.target.value.replace(/[^\d]/g,''));},
+                            placeholder:'금액', type:'tel', autoFocus:true,
+                            style:{flex:1, padding:'6px 10px', borderRadius:7, background:C.card2,
+                              border:'1px solid '+cat.color, color:cat.color,
+                              fontSize:13, fontWeight:700, outline:'none'}}),
+                          h('button', {onClick:function(){ saveBudget(cat.id, editVal, true, subName); },
+                            style:{padding:'6px 12px', borderRadius:7, border:'none',
+                              background:cat.color, color:'#fff', fontSize:11,
+                              fontWeight:700, cursor:'pointer'}}, '저장'),
+                          h('button', {onClick:function(){ setEditMode(null); setEditVal(''); },
+                            style:{padding:'6px 8px', borderRadius:7, border:'1px solid '+C.border,
+                              background:C.card2, color:C.muted, fontSize:11, cursor:'pointer'}}, '취소')
+                        )
+                      : h('button', {
+                          onClick:function(){
+                            setEditMode(subKey);
+                            setEditVal(subBudget > 0 ? String(subBudget) : '');
+                          },
+                          style:{width:'100%', padding:'5px 0', borderRadius:7,
+                            border:'1px dashed '+cat.color+'44', background:cat.color+'0A',
+                            color:cat.color, fontSize:11, fontWeight:600, cursor:'pointer'}
+                        }, subBudget > 0 ? '✏️ '+fmt(subBudget)+' 수정' : '+ 예산 설정')
+                  );
+                })
+              )
+            );
+          })
+        ),
+
+        /* 세부항목별 전체 보기 */
+        viewMode === 'sub' && h('div', null,
+          EX_CATS.map(function(cat) {
+            if(!SUB_CATS[cat.id]) return null;
+            var catSpent  = getCatSpent(cat.id);
+            var catBudget = parseInt(budgetCats[cat.id]) || 0;
+            var catPct    = catBudget > 0 ? Math.round(catSpent/catBudget*100) : 0;
+            return h(GCard, {key:cat.id, style:{marginBottom:10}},
+              h('div', {style:{display:'flex', alignItems:'center', gap:8, marginBottom:10,
+                paddingBottom:8, borderBottom:'1px solid '+C.faint}},
+                h('span', {style:{fontSize:18}}, cat.icon),
+                h('span', {style:{color:cat.color, fontSize:13, fontWeight:700, flex:1}}, cat.name),
+                catBudget > 0 && h('span', {style:{fontSize:10, color:C.muted}},
+                  fmt(catSpent)+' / '+fmt(catBudget)+' ('+catPct+'%)')
+              ),
+              SUB_CATS[cat.id].map(function(subName) {
+                var subSpent  = getSubSpent(cat.id, subName);
+                var subBudget = (budgetSubs[cat.id] && budgetSubs[cat.id][subName])
+                  ? parseInt(budgetSubs[cat.id][subName]) : 0;
+                var subPct    = subBudget > 0 ? Math.round(subSpent/subBudget*100) : 0;
+                var subLeft   = Math.max(subBudget - subSpent, 0);
+                var subLeftPct= subBudget > 0 ? Math.round(subLeft/subBudget*100) : 0;
+                return h('div', {key:subName, style:{marginBottom:8}},
+                  h('div', {style:{display:'flex', alignItems:'center', gap:6, marginBottom:4}},
+                    h('span', {style:{color:C.text, fontSize:12, flex:1}}, subName),
+                    subBudget > 0
+                      ? h('span', {style:{fontSize:10, color:C.muted}},
+                          fmt(subSpent)+' / '+fmt(subBudget))
+                      : h('span', {style:{fontSize:10, color:C.muted}}, '예산 미설정'),
+                    subBudget > 0 && h(PctBadge, {pct:subPct})
+                  ),
+                  subBudget > 0 && h('div', null,
+                    h('div', {style:{background:C.faint, borderRadius:4,
+                      height:5, overflow:'hidden', marginBottom:3}},
+                      h('div', {style:{width:Math.min(subPct,100)+'%', height:'100%',
+                        background:barColor(subPct), borderRadius:4}})
+                    ),
+                    h('div', {style:{display:'flex', justifyContent:'space-between'}},
+                      h('span', {style:{fontSize:9, color:C.red}},
+                        '사용 '+fmt(subSpent)+' ('+subPct+'%)'),
+                      h('span', {style:{fontSize:9, color:C.green}},
+                        '잔여 '+fmt(subLeft)+' ('+subLeftPct+'%)')
+                    )
+                  )
+                );
+              })
+            );
+          })
+        )
+      ),
+
+      /* ════════════════ 자산 탭 ════════════════ */
+      subTab === 'asset' && h('div', null,
+
+        /* 자산 요약 카드 */
+        h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}},
+          h(GCard, {style:{padding:'12px 14px', border:'1px solid #A29BFE44'}},
+            h('p', {style:{color:C.muted, fontSize:10, margin:'0 0 4px'}}, '총 자산'),
+            h('p', {style:{color:'#A29BFE', fontSize:18, fontWeight:800, margin:0}}, fmt(totalAssets)),
+            h('p', {style:{color:C.muted, fontSize:10, margin:'4px 0 0'}}, assetList.length+'개 항목')
+          ),
+          h(GCard, {style:{padding:'12px 14px', border:'1px solid '+C.green+'44'}},
+            h('p', {style:{color:C.muted, fontSize:10, margin:'0 0 4px'}}, '자산 총 저축액'),
+            h('p', {style:{color: netSaving > 0 ? C.green : C.muted,
+              fontSize:18, fontWeight:800, margin:0}},
+              netSaving > 0 ? fmt(netSaving) : '₩0'),
+            h('p', {style:{color:C.muted, fontSize:10, margin:'4px 0 0'}},
+              netSaving > 0 ? '자산 '+assetList.length+'개 합산' : '자산을 추가해주세요')
+          )
+        ),
+
+        /* 자산 구성 비율 */
+        assetByType.length > 0 && h(GCard, {style:{marginBottom:12}},
+          h('p', {style:{color:C.muted, fontSize:11, fontWeight:700, margin:'0 0 10px'}},
+            '자산 구성'),
+          assetByType.map(function(t) {
+            return h('div', {key:t.id, style:{marginBottom:8}},
+              h('div', {style:{display:'flex', justifyContent:'space-between',
+                alignItems:'center', marginBottom:3}},
+                h('div', {style:{display:'flex', alignItems:'center', gap:6}},
+                  h('span', {style:{fontSize:14}}, t.icon),
+                  h('span', {style:{color:C.text, fontSize:12}}, t.label)
+                ),
+                h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+                  h('span', {style:{color:C.text, fontSize:12, fontWeight:700}}, fmt(t.sum)),
+                  h('span', {style:{color:'#A29BFE', fontSize:11, fontWeight:700,
+                    background:'#A29BFE22', padding:'1px 6px', borderRadius:8}},
+                    t.pct+'%')
+                )
+              ),
+              h('div', {style:{background:C.faint, borderRadius:4, height:5, overflow:'hidden'}},
+                h('div', {style:{width:t.pct+'%', height:'100%',
+                  background:'#A29BFE', borderRadius:4}})
+              )
+            );
+          })
+        ),
+
+        /* 자산 목록 */
+        h('div', {style:{display:'flex', justifyContent:'space-between',
+          alignItems:'center', marginBottom:8}},
+          h('p', {style:{color:C.muted, fontSize:12, fontWeight:700, margin:0}}, '자산 목록'),
+          h('button', {onClick:function(){
+              setShowAssetForm(true); setEditAsset(null);
+              setAssetName(''); setAssetAmount('');
+              setAssetType('save'); setAssetMember('dad'); setAssetNote('');
+            },
+            style:{padding:'6px 14px', borderRadius:20, border:'none', cursor:'pointer',
+              background:'linear-gradient(135deg,'+C.accent+',#536DFE)',
+              color:'#fff', fontSize:12, fontWeight:700}
+          }, '+ 자산 추가')
+        ),
+
+        /* 자산 추가/수정 폼 */
+        showAssetForm && h(GCard, {style:{marginBottom:12,
+          border:'1px solid '+C.accent+'44', background:C.accent+'08'}},
+          h('p', {style:{color:C.accent, fontSize:13, fontWeight:700, margin:'0 0 12px'}},
+            editAsset ? '✏️ 자산 수정' : '+ 새 자산 추가'),
+
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '자산명'),
+          h('input', {value:assetName,
+            onChange:function(e){setAssetName(e.target.value);},
+            placeholder:'예: KB 정기적금, 삼성증권 ISA',
+            style:{width:'100%', padding:'9px 12px', borderRadius:9,
+              background:C.card2, border:'1px solid '+C.border,
+              color:C.text, fontSize:13, outline:'none', marginBottom:10,
+              boxSizing:'border-box'}}),
+
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '금액'),
+          h('input', {value:assetAmount ? parseInt(assetAmount).toLocaleString() : '',
+            onChange:function(e){setAssetAmount(e.target.value.replace(/[^\d]/g,''));},
+            placeholder:'0', type:'tel',
+            style:{width:'100%', padding:'9px 12px', borderRadius:9,
+              background:C.card2, border:'1px solid '+C.border,
+              color:'#A29BFE', fontSize:16, fontWeight:800, outline:'none',
+              marginBottom:10, boxSizing:'border-box'}}),
+
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 6px'}}, '자산 종류'),
+          h('div', {style:{display:'grid', gridTemplateColumns:'repeat(3,1fr)',
+            gap:5, marginBottom:10}},
+            ASSET_TYPES.map(function(t){
+              var isSel = assetType === t.id;
+              return h('button', {key:t.id,
+                onClick:function(){setAssetType(t.id);},
+                style:{padding:'8px 4px', borderRadius:8, border:'none', cursor:'pointer',
+                  background: isSel ? '#A29BFE33' : C.faint,
+                  outline: isSel ? '2px solid #A29BFE' : 'none',
+                  display:'flex', flexDirection:'column',
+                  alignItems:'center', gap:2}},
+                h('span', {style:{fontSize:16}}, t.icon),
+                h('span', {style:{color: isSel ? '#A29BFE' : C.muted,
+                  fontSize:9, fontWeight:700}}, t.label)
+              );
+            })
+          ),
+
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 6px'}}, '구성원'),
+          h('div', {style:{display:'flex', gap:6, marginBottom:10}},
+            MEMBERS.map(function(m){
+              var isSel = assetMember === m.id;
+              return h('button', {key:m.id,
+                onClick:function(){setAssetMember(m.id);},
+                style:{flex:1, padding:'8px 4px', borderRadius:9, border:'none',
+                  cursor:'pointer',
+                  background: isSel ? m.color+'33' : C.faint,
+                  outline: isSel ? '2px solid '+m.color : 'none',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:2}},
+                h('span', {style:{fontSize:18}}, m.emoji),
+                h('span', {style:{color: isSel ? m.color : C.muted,
+                  fontSize:10, fontWeight:700}}, m.name)
+              );
+            })
+          ),
+
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 5px'}}, '메모 (선택)'),
+          h('input', {value:assetNote,
+            onChange:function(e){setAssetNote(e.target.value);},
+            placeholder:'예: 매월 50만원 납입',
+            style:{width:'100%', padding:'9px 12px', borderRadius:9,
+              background:C.card2, border:'1px solid '+C.border,
+              color:C.text, fontSize:13, outline:'none', marginBottom:12,
+              boxSizing:'border-box'}}),
+
+          h('div', {style:{display:'flex', gap:8}},
+            h('button', {onClick:function(){
+                setShowAssetForm(false); setEditAsset(null);
+                setAssetName(''); setAssetAmount('');
+              },
+              style:{flex:1, padding:12, borderRadius:10, border:'1px solid '+C.border,
+                background:C.card2, color:C.muted, fontSize:13, cursor:'pointer'}},
+              '취소'),
+            h('button', {onClick:saveAsset,
+              disabled:!assetName||!assetAmount,
+              style:{flex:2, padding:12, borderRadius:10, border:'none', cursor:'pointer',
+                background: assetName&&assetAmount
+                  ? 'linear-gradient(135deg,#A29BFE,#6C5CE7)' : C.faint,
+                color: assetName&&assetAmount ? '#fff' : C.muted,
+                fontSize:13, fontWeight:700}},
+              editAsset ? '✅ 수정 저장' : '💾 자산 등록')
+          )
+        ),
+
+        /* 자산 목록 카드들 */
+        assetList.length === 0 && !showAssetForm
+          ? h(GCard, {style:{textAlign:'center', padding:'30px 0',
+              border:'1px dashed '+C.border}},
+              h('p', {style:{fontSize:40, margin:'0 0 10px'}}, '📈'),
+              h('p', {style:{color:C.muted, fontSize:13, margin:'0 0 6px'}},
+                '등록된 자산이 없습니다'),
+              h('p', {style:{color:C.faint, fontSize:11}},
+                '위 + 자산 추가 버튼을 눌러 등록하세요')
+            )
+          : assetList.map(function(a) {
+              var at = getAssetType(a.type);
+              var mem = getMem(a.member);
+              var totalPctA = totalAssets > 0
+                ? Math.round(a.amount/totalAssets*100) : 0;
+              return h(GCard, {key:a.id, style:{marginBottom:8,
+                border:'1px solid '+mem.color+'33'}},
+                h('div', {style:{display:'flex', alignItems:'center', gap:10}},
+                  h('div', {style:{width:40, height:40, borderRadius:10,
+                    background:'#A29BFE22', display:'flex', alignItems:'center',
+                    justifyContent:'center', fontSize:20, flexShrink:0}}, at.icon),
+                  h('div', {style:{flex:1, minWidth:0}},
+                    h('p', {style:{color:C.text, fontSize:13, fontWeight:700,
+                      margin:0, overflow:'hidden', textOverflow:'ellipsis',
+                      whiteSpace:'nowrap'}}, a.name),
+                    h('div', {style:{display:'flex', alignItems:'center',
+                      gap:5, marginTop:3}},
+                      h('span', {style:{fontSize:10}}, mem.emoji),
+                      h('span', {style:{color:C.muted, fontSize:10}}, mem.name),
+                      h('span', {style:{color:C.muted, fontSize:10}}, '·'),
+                      h('span', {style:{color:'#A29BFE', fontSize:10,
+                        fontWeight:700}}, at.label),
+                      a.note && h('span', {style:{color:C.faint, fontSize:9}},
+                        '· '+a.note)
+                    )
+                  ),
+                  h('div', {style:{textAlign:'right', flexShrink:0}},
+                    h('p', {style:{color:'#A29BFE', fontSize:14,
+                      fontWeight:800, margin:'0 0 3px'}}, fmt(a.amount)),
+                    h('span', {style:{fontSize:10, color:'#A29BFE',
+                      background:'#A29BFE22', padding:'1px 6px',
+                      borderRadius:8, fontWeight:700}},
+                      '전체의 '+totalPctA+'%')
+                  )
+                ),
+                h('div', {style:{display:'flex', gap:6, marginTop:10,
+                  paddingTop:8, borderTop:'1px solid '+C.faint}},
+                  h('button', {onClick:function(){startEditAsset(a);},
+                    style:{flex:1, padding:'6px 0', borderRadius:7,
+                      border:'1px solid '+C.accent+'44',
+                      background:C.accent+'11', color:C.accent,
+                      fontSize:11, fontWeight:700, cursor:'pointer'}},
+                    '✏️ 수정'),
+                  h('button', {onClick:function(){deleteAsset(a.id);},
+                    style:{flex:1, padding:'6px 0', borderRadius:7,
+                      border:'1px solid '+C.red+'44',
+                      background:C.red+'11', color:C.red,
+                      fontSize:11, fontWeight:700, cursor:'pointer'}},
+                    '🗑️ 삭제')
+                )
+              );
+            })
+      )
+    )
+  );
+}
+
 function Analysis(props) {
   var txs = props.txs;
   var startDay = props.startDay || lsGet(LS_START_DAY, 1);
@@ -7990,48 +8928,208 @@ modal==='billingDay' && h(Sheet,{title:'💳 카드 결제일 설정',onClose:fu
 
 function AuthScreen(props) {
   var onLogin = props.onLogin;
-  var mode   = useState('login'); var setMode   = mode[1];   mode   = mode[0];
+  var mode    = useState('login'); var setMode    = mode[1];    mode    = mode[0];
   var loginId = useState('');     var setLoginId = loginId[1]; loginId = loginId[0];
   var loginPw = useState('');     var setLoginPw = loginPw[1]; loginPw = loginPw[0];
   var sName   = useState('');     var setSName   = sName[1];   sName   = sName[0];
   var sId     = useState('');     var setSId     = sId[1];     sId     = sId[0];
   var sPw     = useState('');     var setsPw     = sPw[1];     sPw     = sPw[0];
-  var errs    = useState({});     var setErrs    = errs[1];    errs    = errs[0];
+  var sCode   = useState('');     var setSCode   = sCode[1];   sCode   = sCode[0];
+  var loading = useState(false);  var setLoading = loading[1]; loading = loading[0];
+  var errMsg  = useState('');     var setErrMsg  = errMsg[1];  errMsg  = errMsg[0];
 
+  /* ── 로그인 ── */
   function doLogin() {
-    var users = lsGet(LS_USERS, []);
-    var found = users.find(function(u){ return u.userId === loginId.trim(); });
-    if (!found || found.pw !== loginPw) return alert('정보가 올바르지 않습니다.');
-    onLogin({userId: found.userId, name: found.name});
+    if(!loginId.trim() || !loginPw.trim()) {
+      setErrMsg('아이디와 비밀번호를 입력해주세요.'); return;
+    }
+    setLoading(true); setErrMsg('');
+
+    /* ★ Firebase에서 먼저 찾기 */
+    fbGetUser(loginId.trim(), function(fbUser) {
+      if(fbUser && fbUser.pw === loginPw) {
+        /* Firebase 로그인 성공 */
+        var u = {userId: fbUser.userId, name: fbUser.name, isAdmin: fbUser.isAdmin||false};
+        lsSet(LS_USER, u);
+        /* 로컬에도 동기화 */
+        var localUsers = lsGet(LS_USERS, []);
+        var exists = localUsers.find(function(x){ return x.userId === u.userId; });
+        if(!exists) { localUsers.push(fbUser); lsSet(LS_USERS, localUsers); }
+        setLoading(false);
+        onLogin(u);
+        return;
+      }
+      /* Firebase에 없으면 로컬 확인 */
+      var users = lsGet(LS_USERS, []);
+      var found = users.find(function(u){ return u.userId === loginId.trim(); });
+      if(found && found.pw === loginPw) {
+        /* 로컬 유저 → Firebase에 동기화 */
+        fbSaveUser(found);
+        var u2 = {userId: found.userId, name: found.name, isAdmin: found.isAdmin||false};
+        lsSet(LS_USER, u2);
+        setLoading(false);
+        onLogin(u2);
+        return;
+      }
+      setLoading(false);
+      setErrMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+    });
   }
 
+  /* ── 회원가입 ── */
   function doSignup() {
-    var users = lsGet(LS_USERS, []);
-    if (users.some(function(u){return u.userId===sId.trim();})) return alert('중복 아이디');
-    var newUser = {userId: sId.trim(), name: sName.trim(), pw: sPw};
-    users.push(newUser); lsSet(LS_USERS, users);
-    onLogin({userId: newUser.userId, name: newUser.name});
+    if(!sName.trim() || !sId.trim() || !sPw.trim() || !sCode.trim()) {
+      setErrMsg('모든 항목을 입력해주세요.'); return;
+    }
+    /* ★ 가족 공유 코드 검증 */
+    if(sCode.trim() !== JOIN_CODE) {
+      setErrMsg('❌ 가족 공유 코드가 올바르지 않습니다.\n가족에게 코드를 문의하세요.');
+      return;
+    }
+    setLoading(true); setErrMsg('');
+
+    /* ★ Firebase에서 중복 아이디 확인 */
+    fbGetUser(sId.trim(), function(existing) {
+      if(existing) {
+        setLoading(false);
+        setErrMsg('이미 사용 중인 아이디입니다.');
+        return;
+      }
+      /* 로컬에서도 중복 확인 */
+      var users = lsGet(LS_USERS, []);
+      if(users.some(function(u){ return u.userId === sId.trim(); })) {
+        setLoading(false);
+        setErrMsg('이미 사용 중인 아이디입니다.');
+        return;
+      }
+      /* 블랙리스트 확인 */
+      var blacks = lsGet(LS_BLACKLIST, []);
+      if(blacks.some(function(b){ return b.userId === sId.trim(); })) {
+        setLoading(false);
+        setErrMsg('가입이 제한된 아이디입니다.');
+        return;
+      }
+      var newUser = {
+        userId: sId.trim(),
+        name: sName.trim(),
+        pw: sPw,
+        isAdmin: false,
+        joinedAt: new Date().toISOString().split('T')[0]
+      };
+      /* ★ Firebase에 저장 (크로스 디바이스 핵심!) */
+      fbSaveUser(newUser);
+      /* 로컬에도 저장 */
+      users.push(newUser);
+      lsSet(LS_USERS, users);
+      var u = {userId: newUser.userId, name: newUser.name, isAdmin: false};
+      lsSet(LS_USER, u);
+      setLoading(false);
+      onLogin(u);
+    });
   }
 
-  return h('div', {style:{minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'20px 24px', background:C.bg}},
-    h('div', {style:{textAlign:'center', marginBottom:28}}, h('p', {style:{fontSize:52}}, '👨‍👩‍👧'), h('p', {style:{color:C.text, fontSize:22, fontWeight:900}}, 'FamilyLedger AI')),
-    mode==='login' ? h('div', null,
-      h('input', {value:loginId, onChange:function(e){setLoginId(e.target.value);}, placeholder:'아이디', style:{width:'100%',padding:14,borderRadius:10,background:C.card2,border:'1px solid '+C.border,color:C.text,marginBottom:10}}),
-      h('input', {value:loginPw, onChange:function(e){setLoginPw(e.target.value);}, type:'password', placeholder:'비밀번호', style:{width:'100%',padding:14,borderRadius:10,background:C.card2,border:'1px solid '+C.border,color:C.text,marginBottom:20}}),
-      h('button', {onClick:doLogin, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.accent, color:'#fff', fontWeight:800}}, '로그인'),
-      h('p', {onClick:function(){setMode('signup');}, style:{textAlign:'center',marginTop:20,color:C.muted,fontSize:13}}, '처음이신가요? 회원가입')
-    ) : h('div', null,
-      h('input', {value:sName, onChange:function(e){setSName(e.target.value);}, placeholder:'이름', style:{width:'100%',padding:14,borderRadius:10,background:C.card2,border:'1px solid '+C.border,color:C.text,marginBottom:10}}),
-      h('input', {value:sId, onChange:function(e){setSId(e.target.value);}, placeholder:'아이디', style:{width:'100%',padding:14,borderRadius:10,background:C.card2,border:'1px solid '+C.border,color:C.text,marginBottom:10}}),
-      h('input', {value:sPw, onChange:function(e){setsPw(e.target.value);}, type:'password', placeholder:'비밀번호', style:{width:'100%',padding:14,borderRadius:10,background:C.card2,border:'1px solid '+C.border,color:C.text,marginBottom:20}}),
-      h('button', {onClick:doSignup, style:{width:'100%', padding:15, borderRadius:12, border:'none', background:C.green, color:'#fff', fontWeight:800}}, '가입하기'),
-      h('p', {onClick:function(){setMode('login');}, style:{textAlign:'center',marginTop:20,color:C.muted,fontSize:13}}, '이미 계정이 있나요? 로그인')
+  var inp = {
+    width:'100%', padding:'14px 16px', borderRadius:12,
+    background:C.card2, border:'1px solid '+C.border,
+    color:C.text, fontSize:14, marginBottom:12,
+    outline:'none', boxSizing:'border-box'
+  };
+
+  return h('div', {style:{
+    minHeight:'100vh', display:'flex', flexDirection:'column',
+    justifyContent:'center', padding:'20px 24px', background:C.bg
+  }},
+    h('div', {style:{textAlign:'center', marginBottom:32}},
+      h('p', {style:{fontSize:56, margin:'0 0 8px'}}, '👨‍👩‍👧'),
+      h('p', {style:{color:C.text, fontSize:24, fontWeight:800, margin:'0 0 6px'}},
+        'FamilyLedger AI'),
+      h('p', {style:{color:C.muted, fontSize:13, margin:0}},
+        mode === 'login' ? '가족 가계부에 로그인하세요' : '새 계정을 만드세요')
+    ),
+
+    /* ── 에러 메시지 ── */
+    errMsg && h('div', {style:{
+      background:C.red+'15', border:'1px solid '+C.red+'33',
+      borderRadius:10, padding:'10px 14px', marginBottom:14,
+      whiteSpace:'pre-line'
+    }},
+      h('p', {style:{color:C.red, fontSize:12, margin:0, lineHeight:1.6}}, errMsg)
+    ),
+
+    /* ── 로그인 폼 ── */
+    mode === 'login' && h('div', null,
+      h('input', {value:loginId, onChange:function(e){setLoginId(e.target.value); setErrMsg('');},
+        placeholder:'아이디', style:inp}),
+      h('input', {value:loginPw, onChange:function(e){setLoginPw(e.target.value); setErrMsg('');},
+        type:'password', placeholder:'비밀번호', style:Object.assign({},inp,{marginBottom:20})}),
+      h('button', {
+        onClick:doLogin, disabled:loading,
+        style:{width:'100%', padding:16, borderRadius:14, border:'none',
+          background:loading?C.faint:'linear-gradient(135deg,'+C.accent+',#536DFE)',
+          color:loading?C.muted:'#fff', fontSize:16, fontWeight:800, cursor:'pointer'}
+      }, loading ? '로그인 중...' : '🔐 로그인'),
+      h('p', {
+        onClick:function(){setMode('signup'); setErrMsg('');},
+        style:{textAlign:'center', marginTop:20, color:C.muted,
+          fontSize:13, cursor:'pointer', lineHeight:1.8}
+      }, '처음이신가요? ',
+        h('span', {style:{color:C.accent, fontWeight:700}}, '회원가입')
+      )
+    ),
+
+    /* ── 회원가입 폼 ── */
+    mode === 'signup' && h('div', null,
+      h('input', {value:sName, onChange:function(e){setSName(e.target.value); setErrMsg('');},
+        placeholder:'이름', style:inp}),
+      h('input', {value:sId, onChange:function(e){setSId(e.target.value); setErrMsg('');},
+        placeholder:'아이디', style:inp}),
+      h('input', {value:sPw, onChange:function(e){setsPw(e.target.value); setErrMsg('');},
+        type:'password', placeholder:'비밀번호', style:inp}),
+
+      /* ★ 가족 공유 코드 입력 */
+      h('div', {style:{position:'relative', marginBottom:20}},
+       h('input', {value:sCode,
+          onChange:function(e){setSCode(e.target.value); setErrMsg('');},
+          placeholder:'가족 공유 코드 입력 (필수)',
+          style:Object.assign({},inp,{marginBottom:0,
+            border:'1px solid '+(sCode.length>0&&sCode!==JOIN_CODE?C.red:C.border)
+          })}),
+        sCode.length > 0 && h('span', {style:{
+          position:'absolute', right:14, top:'50%',
+          transform:'translateY(-50%)',
+          fontSize:16
+        }}, sCode === JOIN_CODE ? '✅' : '❌')
+      ),
+
+      h('div', {style:{background:C.gold+'11', border:'1px solid '+C.gold+'33',
+        borderRadius:10, padding:'10px 14px', marginBottom:16}},
+        h('p', {style:{color:C.gold, fontSize:11, margin:0, lineHeight:1.7}},
+          '💡 가족 공유 코드는 가족에게 문의하세요.\n관리자만 코드를 알고 있습니다.')
+      ),
+
+      h('button', {
+        onClick:doSignup, disabled:loading||sCode!==JOIN_CODE,
+        style:{width:'100%', padding:16, borderRadius:14, border:'none',
+          background: loading||sCode!==JOIN_CODE
+            ? C.faint
+            : 'linear-gradient(135deg,'+C.green+',#00F5C4)',
+          color: loading||sCode!==JOIN_CODE ? C.muted : '#fff',
+          fontSize:16, fontWeight:800, cursor:'pointer'}
+      }, loading ? '가입 중...' : '✅ 회원가입'),
+
+      h('p', {
+        onClick:function(){setMode('login'); setErrMsg('');},
+        style:{textAlign:'center', marginTop:20, color:C.muted,
+          fontSize:13, cursor:'pointer'}
+      }, '이미 계정이 있나요? ',
+        h('span', {style:{color:C.accent, fontWeight:700}}, '로그인')
+      )
     )
   );
 }
 
 function BNav(props) {
-  var tabs = [{id:'dashboard',icon:'🏠',lbl:'홈'},{id:'calendar',icon:'📅',lbl:'달력'},{id:'add',icon:'+', lbl:'입력'},{id:'analysis', icon:'📊',lbl:'분석'},{id:'list',icon:'📋',lbl:'내역'},{id:'settings', icon:'⚙️',lbl:'설정'}];
+var tabs = [{id:'dashboard',icon:'🏠',lbl:'홈'},{id:'calendar',icon:'📅',lbl:'달력'},{id:'budget',icon:'💰',lbl:'예산/자산'},{id:'add',icon:'+', lbl:'입력'},{id:'analysis', icon:'📊',lbl:'분석'},{id:'list',icon:'📋',lbl:'내역'},{id:'settings', icon:'⚙️',lbl:'설정'}];
   return h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430, margin:'0 auto',background:C.card,borderTop:'1px solid '+C.border, display:'flex',zIndex:100,paddingBottom:8}},
     tabs.map(function(t){
       var ia=props.active===t.id, isA=t.id==='add';
@@ -9221,6 +10319,7 @@ function sendNotif(title, body, tag) {
   return h('div', {style:{ background:C.bg, minHeight:'100vh', color:C.text, fontFamily:"'Pretendard', sans-serif", maxWidth:430, margin:'0 auto', position:'relative' }},
     tab==='dashboard' && h(Dashboard,  {txs:txs, onNav:navTo, startDay:startDay, onAdd:addTx, onDelete:delTx, onUpdate:updTx, dp:globalDp, setDp:setGlobalDp, baseDate:globalBaseDate, setBaseDate:setGlobalBaseDate}),
     tab==='calendar'  && h(CalendarView, {txs:txs, startDay:startDay}),
+    tab==='budget' && h(Budget, {txs:txs, startDay:startDay, dp:globalDp, baseDate:globalBaseDate, onBack:function(){navTo('dashboard');}}),
     tab==='analysis'  && h(Analysis,   {txs:txs, startDay:startDay, dp:globalDp, baseDate:globalBaseDate}),
     tab==='add'       && h(AddMenu,    {onAdd:addTx, onClose:navBack, cards:cards, fixedList:fixedExps, onDeleteFixed:delTx, onUpdateFixed:updFixed}),
     tab==='list'      && h(TxList,     {txs:txs, onUpdate:updTx, onDelete:delTx, onBulkDelete:bulkDel}),
