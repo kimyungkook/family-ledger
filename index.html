@@ -4091,6 +4091,33 @@ function LogoutModal(props) {
   );
 }
 
+/* ★★★ [전역 공통 알림 발송 함수] AlarmModal에서 접근 가능하도록 전역 선언 ★★★ */
+function sendNotif(title, body, tag) {
+  if(!('Notification' in window)) return Promise.reject('미지원 브라우저');
+  if(Notification.permission !== 'granted') return Promise.reject('권한없음');
+  var opts = {
+    body: body || '',
+    icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    tag: tag || ('notif-' + Date.now()),
+    vibrate: [200, 100, 200],
+    requireInteraction: false
+  };
+  if('serviceWorker' in navigator) {
+    return navigator.serviceWorker.getRegistration('./').then(function(reg) {
+      if(reg && reg.active) {
+        return reg.showNotification(title, opts);
+      }
+      return new Notification(title, opts);
+    }).catch(function() {
+      return new Notification(title, opts);
+    });
+  }
+  try { new Notification(title, opts); return Promise.resolve(); }
+  catch(e) { return Promise.reject(e); }
+}
+/* ★★★ [전역 sendNotif 끝] ★★★ */
+
 /* ★버그2 복구: 누락된 AlarmModal 추가 */
 function AlarmModal(props) {
   var onClose = props.onClose;
@@ -5874,6 +5901,12 @@ function Dashboard(props) {
     ),
     (modal === 'monthPicker') && h(MonthSelectorModal, { baseDate: baseDate, sDay: startDay, onSelect: function(nd){ setBaseDate(nd); setModal(null); }, onClose: function(){ setModal(null); } }),
     mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}}),
+    /* ★★★ AI 재무분석 결과 전체화면 — guideData 렌더링 누락 버그 수정 ★★★ */
+    guideData && h(ExpertGuideModal, {
+      ai: guideData.ai,
+      stats: guideData.stats,
+      onClose: function(){ setGuideData(null); }
+    }),
     // ★★★ 수입/지출 상세 내역 시트 ★★★
     detailType && h(TxDetailSheet, {
       type: detailType,
@@ -9028,8 +9061,6 @@ function App() {
   /* ★★★ [자동기록 끝] ★★★ */
 
   // ★ 추가: 알림 무한반복을 막기 위한 방어벽
-
-  // ★ 추가: 알림 무한반복을 막기 위한 방어벽
    // ★ 알림: 첫 Firebase 스냅샷은 무시, 이후에는 "이전에 없던 id"만 새 내역으로 판정 (arr[0]은 날짜 정렬이라 틀릴 수 있음)
   var isFirstLoad = useRef(true);
   var prevTxIdsRef = useRef(new Set());
@@ -9170,18 +9201,6 @@ function sendNotif(title, body, tag) {
     else { doSaveTx(tx, isFixed); }
   }
 
-  /* ★★★ [고정지출 수정 전용 함수] fixedExps 상태 + localStorage + Firebase 동기화 ★★★ */
-  function updFixed(u) {
-    /* 1. React 상태(fixedExps) 업데이트 */
-    setFixedExps(function(p) {
-      var n = p.map(function(f) { return String(f.id) === String(u.id) ? u : f; });
-      lsSet(LS_FIXED, n);
-      return n;
-    });
-    /* 2. Firebase 동기화 */
-    var rf = fbRef('fixed/fx_' + u.id);
-    if(rf) rf.set(u).catch(function(e) { console.error('[고정지출수정]', e); });
-  }
   /* ★★★ [updFixed 끝] ★★★ */
   function updTx(u) { if(fbDb){ fbSaveTx(u); } else { setTxs(function(p){ var n=p.map(function(t){return t.id===u.id?u:t;}); lsSet(LS_TXS,n); return n; }); } }
   function delTx(id) { if(fbDb){ fbDelTx(id); } else { setTxs(function(p){ var n=p.filter(function(t){return t.id!==id;}); lsSet(LS_TXS,n); return n; }); } }
