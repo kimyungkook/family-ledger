@@ -5086,15 +5086,43 @@ function Dashboard(props) {
     return fDash(txs, dp, pd, 1);
     }, [txs, dp, baseDate]);
 
+  // 1) 당월 총 수입
   var curInc = ftx.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
-  var curExp = ftx.filter(function(t){return t.type==='expense'&&t.catId!=='invest'&&t.catId!=='travel_fund';}).reduce(function(s,t){return s+t.amount;},0);
-  var curLoan = ftx.filter(function(t){return t.type==='expense'&&t.catId==='finance';}).reduce(function(s,t){return s+t.amount;},0); // ★ 대출상환액 계산 추가
-// ★ 대출잔액 계산 (기준잔액 10,928,643원 - 이후 원금상환 누적액)
-var LOAN_BASE = 17928643;
-var futureRepaid = txs.filter(function(t){
-  return t.type==='expense' && t.catId==='finance' && t.subCat==='원금상환';
-}).reduce(function(s,t){ return s+t.amount; }, 0);
-var loanRemaining = Math.max(LOAN_BASE - futureRepaid, 0);
+  
+  // 2) 당월 총 생활비 지출 (대출상환, 투자, 여가 완전 제외)
+  var curExp = ftx.filter(function(t){
+    return t.type==='expense' && t.catId!=='invest' && t.catId!=='travel_fund' && t.catId!=='finance';
+  }).reduce(function(s,t){return s+t.amount;},0);
+  
+  // 3) 당월 대출상환액 (카드 우측 표시용)
+  var curLoan = ftx.filter(function(t){return t.type==='expense'&&t.catId==='finance';}).reduce(function(s,t){return s+t.amount;},0); 
+  
+  // 4) 대출 초기 원금 설정
+  var LS_LOAN_BASE = 'flai_loan_base';
+  var loanBaseState = useState(function(){ return lsGet(LS_LOAN_BASE, 0); });
+  var loanBase = loanBaseState[0]; var setLoanBase = loanBaseState[1];
+
+  // 5) 여유자금 차감 방지용 대출 상환 기준 원점 오프셋 (기본값 5,000,000원 설정)
+  var LS_LOAN_FREE_OFFSET = 'flai_loan_free_offset';
+  var loanFreeOffsetState = useState(function(){ return lsGet(LS_LOAN_FREE_OFFSET, 5000000); });
+  var loanFreeOffset = loanFreeOffsetState[0]; var setLoanFreeOffset = loanFreeOffsetState[1];
+
+  // 6) 과거부터 현재까지 누적 상환액
+  var totalRepaid = txs.filter(function(t){
+    return t.type==='expense' && t.catId==='finance';
+  }).reduce(function(s,t){ return s+t.amount; }, 0);
+  
+  // 7) 현재 남은 대출 잔액 (초기 원금 - 누적 상환액)
+  var loanRemaining = Math.max(loanBase - totalRepaid, 0);
+
+  // 8) 기준 원점 이후 추가로 상환한 당월 대출상환액 산출
+  var additionalRepayment = Math.max(0, curLoan - loanFreeOffset);
+
+  // 9) ★최종 산수 수식: 여유자금 = 총수입 - 총지출 - 추가상환액
+  // 원점(500만원) 상태에서는 3,864,706원이 유지되고, 추가 상환 시에만 차감됩니다.
+  var curFreeMoney = curInc - curExp - additionalRepayment;
+
+  // 에러 방지용 변수
   var curRate = curInc > 0 ? Math.round(curExp/curInc*100) : 0;
 
   var accNetSavings = useMemo(function(){
@@ -5217,45 +5245,56 @@ var loanRemaining = Math.max(LOAN_BASE - futureRepaid, 0);
     ),
     /* ⭐️ 틀고정 영역 끝 */
 
-    h(FamilyGoalManager, {txs: ftx}),
-    h('div', {style:{display:'flex', gap:10, marginBottom:14}}, h(GCard, {onClick:function(){setModal('assets_invest');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border}}, '📈 투자 관리'), h(GCard, {onClick:function(){setModal('assets_travel');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border}}, '✈️ 여가비 관리') ),
-     h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}},
+ h(FamilyGoalManager, {txs: ftx}),
+
+  // 투자 관리 / 여가비 관리 버튼 연결
+    h('div',{style:{display:'flex', gap:10, marginBottom:14}}, 
+      h(GCard, {onClick:function(){setModal('assets_invest');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border, textAlign:'center'}}, h('span',{style:{fontSize:16}},'📈'), h('span',{style:{marginLeft:6, fontWeight:700, fontSize:13}},'투자 관리')), 
+      h(GCard, {onClick:function(){setModal('assets_travel');}, style:{flex:1, padding:12, cursor:'pointer', border:'1px solid '+C.border, textAlign:'center'}}, h('span',{style:{fontSize:16}},'✈️'), h('span',{style:{marginLeft:6, fontWeight:700, fontSize:13}},'여가비 관리')) 
+    ),
+    
+    // ★ 대출금 관리 카드 (사용자가 탭하여 초기 대출금액 입력 가능하게 수정)
+    h(GCard, {
+      onClick: function() {
+        var input = prompt('현재 대출 총액(원금)을 숫자로 입력하세요.\n(입력 후 대출 카테고리에 상환액을 기록하면 자동으로 차감됩니다.)', loanBase || '');
+        if (input !== null) {
+          var val = parseInt(input.replace(/[^0-9]/g, ''));
+          if (!isNaN(val)) {
+            setLoanBase(val);
+            lsSet('flai_loan_base', val);
+          }
+        }
+      },
+      style:{marginBottom:14, padding:'14px 16px', cursor:'pointer', background:'linear-gradient(135deg, rgba(255,140,66,0.1), rgba(255,140,66,0.05))', border:'1px solid rgba(255,140,66,0.3)'}
+    },
+      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center'}},
+        h('div', null,
+          h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 4px'}}, '대출금 상환 현황 (터치하여 금액 설정)'),
+          h('div', {style:{display:'flex', alignItems:'flex-end', gap:8}},
+            h('p', {style:{color:'#FF8C42', fontSize:18, fontWeight:900, margin:0}}, fmt(loanRemaining)),
+            h('p', {style:{color:C.muted, fontSize:11, margin:'0 0 3px'}}, '잔액')
+          )
+        ),
+        h('div', {style:{textAlign:'right'}},
+          h('p', {style:{color:C.muted, fontSize:10, margin:'0 0 2px'}}, '당월 상환액'),
+          h('p', {style:{color:C.gold, fontSize:14, fontWeight:800, margin:0}}, fmt(curLoan))
+        )
+      )
+    ),
+
+   // ★ 메인 요약 2x2 그리드 (수입대비지출 삭제, 여유자금 이름 및 연산 적용)
+    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
       [
-       {l:'총 수입', v:fmt(curInc), c:C.green, type:'income', loan:fmt(loanRemaining)},
-        {l:'총 지출', v:fmt(curExp), c:C.red, type:'expense', loan:fmt(curLoan)},
-        {l:'잔액', v:fmt(accNetSavings), c:C.text, type:'net'},
-        {l:'📈 투자/자산', v:fmt(accInv), c:'#A29BFE', type:'invest'}
+        {l:'총 수입', v:fmt(curInc), c:C.green, mom:momInc, type:'income'},
+        {l:'총 지출', v:fmt(curExp), c:C.red, mom:momExp, type:'expense'},
+        {l:'여유자금', v:fmt(curFreeMoney), c:C.text, mom:null, type:'net'},
+        {l:'📈 총 투자/자산', v:fmt(accInv), c:'#A29BFE', mom:null, type:'invest'}
       ].map(function(k){
         var isClickable = k.type === 'income' || k.type === 'expense';
-        return h(GCard,{key:k.l, onClick: isClickable ? function(){ setDetailType(k.type); } : undefined, style:{padding:'12px 14px', cursor: isClickable ? 'pointer' : 'default', border: isClickable ? '1px solid '+k.c+'33' : undefined}}, 
-    k.type === 'expense' ?
-            h('div', {style:{display:'flex', alignItems:'flex-end', whiteSpace:'nowrap'}},
-              h('div', null,
-                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '총 지출'),
-                h('p',{style:{color:C.red,fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.v)
-              ),
-              h('span', {style:{color:'rgba(255,255,255,0.15)', fontSize:16, fontWeight:300, margin:'0 6px 1px 6px'}}, '/'),
-              h('div', null,
-                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '대출금상환액'),
-                h('p',{style:{color:C.gold,fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.loan)
-              )
-            )
-          : k.type === 'income' ?
-            h('div', {style:{display:'flex', alignItems:'flex-end', whiteSpace:'nowrap'}},
-              h('div', null,
-                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '총 수입'),
-                h('p',{style:{color:C.green,fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.v)
-              ),
-              h('span', {style:{color:'rgba(255,255,255,0.15)', fontSize:16, fontWeight:300, margin:'0 6px 1px 6px'}}, '/'),
-              h('div', null,
-                h('p',{style:{color:C.muted,fontSize:10,margin:0}}, '대출금잔액'),
-                h('p',{style:{color:'#FF8C42',fontSize:14,fontWeight:800,margin:'4px 0 0',letterSpacing:-0.5}}, k.loan)
-              )
-            )
-          : h('div', null, 
-              h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l),
-              h('p',{style:{color:k.c,fontSize:16,fontWeight:800,margin:'4px 0 0'}},k.v)
-            )
+        return h(GCard,{key:k.l, onClick: isClickable ? function(){ setDetailType(k.type); } : undefined, style:{padding:'12px 14px', position:'relative', cursor: isClickable ? 'pointer' : 'default', border: isClickable ? '1px solid '+k.c+'33' : undefined}}, 
+          h('div', {style:{display:'flex',justifyContent:'space-between', alignItems:'flex-start', marginBottom:6}}, h('p',{style:{color:C.muted,fontSize:10,margin:0}},k.l), k.mom && h(MomBadge, {mom:k.mom, type:k.type}) ),
+          h('p',{style:{color:k.c,fontSize:17,fontWeight:800,margin:0}},k.v),
+          isClickable ? h('p',{style:{color:C.muted,fontSize:9,margin:'4px 0 0',textAlign:'right'}}, '👆 터치하면 상세 내역') : h('div', {style:{height:13}})
         );
       })
     ),
@@ -5944,8 +5983,18 @@ var loanRemaining = Math.max(LOAN_BASE - futureRepaid, 0);
         )
       )
     ),
-    (modal === 'monthPicker') && h(MonthSelectorModal, { baseDate: baseDate, sDay: startDay, onSelect: function(nd){ setBaseDate(nd); setModal(null); }, onClose: function(){ setModal(null); } }),
+   (modal === 'monthPicker') && h(MonthSelectorModal, { baseDate: baseDate, sDay: startDay, onSelect: function(nd){ setBaseDate(nd); setModal(null); }, onClose: function(){ setModal(null); } }),
     mSht && h(MemModal,{member:mSht,txs:ftx,onClose:function(){setMSht(null);}}),
+    
+    // ★ 추가: 투자 관리 및 여가비 관리 모달 창 띄우기 연결
+    (modal === 'assets_invest' || modal === 'assets_travel') && h(AssetModal, {
+      txs: txs,
+      defaultCat: modal === 'assets_invest' ? 'invest' : 'travel_fund',
+      onAdd: onAdd,
+      onDelete: onDelete,
+      onClose: function(){ setModal(null); }
+    }),
+
     /* ★★★ AI 재무분석 결과 전체화면 — guideData 렌더링 누락 버그 수정 ★★★ */
     guideData && h(ExpertGuideModal, {
       ai: guideData.ai,
@@ -8321,10 +8370,10 @@ function TxList(props) {
     } else { setEditTx(tx); }
   }
 
-return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
+return h('div',{style:{display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden'}},
     
-    /* ⭐️ [UI수정] 상단 영역 전체(타이틀, 검색, 요약) 완벽한 틀고정(Sticky) 그룹 랩핑 */
-    h('div', {style:{position:'sticky', top:0, zIndex:50, background:C.bg, margin:'0 -16px', padding:'0 16px 10px 16px'}},
+    /* ⭐️ [UI수정] 가로폭 삐져나감 문제 해결: margin 음수 제거 및 flex 레이아웃으로 변경 */
+    h('div', {style:{flexShrink:0, zIndex:50, background:C.bg, padding:'0 16px 10px 16px'}},
       selMode
         ? h('div',{style:{padding:'18px 0 8px',display:'flex',alignItems:'center',justifyContent:'space-between'}},
             h('div',{style:{display:'flex',alignItems:'center',gap:10}},
@@ -8390,7 +8439,7 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
         h('button',{onClick:function(){setFCat('all');setFMem('all');setDFrom('');setDTo('');setMinAmt('');setMaxAmt('');setSearch('');}, style:{marginTop:10,width:'100%',padding:7,borderRadius:8,border:'none',cursor:'pointer', background:C.red+'22',color:C.red,fontSize:12}},'필터 초기화')
       ),
 
-      /* 결과 요약 (기존 sticky 속성 제거 및 통합) */
+  /* 결과 요약 (기존 sticky 속성 제거 및 통합) */
       h('div', null,
         h(GCard,{style:{marginBottom:0}},
           h('div',{style:{display:'flex',justifyContent:'space-between'}},
@@ -8402,8 +8451,11 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
     ),
     /* ⭐️ 상단 틀고정 그룹 끝 */
 
-/* ★★★ [추가] 전체 펼침/닫음 버튼 ★★★ */
-    !selMode && monthKeys.length > 0 && h('div', {style:{display:'flex', gap:8, marginBottom:10}},
+    /* 👇 이 div가 실제 스크롤되는 목록 영역입니다 (가로 스크롤 방지 핵심) */
+    h('div', {style:{flex:1, overflowY:'auto', padding:'0 16px 95px'}},
+
+      /* ★★★ [추가] 전체 펼침/닫음 버튼 ★★★ */
+      !selMode && monthKeys.length > 0 && h('div', {style:{display:'flex', gap:8, marginBottom:10}},
       h('button', {onClick:expandAll, style:{flex:1, padding:'8px 0', borderRadius:8, border:'1px solid '+C.accent, background:C.accent+'11', color:C.accent, fontSize:12, fontWeight:700, cursor:'pointer'}}, '📂 전체 펼침'),
       h('button', {onClick:collapseAll, style:{flex:1, padding:'8px 0', borderRadius:8, border:'1px solid '+C.border, background:C.card2, color:C.muted, fontSize:12, fontWeight:700, cursor:'pointer'}}, '📁 전체 닫음')
     ),
@@ -8506,6 +8558,7 @@ return h('div',{style:{padding:'0 16px 95px',overflowY:'auto',height:'100vh'}},
         ),
 
     editTx && h(EditModal,{tx:editTx, onSave:function(u){onUpdate(u);setEditTx(null);}, onDelete:function(id){onDelete(id);setEditTx(null);}, onClose:function(){setEditTx(null);}})
+    ) // ★ 스크롤 영역 감싸는 div 닫기
   );
 }
 // ══════════════════════════════════════════════════
