@@ -9010,25 +9010,26 @@ function CalendarView(props) {
     return calYear + '-' + String(calMonth).padStart(2,'0') + '-' + String(day).padStart(2,'0');
   }
 
-  var glw = C.glow || 'rgba(0,229,255,0.15)';
+var glw = C.glow || 'rgba(0,229,255,0.15)';
+  var isLight = savedTheme === 'light'; /* ★ 라이트 테마 판별 변수 추가 */
 
-  // ★ [v2030 리디자인] Nebula Calendar - 우주적 달력
+  // ★ [v2030 리디자인] Nebula Calendar - 테마 반응형 우주적 달력
   return h('div', {style:{padding:'16px 16px 95px', maxWidth:430, margin:'0 auto', position:'relative'}},
     h(Hdr, {title:'📅 달력'}),
 
     // ═══ 연/월 통합 오비탈 네비게이션 ═══
     h('div',{style:{
       position:'relative', borderRadius:24, padding:1.4, marginBottom:12,
-      background:'linear-gradient(135deg, rgba(0,245,255,0.5), rgba(124,58,237,0.45) 50%, rgba(255,61,113,0.35))',
-      boxShadow:'0 10px 38px rgba(0,0,0,0.55), 0 0 60px rgba(0,229,255,0.08)'
+      background: isLight ? C.border : 'linear-gradient(135deg, rgba(0,245,255,0.5), rgba(124,58,237,0.45) 50%, rgba(255,61,113,0.35))',
+      boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.05)' : '0 10px 38px rgba(0,0,0,0.55), 0 0 60px rgba(0,229,255,0.08)'
     }},
       h('div',{style:{
         position:'relative', borderRadius:23, overflow:'hidden', padding:'14px 14px 12px',
-        background:'linear-gradient(155deg, rgba(14,20,40,0.97), rgba(8,11,24,0.99) 60%, rgba(16,9,32,0.97))',
-        backdropFilter:'blur(28px)'
+        background: isLight ? C.card : 'linear-gradient(155deg, rgba(14,20,40,0.97), rgba(8,11,24,0.99) 60%, rgba(16,9,32,0.97))',
+        backdropFilter: isLight ? 'none' : 'blur(28px)'
       }},
-        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.28, pointerEvents:'none'}}),
-        h('div',{style:{
+        !isLight && h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.28, pointerEvents:'none'}}),
+        !isLight && h('div',{style:{
           position:'absolute', top:-50, right:-30, width:160, height:160, borderRadius:'50%',
           background:'radial-gradient(circle, rgba(0,245,255,0.18), transparent 65%)',
           animation:'flai-prism-pulse 7s ease-in-out infinite', pointerEvents:'none'
@@ -9041,34 +9042,35 @@ function CalendarView(props) {
         }},
           h('button',{onClick:prevYear, style:{
             width:34, height:34, borderRadius:'50%', cursor:'pointer',
-            background:'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
-            border:'1px solid rgba(0,245,255,0.4)',
-            color:'#9BE7FF', fontSize:14, fontWeight:700,
+            background: isLight ? C.faint : 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
+            border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.4)'),
+            color: isLight ? C.text : '#9BE7FF', fontSize:14, fontWeight:700,
             display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
+            boxShadow: isLight ? 'none' : '0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
           }}, '◀'),
           h('div',{style:{
             position:'relative', padding:'4px 18px', borderRadius:14,
-            background:'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(124,58,237,0.1))',
-            border:'1px solid rgba(0,245,255,0.3)'
+            background: isLight ? C.faint : 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(124,58,237,0.1))',
+            border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.3)')
           }},
             h('div',{style:{
-              color:'rgba(155,231,255,0.55)', fontSize:9, fontWeight:700, letterSpacing:'1.5px', textAlign:'center'
+              color: isLight ? C.muted : 'rgba(155,231,255,0.55)', fontSize:9, fontWeight:700, letterSpacing:'1.5px', textAlign:'center'
             }}, 'YEAR'),
             h('div',{style:{
               fontSize:22, fontWeight:900, letterSpacing:'-0.5px', textAlign:'center',
-              background:'linear-gradient(90deg,#00F5FF 0%,#FFFFFF 60%,#C5A7FF 100%)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-              filter:'drop-shadow(0 0 6px rgba(0,229,255,0.4))'
+              background: isLight ? 'none' : 'linear-gradient(90deg,#00F5FF 0%,#FFFFFF 60%,#C5A7FF 100%)',
+              WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.text : 'transparent',
+              filter: isLight ? 'none' : 'drop-shadow(0 0 6px rgba(0,229,255,0.4))',
+              color: isLight ? C.text : 'inherit'
             }}, calYear)
           ),
           h('button',{onClick:nextYear, style:{
             width:34, height:34, borderRadius:'50%', cursor:'pointer',
-            background:'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
-            border:'1px solid rgba(0,245,255,0.4)',
-            color:'#9BE7FF', fontSize:14, fontWeight:700,
+            background: isLight ? C.faint : 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
+            border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.4)'),
+            color: isLight ? C.text : '#9BE7FF', fontSize:14, fontWeight:700,
             display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
+            boxShadow: isLight ? 'none' : '0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
           }}, '▶')
         ),
 
@@ -9079,35 +9081,74 @@ function CalendarView(props) {
         }},
           h('button',{onClick:prevMonth, style:{
             width:30, height:30, borderRadius:10, cursor:'pointer',
-            background:'rgba(0,245,255,0.12)', border:'1px solid rgba(0,245,255,0.3)',
-            color:'#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
+            background: isLight ? C.faint : 'rgba(0,245,255,0.12)', border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.3)'),
+            color: isLight ? C.text : '#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
           }}, '◀'),
           h('div',{style:{
             flex:1, display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:4
           }},
-            [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){
-              var isActive = m === calMonth;
-              return h('button',{key:m,
-                onClick:function(){ setCalMonth(m); setSelDate(null); setMemoEdit(false); },
-                className: isActive?'flai-anl-tab-active':'',
-                style:{
-                  padding:'5px 0', borderRadius:8, fontSize:10.5,
-                  fontWeight:isActive?900:600, cursor:'pointer',
-                  background: isActive
-                    ? 'linear-gradient(135deg,#00F5FF,#7C3AED)'
-                    : 'rgba(255,255,255,0.04)',
-                  color: isActive ? '#0A0E27' : 'rgba(240,240,255,0.55)',
-                  border:'1px solid '+(isActive ? 'rgba(0,245,255,0.6)' : 'rgba(255,255,255,0.06)'),
-                  textShadow: isActive ? '0 0 8px rgba(255,255,255,0.4)' : 'none',
-                  transition:'all 0.18s ease'
-                }
-              }, m+'월');
-            })
+            [
+              /* ★ [라이트 테마에서도 선명하게 보이도록 분기된 CSS] */
+              h('style', {key: 'water-ripple-style'}, 
+                "/* 1. 월(Month) 전용 파동 */\n" +
+                ".month-ripple { animation: monthColorShift 4s linear infinite !important; border: 1px solid transparent !important; }\n" +
+                "@keyframes monthColorShift {\n" +
+                "  0% { box-shadow: 0 0 10px rgba(0,245,255,0.4), inset 0 0 10px rgba(0,245,255,0.2); border-color: rgba(0,245,255,0.6); color: "+(isLight?'#008B8B':'#00F5FF')+"; }\n" +
+                "  33% { box-shadow: 0 0 20px rgba(124,58,237,0.8), inset 0 0 15px rgba(124,58,237,0.4); border-color: rgba(124,58,237,0.8); color: "+(isLight?'#6A1B9A':'#B388FF')+"; }\n" +
+                "  66% { box-shadow: 0 0 25px rgba(255,61,113,0.8), inset 0 0 15px rgba(255,61,113,0.4); border-color: rgba(255,61,113,0.8); color: "+(isLight?'#C2185B':'#FF8BA7')+"; }\n" +
+                "  100% { box-shadow: 0 0 10px rgba(0,245,255,0.4), inset 0 0 10px rgba(0,245,255,0.2); border-color: rgba(0,245,255,0.6); color: "+(isLight?'#008B8B':'#00F5FF')+"; }\n" +
+                "}\n" +
+                "/* 2. 일(Day) 전용 뻗어나가는 거대 파동 */\n" +
+                ".day-ripple { position: relative; z-index: 5; animation: dayColorShift 5.5s linear infinite !important; border: 1px solid transparent !important; }\n" +
+                ".day-ripple span { color: inherit !important; text-shadow: inherit !important; }\n" +
+                ".day-ripple::before, .day-ripple::after {\n" +
+                "  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; border-radius: 50%;\n" +
+                "}\n" +
+                ".day-ripple::before { animation: waveSpread 5.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite; }\n" +
+                ".day-ripple::after { animation: waveSpread 5.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite 2.75s; }\n" +
+                "@keyframes waveSpread {\n" +
+                "  0% { width: 100%; height: 100%; opacity: 1; border: 3px solid rgba(0, 245, 255, 0.9); box-shadow: 0 0 15px rgba(0,245,255,0.8); }\n" +
+                "  33% { border: 3px solid rgba(124, 58, 237, 0.8); box-shadow: 0 0 30px rgba(124,58,237,0.7); }\n" +
+                "  66% { border: 3px solid rgba(255, 61, 113, 0.6); box-shadow: 0 0 45px rgba(255,61,113,0.6); }\n" +
+                "  100% { width: 300%; height: 300%; opacity: 0; border: 3px solid rgba(255, 215, 0, 0); box-shadow: 0 0 60px rgba(255,215,0,0); }\n" +
+                "}\n" +
+                "@keyframes dayColorShift {\n" +
+                "  0% { background: rgba(0, 245, 255, 0.15); border-color: rgba(0, 245, 255, 0.5); color: "+(isLight?'#008B8B':'#00F5FF')+"; text-shadow: "+(isLight?'none':'0 0 12px rgba(0,245,255,0.8)')+"; }\n" +
+                "  33% { background: rgba(124, 58, 237, 0.15); border-color: rgba(124, 58, 237, 0.5); color: "+(isLight?'#6A1B9A':'#B388FF')+"; text-shadow: "+(isLight?'none':'0 0 12px rgba(124,58,237,0.8)')+"; }\n" +
+                "  66% { background: rgba(255, 61, 113, 0.15); border-color: rgba(255, 61, 113, 0.5); color: "+(isLight?'#C2185B':'#FF8BA7')+"; text-shadow: "+(isLight?'none':'0 0 12px rgba(255,61,113,0.8)')+"; }\n" +
+                "  100% { background: rgba(0, 245, 255, 0.15); border-color: rgba(0, 245, 255, 0.5); color: "+(isLight?'#008B8B':'#00F5FF')+"; text-shadow: "+(isLight?'none':'0 0 12px rgba(0,245,255,0.8)')+"; }\n" +
+                "}"
+              )
+            ].concat(
+              [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){
+                var isActive = m === calMonth;
+                var isRealCurrentMonth = (m === (now.getMonth() + 1)) && (calYear === now.getFullYear());
+                var btnClass = isActive ? 'flai-anl-tab-active' : '';
+                /* ★ 현실 달이면 무조건 파동 추가 */
+                if (isRealCurrentMonth) btnClass += ' month-ripple';
+
+                return h('button',{key:m,
+                  onClick:function(){ setCalMonth(m); setSelDate(null); setMemoEdit(false); },
+                  className: btnClass,
+                  style:{
+                    padding:'5px 0', borderRadius:8, fontSize:10.5,
+                    fontWeight:isActive||isRealCurrentMonth?900:600, cursor:'pointer',
+                    background: isActive
+                      ? (isLight ? C.accent : 'linear-gradient(135deg,#00F5FF,#7C3AED)')
+                      : (isLight ? C.card : 'rgba(255,255,255,0.04)'),
+                    color: isActive ? '#FFFFFF' : (isLight ? C.text : 'rgba(240,240,255,0.55)'),
+                    border: '1px solid '+(isActive ? C.accent : (isLight ? C.border : 'rgba(255,255,255,0.06)')),
+                    textShadow: isActive&&!isLight ? '0 0 8px rgba(255,255,255,0.4)' : 'none',
+                    transition:'all 0.18s ease'
+                  }
+                }, m+'월');
+              })
+            )
           ),
           h('button',{onClick:nextMonth, style:{
             width:30, height:30, borderRadius:10, cursor:'pointer',
-            background:'rgba(0,245,255,0.12)', border:'1px solid rgba(0,245,255,0.3)',
-            color:'#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
+            background: isLight ? C.faint : 'rgba(0,245,255,0.12)', border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.3)'),
+            color: isLight ? C.text : '#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
           }}, '▶')
         )
       )
@@ -9118,36 +9159,36 @@ function CalendarView(props) {
       h('div',{onClick:function(){ if(monthTotals.incCnt>0) setDetailType('income'); },
         style:{
           position:'relative', borderRadius:18, padding:1,
-          background:'linear-gradient(135deg, rgba(105,240,174,0.55), rgba(0,191,165,0.3))',
+          background: isLight ? C.border : 'linear-gradient(135deg, rgba(105,240,174,0.55), rgba(0,191,165,0.3))',
           cursor:monthTotals.incCnt>0?'pointer':'default',
-          boxShadow:'0 6px 22px rgba(0,191,165,0.18)'
+          boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.05)' : '0 6px 22px rgba(0,191,165,0.18)'
         }},
         h('div',{style:{
           position:'relative', borderRadius:17, padding:'10px 12px', overflow:'hidden',
-          background:'linear-gradient(155deg, rgba(8,22,18,0.97), rgba(10,14,26,0.99))'
+          background: isLight ? C.card : 'linear-gradient(155deg, rgba(8,22,18,0.97), rgba(10,14,26,0.99))'
         }},
-          h('div',{style:{
+          !isLight && h('div',{style:{
             position:'absolute', top:-20, right:-15, width:80, height:80, borderRadius:'50%',
             background:'radial-gradient(circle, rgba(105,240,174,0.18), transparent 70%)',
             animation:'flai-prism-pulse 5s ease-in-out infinite', pointerEvents:'none'
           }}),
           h('div',{style:{display:'flex', alignItems:'center', gap:6, position:'relative'}},
             h('div',{style:{
-              width:6, height:6, borderRadius:'50%', background:'#69F0AE',
-              boxShadow:'0 0 8px #69F0AE', animation:'flai-dot-pulse 2s ease-in-out infinite'
+              width:6, height:6, borderRadius:'50%', background: isLight ? C.green : '#69F0AE',
+              boxShadow: isLight ? 'none' : '0 0 8px #69F0AE', animation:'flai-dot-pulse 2s ease-in-out infinite'
             }}),
-            h('span',{style:{color:'rgba(105,240,174,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 수입')
+            h('span',{style:{color: isLight ? C.text : 'rgba(105,240,174,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 수입')
           ),
           h('div',{style:{
             position:'relative', fontSize:17, fontWeight:900, marginTop:3, letterSpacing:'-0.3px',
-            background:'linear-gradient(90deg,#B9F6CA,#69F0AE)',
-            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+            background: isLight ? 'none' : 'linear-gradient(90deg,#B9F6CA,#69F0AE)',
+            WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.green : 'transparent', color: isLight ? C.green : 'inherit'
           }}, fmt(monthTotals.income)),
           h('div',{style:{position:'relative', display:'flex', alignItems:'center', gap:5, marginTop:2}},
-            h('span',{style:{color:'rgba(105,240,174,0.5)', fontSize:9, fontWeight:700}}, monthTotals.incCnt+'건'),
+            h('span',{style:{color: isLight ? C.muted : 'rgba(105,240,174,0.5)', fontSize:9, fontWeight:700}}, monthTotals.incCnt+'건'),
             monthTotals.incCnt>0 && h('span',{style:{
-              fontSize:8, color:'#69F0AE', fontWeight:700, padding:'1px 5px', borderRadius:6,
-              background:'rgba(105,240,174,0.12)', border:'1px solid rgba(105,240,174,0.3)'
+              fontSize:8, color: isLight ? C.green : '#69F0AE', fontWeight:700, padding:'1px 5px', borderRadius:6,
+              background: isLight ? C.green+'15' : 'rgba(105,240,174,0.12)', border:'1px solid '+(isLight ? C.green+'44' : 'rgba(105,240,174,0.3)')
             }}, '👆 상세')
           )
         )
@@ -9155,36 +9196,36 @@ function CalendarView(props) {
       h('div',{onClick:function(){ if(monthTotals.expCnt>0) setDetailType('expense'); },
         style:{
           position:'relative', borderRadius:18, padding:1,
-          background:'linear-gradient(135deg, rgba(255,61,113,0.55), rgba(255,107,0,0.3))',
+          background: isLight ? C.border : 'linear-gradient(135deg, rgba(255,61,113,0.55), rgba(255,107,0,0.3))',
           cursor:monthTotals.expCnt>0?'pointer':'default',
-          boxShadow:'0 6px 22px rgba(255,61,113,0.18)'
+          boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.05)' : '0 6px 22px rgba(255,61,113,0.18)'
         }},
         h('div',{style:{
           position:'relative', borderRadius:17, padding:'10px 12px', overflow:'hidden',
-          background:'linear-gradient(155deg, rgba(28,12,18,0.97), rgba(10,14,26,0.99))'
+          background: isLight ? C.card : 'linear-gradient(155deg, rgba(28,12,18,0.97), rgba(10,14,26,0.99))'
         }},
-          h('div',{style:{
+          !isLight && h('div',{style:{
             position:'absolute', top:-20, right:-15, width:80, height:80, borderRadius:'50%',
             background:'radial-gradient(circle, rgba(255,61,113,0.18), transparent 70%)',
             animation:'flai-prism-pulse 5.5s ease-in-out infinite', pointerEvents:'none'
           }}),
           h('div',{style:{display:'flex', alignItems:'center', gap:6, position:'relative'}},
             h('div',{style:{
-              width:6, height:6, borderRadius:'50%', background:'#FF3D71',
-              boxShadow:'0 0 8px #FF3D71', animation:'flai-dot-pulse 2s ease-in-out infinite'
+              width:6, height:6, borderRadius:'50%', background: isLight ? C.red : '#FF3D71',
+              boxShadow: isLight ? 'none' : '0 0 8px #FF3D71', animation:'flai-dot-pulse 2s ease-in-out infinite'
             }}),
-            h('span',{style:{color:'rgba(255,182,193,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 지출')
+            h('span',{style:{color: isLight ? C.text : 'rgba(255,182,193,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 지출')
           ),
           h('div',{style:{
             position:'relative', fontSize:17, fontWeight:900, marginTop:3, letterSpacing:'-0.3px',
-            background:'linear-gradient(90deg,#FFB6C1,#FF3D71)',
-            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+            background: isLight ? 'none' : 'linear-gradient(90deg,#FFB6C1,#FF3D71)',
+            WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.red : 'transparent', color: isLight ? C.red : 'inherit'
           }}, fmt(monthTotals.expense)),
           h('div',{style:{position:'relative', display:'flex', alignItems:'center', gap:5, marginTop:2}},
-            h('span',{style:{color:'rgba(255,182,193,0.5)', fontSize:9, fontWeight:700}}, monthTotals.expCnt+'건'),
+            h('span',{style:{color: isLight ? C.muted : 'rgba(255,182,193,0.5)', fontSize:9, fontWeight:700}}, monthTotals.expCnt+'건'),
             monthTotals.expCnt>0 && h('span',{style:{
-              fontSize:8, color:'#FF3D71', fontWeight:700, padding:'1px 5px', borderRadius:6,
-              background:'rgba(255,61,113,0.12)', border:'1px solid rgba(255,61,113,0.3)'
+              fontSize:8, color: isLight ? C.red : '#FF3D71', fontWeight:700, padding:'1px 5px', borderRadius:6,
+              background: isLight ? C.red+'15' : 'rgba(255,61,113,0.12)', border:'1px solid '+(isLight ? C.red+'44' : 'rgba(255,61,113,0.3)')
             }}, '👆 상세')
           )
         )
@@ -9195,23 +9236,23 @@ function CalendarView(props) {
     h('div',{style:{
       display:'flex', gap:6, justifyContent:'center', marginBottom:10, flexWrap:'wrap',
       padding:'6px 10px', borderRadius:14,
-      background:'linear-gradient(90deg, rgba(0,229,255,0.05), rgba(124,58,237,0.05))',
-      border:'1px solid rgba(0,229,255,0.12)'
+      background: isLight ? C.card : 'linear-gradient(90deg, rgba(0,245,255,0.05), rgba(124,58,237,0.05))',
+      border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.12)')
     }},
       [
-        {dot:'#FF3D71', label:'지출', sym:'●'},
-        {dot:'#FFD600', label:'수입', sym:'★'},
-        {dot:'#FF6B6B', label:'공휴일', sym:'🎌'},
-        {dot:'#00F5FF', label:'메모', sym:'📌'}
+        {dot: isLight ? C.red : '#FF3D71', label:'지출', sym:'●'},
+        {dot: isLight ? C.gold : '#FFD600', label:'수입', sym:'★'},
+        {dot: isLight ? C.red : '#FF6B6B', label:'공휴일', sym:'🎌'},
+        {dot: isLight ? C.accent : '#00F5FF', label:'메모', sym:'📌'}
       ].map(function(l,li){
         return h('span',{key:li, style:{
           display:'inline-flex', alignItems:'center', gap:4,
-          fontSize:9, fontWeight:700, color:'rgba(240,240,255,0.6)',
+          fontSize:9, fontWeight:700, color: isLight ? C.text : 'rgba(240,240,255,0.6)',
           padding:'2px 8px', borderRadius:10,
-          background:'rgba(255,255,255,0.04)',
-          border:'1px solid rgba(255,255,255,0.08)'
+          background: isLight ? C.faint : 'rgba(255,255,255,0.04)',
+          border: '1px solid ' + (isLight ? C.border : 'rgba(255,255,255,0.08)')
         }},
-          h('span',{style:{fontSize:9, color:l.dot, textShadow:'0 0 6px '+l.dot}}, l.sym),
+          h('span',{style:{fontSize:9, color:l.dot, textShadow: isLight ? 'none' : '0 0 6px '+l.dot}}, l.sym),
           l.label
         );
       })
@@ -9220,29 +9261,31 @@ function CalendarView(props) {
     // ═══ 달력 그리드 (Cosmic Grid) ═══
     h('div',{style:{
       position:'relative', borderRadius:22, padding:1.4, marginBottom:12,
-      background:'linear-gradient(135deg, rgba(0,245,255,0.4), rgba(124,58,237,0.3), rgba(255,215,0,0.3))',
-      boxShadow:'0 10px 38px rgba(0,0,0,0.55)'
+      background: isLight ? C.border : 'linear-gradient(135deg, rgba(0,245,255,0.4), rgba(124,58,237,0.3), rgba(255,215,0,0.3))',
+      boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.05)' : '0 10px 38px rgba(0,0,0,0.55)'
     }},
       h('div',{style:{
         position:'relative', borderRadius:21, overflow:'hidden', padding:'12px 8px',
-        background:'linear-gradient(155deg, rgba(10,14,28,0.98), rgba(8,11,22,0.99))',
-        backdropFilter:'blur(20px)'
+        background: isLight ? C.card : 'linear-gradient(155deg, rgba(10,14,28,0.98), rgba(8,11,22,0.99))',
+        backdropFilter: isLight ? 'none' : 'blur(20px)'
       }},
-        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.22, pointerEvents:'none'}}),
+        !isLight && h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.22, pointerEvents:'none'}}),
+        
         // 요일 헤더
         h('div',{style:{
           position:'relative', display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:8,
-          padding:'4px 0', borderBottom:'1px solid rgba(0,229,255,0.12)'
+          padding:'4px 0', borderBottom: '1px solid ' + (isLight ? C.border : 'rgba(0,229,255,0.12)')
         }},
           dayLabels.map(function(d,i){
-            var dayColor = i===0 ? '#FF6B6B' : (i===6 ? '#00F5FF' : 'rgba(240,240,255,0.65)');
+            var dayColor = i===0 ? C.red : (i===6 ? (isLight ? C.accent : '#00F5FF') : (isLight ? C.text : 'rgba(240,240,255,0.65)'));
             return h('div',{key:d, style:{
               textAlign:'center', fontSize:11, fontWeight:800, color:dayColor, padding:'4px 0',
               letterSpacing:'0.3px',
-              textShadow:'0 0 8px '+dayColor+'55'
+              textShadow: isLight ? 'none' : '0 0 8px '+dayColor+'55'
             }}, d);
           })
         ),
+        
         // 날짜 셀
         h('div',{style:{
           position:'relative', display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3
@@ -9250,11 +9293,12 @@ function CalendarView(props) {
           cells.map(function(cell, idx){
             if (!cell.inMonth){
               return h('div',{key:'e'+idx, style:{
-                aspectRatio:'1', borderRadius:10, opacity:0.22,
-                background:'rgba(255,255,255,0.02)',
+                aspectRatio:'1', borderRadius:10, opacity: isLight ? 0.6 : 0.22,
+                background: isLight ? C.faint : 'rgba(255,255,255,0.02)',
+                border: '1px solid transparent',
                 display:'flex', alignItems:'center', justifyContent:'center'
               }},
-                h('span',{style:{fontSize:10, color:'rgba(255,255,255,0.3)'}}, cell.day)
+                h('span',{style:{fontSize:10, color: isLight ? C.muted : 'rgba(255,255,255,0.3)'}}, cell.day)
               );
             }
             var dateStr = makeDateStr(cell.day);
@@ -9269,36 +9313,38 @@ function CalendarView(props) {
             var hasMemo = !!memos[dateStr];
             var isHoliday = !!holiday;
 
-            // 색상 결정
-            var numColor = isHoliday ? '#FF6B6B'
-              : (isToday ? '#FFD600'
-              : (dow===0 ? '#FF6B6B'
-              : (dow===6 ? '#00F5FF' : '#F0F0FF')));
+            // 색상 결정 (라이트 모드 대응)
+            var numColor = isHoliday ? C.red
+              : (isToday ? (isLight ? C.accent : '#FFD600')
+              : (dow===0 ? C.red
+              : (dow===6 ? (isLight ? C.accent : '#00F5FF') : (isLight ? C.text : '#F0F0FF'))));
 
-            // 셀 배경 결정
+            // 셀 배경/테두리 결정 (라이트 모드 대응)
             var bgGrad;
-            var brd = 'rgba(255,255,255,0.04)';
+            var brd = isLight ? C.border : 'rgba(255,255,255,0.04)';
             var shadow = 'none';
             if(isSel){
-              bgGrad = 'linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,145,0,0.16))';
-              brd = 'rgba(255,215,0,0.8)';
-              shadow = '0 0 18px rgba(255,215,0,0.5)';
+              bgGrad = isLight ? C.accent+'15' : 'linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,145,0,0.16))';
+              brd = isLight ? C.accent : 'rgba(255,215,0,0.8)';
+              shadow = isLight ? 'none' : '0 0 18px rgba(255,215,0,0.5)';
             } else if(isToday){
-              bgGrad = 'linear-gradient(135deg, rgba(0,245,255,0.18), rgba(124,58,237,0.12))';
-              brd = 'rgba(0,245,255,0.5)';
-              shadow = '0 0 14px rgba(0,229,255,0.35)';
+              bgGrad = isLight ? C.gold+'15' : 'linear-gradient(135deg, rgba(0,245,255,0.18), rgba(124,58,237,0.12))';
+              brd = isLight ? C.gold : 'rgba(0,245,255,0.5)';
+              shadow = isLight ? 'none' : '0 0 14px rgba(0,229,255,0.35)';
             } else if(isHoliday){
-              bgGrad = 'linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,61,113,0.05))';
-              brd = 'rgba(255,107,107,0.3)';
+              bgGrad = isLight ? C.red+'0A' : 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,61,113,0.1))';
+              brd = isLight ? C.red+'44' : 'rgba(255,107,107,0.4)';
             } else if(hasData){
-              bgGrad = 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))';
-              brd = 'rgba(0,229,255,0.18)';
+              bgGrad = isLight ? '#FFFFFF' : 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))';
+              brd = isLight ? C.border : 'rgba(0,229,255,0.18)';
             } else {
-              bgGrad = 'rgba(255,255,255,0.015)';
+              bgGrad = isLight ? C.card : 'rgba(255,255,255,0.015)';
+              brd = isLight ? C.border : 'transparent'; /* 빈 셀도 라이트 테마에선 선명하게 */
             }
 
-            var cellClass = 'flai-cal-cell' +
-              (isToday?' flai-cal-today':'') +
+             var cellClass = 'flai-cal-cell' +
+              /* ★ 오늘(isToday)이 아니라 '현실의 진짜 오늘(isToday)'에 무조건 거대 파동 추가 */
+              (isToday?' flai-cal-today day-ripple':'') + 
               (isSel?' flai-cal-selected':'');
 
             return h('div',{
@@ -9306,14 +9352,10 @@ function CalendarView(props) {
               className: cellClass,
               style:{
                 aspectRatio:'1', borderRadius:10,
-                background:bgGrad,
-                border:'1px solid '+brd,
-                boxShadow:shadow,
-                cursor:'pointer',
-                display:'flex', flexDirection:'column',
+                background:bgGrad, border:'1px solid '+brd, boxShadow:shadow,
+                cursor:'pointer', display:'flex', flexDirection:'column',
                 alignItems:'stretch', justifyContent:'space-between',
-                padding:'3px 3px',
-                position:'relative', overflow:'hidden',
+                padding:'3px 3px', position:'relative', overflow:'hidden',
                 animationDelay: (idx*0.012)+'s'
               }
             },
@@ -9324,18 +9366,16 @@ function CalendarView(props) {
                 h('span',{style:{
                   fontSize:12, fontWeight:isToday||isSel?900:(isHoliday?700:600),
                   color:numColor, lineHeight:1,
-                  textShadow:isToday||isSel?'0 0 8px '+numColor+'AA':'none'
+                  textShadow: isLight ? 'none' : (isToday||isSel?'0 0 8px '+numColor+'AA':'none')
                 }}, cell.day),
                 hasMemo && h('span',{style:{
-                  fontSize:8, lineHeight:1, filter:'drop-shadow(0 0 4px #00F5FF)'
+                  fontSize:8, lineHeight:1, filter: isLight ? 'none' : 'drop-shadow(0 0 4px #00F5FF)'
                 }}, '📌')
               ),
               // 중앙: 공휴일 라벨
               isHoliday && h('div',{style:{
-                fontSize:6, color:'#FF6B6B', fontWeight:700,
-                textAlign:'center', letterSpacing:'-0.2px',
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                lineHeight:1, marginTop:1
+                fontSize:6, color:C.red, fontWeight:700, textAlign:'center', letterSpacing:'-0.2px',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight:1, marginTop:1
               }}, holiday.length > 3 ? holiday.substring(0,3) : holiday),
               // 하단: 수입/지출 글로우 도트
               hasData && h('div',{style:{
@@ -9343,23 +9383,23 @@ function CalendarView(props) {
               }},
                 hasExp && h('div',{style:{
                   width:5, height:5, borderRadius:'50%',
-                  background:'radial-gradient(circle,#FF3D71,#FF007C)',
-                  boxShadow:'0 0 6px #FF3D71',
+                  background: isLight ? C.red : 'radial-gradient(circle,#FF3D71,#FF007C)',
+                  boxShadow: isLight ? 'none' : '0 0 6px #FF3D71',
                   animation:'flai-dot-pulse 2s ease-in-out infinite'
                 }}),
                 hasInc && h('div',{style:{
                   width:5, height:5, borderRadius:'50%',
-                  background:'radial-gradient(circle,#FFD600,#FF9100)',
-                  boxShadow:'0 0 6px #FFD600',
+                  background: isLight ? C.gold : 'radial-gradient(circle,#FFD600,#FF9100)',
+                  boxShadow: isLight ? 'none' : '0 0 6px #FFD600',
                   animation:'flai-dot-pulse 2.3s ease-in-out infinite'
                 }})
               ),
               // 선택 시 코너 마커
               isSel && h('div',{style:{
                 position:'absolute', top:-1, right:-1, width:8, height:8,
-                background:'linear-gradient(135deg,#FFD600,#FF9100)',
+                background: isLight ? C.accent : 'linear-gradient(135deg,#FFD600,#FF9100)',
                 clipPath:'polygon(100% 0, 0 0, 100% 100%)',
-                boxShadow:'0 0 6px #FFD600'
+                boxShadow: isLight ? 'none' : '0 0 6px #FFD600'
               }})
             );
           })
@@ -9370,15 +9410,15 @@ function CalendarView(props) {
     // ═══ 선택된 날짜 상세 패널 (Hologram Detail) ═══
     selDate && h('div',{style:{
       position:'relative', borderRadius:22, padding:1.4, marginBottom:12,
-      background:'linear-gradient(135deg, rgba(255,215,0,0.5), rgba(0,245,255,0.4) 50%, rgba(124,58,237,0.4))',
-      boxShadow:'0 10px 38px rgba(0,0,0,0.6), 0 0 50px rgba(255,215,0,0.15)'
+      background: isLight ? C.border : 'linear-gradient(135deg, rgba(255,215,0,0.5), rgba(0,245,255,0.4) 50%, rgba(124,58,237,0.4))',
+      boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.05)' : '0 10px 38px rgba(0,0,0,0.6), 0 0 50px rgba(255,215,0,0.15)'
     }},
       h('div',{className:'flai-holo-scan', style:{
         position:'relative', borderRadius:21, overflow:'hidden', padding:14,
-        background:'linear-gradient(155deg, rgba(14,16,32,0.98), rgba(8,10,22,0.99))',
-        backdropFilter:'blur(28px)'
+        background: isLight ? C.card : 'linear-gradient(155deg, rgba(14,16,32,0.98), rgba(8,10,22,0.99))',
+        backdropFilter: isLight ? 'none' : 'blur(28px)'
       }},
-        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.25, pointerEvents:'none'}}),
+        !isLight && h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.25, pointerEvents:'none'}}),
 
         // 헤더
         h('div',{style:{
@@ -9387,18 +9427,18 @@ function CalendarView(props) {
         }},
           h('div',null,
             h('div',{style:{
-              color:'rgba(255,215,0,0.75)', fontSize:9, fontWeight:800, letterSpacing:'1.5px'
+              color: isLight ? C.muted : 'rgba(255,215,0,0.75)', fontSize:9, fontWeight:800, letterSpacing:'1.5px'
             }}, calYear+' · '+String(calMonth).padStart(2,'0')),
             h('div',{style:{
               fontSize:18, fontWeight:900, letterSpacing:'-0.3px', marginTop:1,
-              background:'linear-gradient(90deg,#FFFFFF,#FFD600,#FF9100)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-              filter:'drop-shadow(0 0 6px rgba(255,215,0,0.4))'
+              background: isLight ? 'none' : 'linear-gradient(90deg,#FFFFFF,#FFD600,#FF9100)',
+              WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.text : 'transparent',
+              filter: isLight ? 'none' : 'drop-shadow(0 0 6px rgba(255,215,0,0.4))', color: isLight ? C.text : 'inherit'
             }}, '📅 '+parseInt(selDate.split('-')[2])+'일 ('+dayLabels[new Date(selDate).getDay()]+')')
           ),
           h('button',{onClick:function(){ setSelDate(null); setMemoEdit(false); }, style:{
-            background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
-            color:'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:10,
+            background: isLight ? C.faint : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isLight ? C.border : 'rgba(255,255,255,0.12)'),
+            color: isLight ? C.muted : 'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:10,
             fontSize:11, fontWeight:700, cursor:'pointer'
           }}, '✕ 닫기')
         ),
@@ -9407,184 +9447,171 @@ function CalendarView(props) {
         getHoliday(selDate) && h('div',{style:{
           position:'relative', zIndex:2, marginBottom:10,
           padding:'8px 12px', borderRadius:12,
-          background:'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,61,113,0.1))',
-          border:'1px solid rgba(255,107,107,0.4)',
-          boxShadow:'0 0 12px rgba(255,61,113,0.18)'
+          background: isLight ? C.red+'11' : 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,61,113,0.1))',
+          border: '1px solid ' + (isLight ? C.red+'44' : 'rgba(255,107,107,0.4)'),
+          boxShadow: isLight ? 'none' : '0 0 12px rgba(255,61,113,0.18)'
         }},
-          h('span',{style:{color:'#FF6B6B', fontSize:12, fontWeight:800}}, '🎌 공휴일: '+getHoliday(selDate))
+          h('span',{style:{color:C.red, fontSize:12, fontWeight:800}}, '🎌 공휴일: '+getHoliday(selDate))
         ),
 
         // 메모 홀로그램 패널
         h('div',{style:{
           position:'relative', zIndex:2, marginBottom:10,
           borderRadius:14, padding:1,
-          background:'linear-gradient(135deg, rgba(0,245,255,0.35), rgba(124,58,237,0.25))'
+          background: isLight ? C.border : 'linear-gradient(135deg, rgba(0,245,255,0.35), rgba(124,58,237,0.25))'
         }},
           h('div',{style:{
             borderRadius:13, padding:'10px 12px',
-            background:'linear-gradient(155deg, rgba(10,18,32,0.95), rgba(12,10,24,0.95))'
+            background: isLight ? C.card2 : 'linear-gradient(155deg, rgba(10,18,32,0.95), rgba(12,10,24,0.95))'
           }},
             h('div',{style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}},
               h('div',{style:{display:'flex', alignItems:'center', gap:6}},
                 h('div',{style:{
                   width:18, height:18, borderRadius:5,
-                  background:'linear-gradient(135deg,#00F5FF,#7C3AED)',
-                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:10,
-                  boxShadow:'0 0 8px rgba(0,229,255,0.5)'
+                  background: isLight ? C.accent : 'linear-gradient(135deg,#00F5FF,#7C3AED)',
+                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff',
+                  boxShadow: isLight ? 'none' : '0 0 8px rgba(0,229,255,0.5)'
                 }}, '📌'),
-                h('span',{style:{color:'#9BE7FF', fontSize:11, fontWeight:800, letterSpacing:'0.5px'}}, '메모')
+                h('span',{style:{color: isLight ? C.text : '#9BE7FF', fontSize:11, fontWeight:800, letterSpacing:'0.5px'}}, '메모')
               ),
               !isMemoEdit && h('button',{onClick:function(){ setMemoEdit(true); setMemoText(memos[selDate] || ''); },
                 style:{
-                  background:'linear-gradient(135deg,rgba(0,245,255,0.2),rgba(124,58,237,0.2))',
-                  border:'1px solid rgba(0,245,255,0.5)', color:'#9BE7FF',
+                  background: isLight ? C.faint : 'linear-gradient(135deg,rgba(0,245,255,0.2),rgba(124,58,237,0.2))',
+                  border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.5)'), color: isLight ? C.muted : '#9BE7FF',
                   padding:'3px 12px', borderRadius:8, fontSize:10, fontWeight:800, cursor:'pointer',
-                  boxShadow:'0 0 8px rgba(0,229,255,0.25)'
+                  boxShadow: isLight ? 'none' : '0 0 8px rgba(0,229,255,0.25)'
                 }
               }, memos[selDate] ? '✎ 수정' : '+ 추가')
             ),
             !isMemoEdit && memos[selDate] && h('p',{style:{
-              color:'rgba(240,240,255,0.85)', fontSize:12, margin:'4px 0 0', lineHeight:1.6,
-              padding:'6px 8px', borderRadius:8, background:'rgba(0,245,255,0.04)'
+              color: isLight ? C.text : 'rgba(240,240,255,0.85)', fontSize:12, margin:'4px 0 0', lineHeight:1.6,
+              padding:'6px 8px', borderRadius:8, background: isLight ? '#FFFFFF' : 'rgba(0,245,255,0.04)', border: isLight ? '1px solid '+C.border : 'none'
             }}, memos[selDate]),
             !isMemoEdit && !memos[selDate] && h('p',{style:{
-              color:'rgba(155,231,255,0.45)', fontSize:11, margin:'4px 0 0', fontStyle:'italic'
+              color: isLight ? C.muted : 'rgba(155,231,255,0.45)', fontSize:11, margin:'4px 0 0', fontStyle:'italic'
             }}, '✨ 기념일이나 특별한 날을 기록해보세요'),
             isMemoEdit && h('div',{style:{marginTop:6}},
               h('textarea',{
-                value:memoText, placeholder:'기념일, 약속, 특별한 날 등 자유롭게 기록하세요',
+                value:memoText, placeholder:'자유롭게 기록하세요',
                 onChange:function(e){ setMemoText(e.target.value); },
                 style:{
                   width:'100%', minHeight:60, padding:'8px 10px',
-                  background:'rgba(0,0,0,0.3)', color:'#F0F0FF',
-                  border:'1px solid rgba(0,245,255,0.4)', borderRadius:8,
+                  background: isLight ? '#FFFFFF' : 'rgba(0,0,0,0.3)', color: isLight ? C.text : '#F0F0FF',
+                  border: '1px solid ' + (isLight ? C.accent : 'rgba(0,245,255,0.4)'), borderRadius:8,
                   fontSize:12, resize:'vertical', outline:'none', fontFamily:'inherit'
                 }
               }),
               h('div',{style:{display:'flex', gap:6, marginTop:6, justifyContent:'flex-end'}},
                 memos[selDate] && h('button',{onClick:deleteMemo, style:{
-                  background:'rgba(255,61,113,0.15)', border:'1px solid rgba(255,61,113,0.4)',
-                  color:'#FF6B6B', padding:'5px 12px', borderRadius:8,
-                  fontSize:11, fontWeight:800, cursor:'pointer'
+                  background: isLight ? C.red+'15' : 'rgba(255,61,113,0.15)', border: '1px solid ' + (isLight ? C.red+'44' : 'rgba(255,61,113,0.4)'),
+                  color: C.red, padding:'5px 12px', borderRadius:8, fontSize:11, fontWeight:800, cursor:'pointer'
                 }}, '🗑 삭제'),
                 h('button',{onClick:function(){ setMemoEdit(false); setMemoText(memos[selDate]||''); }, style:{
-                  background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
-                  color:'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:8,
-                  fontSize:11, fontWeight:700, cursor:'pointer'
+                  background: isLight ? C.faint : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isLight ? C.border : 'rgba(255,255,255,0.12)'),
+                  color: isLight ? C.muted : 'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer'
                 }}, '취소'),
                 h('button',{onClick:saveMemo, style:{
-                  background:'linear-gradient(135deg,#00F5FF,#7C3AED)', border:'none',
-                  color:'#0A0E27', padding:'5px 14px', borderRadius:8,
-                  fontSize:11, fontWeight:900, cursor:'pointer',
-                  boxShadow:'0 0 12px rgba(0,229,255,0.4)'
+                  background: isLight ? C.accent : 'linear-gradient(135deg,#00F5FF,#7C3AED)', border:'none',
+                  color: isLight ? '#FFFFFF' : '#0A0E27', padding:'5px 14px', borderRadius:8, fontSize:11, fontWeight:900, cursor:'pointer',
+                  boxShadow: isLight ? 'none' : '0 0 12px rgba(0,229,255,0.4)'
                 }}, '✓ 저장')
               )
             )
           )
         ),
 
-        // 수입/지출 미니 KPI
         (selInc > 0 || selExp > 0) && h('div',{style:{
-          position:'relative', zIndex:2,
-          display:'flex', gap:8, marginBottom:10
+          position:'relative', zIndex:2, display:'flex', gap:8, marginBottom:10
         }},
           selInc > 0 && h('div',{style:{
             flex:1, padding:'8px 12px', borderRadius:12,
-            background:'linear-gradient(135deg, rgba(105,240,174,0.12), rgba(0,191,165,0.06))',
-            border:'1px solid rgba(105,240,174,0.35)',
+            background: isLight ? C.green+'11' : 'linear-gradient(135deg, rgba(105,240,174,0.12), rgba(0,191,165,0.06))',
+            border: '1px solid ' + (isLight ? C.green+'33' : 'rgba(105,240,174,0.35)'),
             position:'relative', overflow:'hidden'
           }},
-            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:'#69F0AE', boxShadow:'0 0 8px #69F0AE'}}),
-            h('div',{style:{color:'rgba(105,240,174,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '수입'),
+            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:C.green, boxShadow: isLight ? 'none' : '0 0 8px #69F0AE'}}),
+            h('div',{style:{color: isLight ? C.text : 'rgba(105,240,174,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '수입'),
             h('div',{style:{
               fontSize:15, fontWeight:900, marginTop:1,
-              background:'linear-gradient(90deg,#B9F6CA,#69F0AE)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+              background: isLight ? 'none' : 'linear-gradient(90deg,#B9F6CA,#69F0AE)',
+              WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.green : 'transparent', color: isLight ? C.green : 'inherit'
             }}, fmt(selInc))
           ),
           selExp > 0 && h('div',{style:{
             flex:1, padding:'8px 12px', borderRadius:12,
-            background:'linear-gradient(135deg, rgba(255,61,113,0.12), rgba(255,107,0,0.06))',
-            border:'1px solid rgba(255,61,113,0.35)',
+            background: isLight ? C.red+'11' : 'linear-gradient(135deg, rgba(255,61,113,0.12), rgba(255,107,0,0.06))',
+            border: '1px solid ' + (isLight ? C.red+'33' : 'rgba(255,61,113,0.35)'),
             position:'relative', overflow:'hidden'
           }},
-            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:'#FF3D71', boxShadow:'0 0 8px #FF3D71'}}),
-            h('div',{style:{color:'rgba(255,182,193,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '지출'),
+            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:C.red, boxShadow: isLight ? 'none' : '0 0 8px #FF3D71'}}),
+            h('div',{style:{color: isLight ? C.text : 'rgba(255,182,193,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '지출'),
             h('div',{style:{
               fontSize:15, fontWeight:900, marginTop:1,
-              background:'linear-gradient(90deg,#FFB6C1,#FF3D71)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+              background: isLight ? 'none' : 'linear-gradient(90deg,#FFB6C1,#FF3D71)',
+              WebkitBackgroundClip: isLight ? 'unset' : 'text', WebkitTextFillColor: isLight ? C.red : 'transparent', color: isLight ? C.red : 'inherit'
             }}, fmt(selExp))
           )
         ),
 
         // 거래 내역
         selTxs.length === 0 && !(selInc > 0 || selExp > 0) && !getHoliday(selDate) && !memos[selDate] && h('div',{style:{
-          position:'relative', zIndex:2,
-          textAlign:'center', padding:'14px 0', color:'rgba(240,240,255,0.4)',
-          fontSize:12, fontStyle:'italic'
+          position:'relative', zIndex:2, textAlign:'center', padding:'14px 0', color:C.muted, fontSize:12, fontStyle:'italic'
         }}, '🌌 이 날짜에 기록이 없습니다'),
+        
         selTxs.length > 0 && h('div',{style:{position:'relative', zIndex:2}},
-          h('div',{style:{
-            display:'flex', alignItems:'center', gap:6, marginBottom:8
-          }},
+          h('div',{style:{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }},
             h('div',{style:{
-              width:14, height:14, borderRadius:4,
-              background:'linear-gradient(135deg,#FFD600,#FF9100)',
-              boxShadow:'0 0 6px rgba(255,215,0,0.5)'
+              width:14, height:14, borderRadius:4, background: isLight ? C.accent : 'linear-gradient(135deg,#FFD600,#FF9100)',
+              boxShadow: isLight ? 'none' : '0 0 6px rgba(255,215,0,0.5)'
             }}),
-            h('span',{style:{
-              color:'rgba(240,240,255,0.85)', fontSize:11, fontWeight:800, letterSpacing:'0.3px'
-            }}, '거래 내역'),
+            h('span',{style:{ color:C.text, fontSize:11, fontWeight:800, letterSpacing:'0.3px' }}, '거래 내역'),
             h('span',{style:{
               fontSize:9, padding:'1px 8px', borderRadius:8,
-              background:'rgba(0,245,255,0.1)', color:'#9BE7FF', fontWeight:700,
-              border:'1px solid rgba(0,245,255,0.25)'
+              background: isLight ? C.faint : 'rgba(0,245,255,0.1)', color: isLight ? C.muted : '#9BE7FF', fontWeight:700,
+              border: '1px solid ' + (isLight ? C.border : 'rgba(0,245,255,0.25)')
             }}, selTxs.length+'건')
           ),
           selTxs.map(function(tx, ti){
             var txCat = getCat(tx.catId); var mem = getMem(tx.member);
-            var isInc = tx.type === 'income'; var amtColor = isInc ? '#69F0AE' : '#FF6B6B';
+            var isInc = tx.type === 'income'; var amtColor = isInc ? C.green : C.red;
             var hasTxMemo = tx.memo && tx.memo.length > 0;
             var longMemo = tx.memo && tx.memo.length > 18;
             return h('div',{key:tx.id, style:{
-              display:'flex', alignItems:'flex-start', gap:10, padding:'10px 8px',
-              borderRadius:10,
-              background:ti%2===0 ? 'rgba(255,255,255,0.025)' : 'transparent',
+              display:'flex', alignItems:'flex-start', gap:10, padding:'10px 8px', borderRadius:10,
+              background: isLight ? '#FFFFFF' : (ti%2===0 ? 'rgba(255,255,255,0.025)' : 'transparent'),
+              border: isLight ? '1px solid '+C.border : 'none',
               marginBottom:4, position:'relative'
             }},
               h('div',{style:{
-                width:36, height:36, borderRadius:11, background:txCat.color+'22',
-                border:'1px solid '+txCat.color+'44',
+                width:36, height:36, borderRadius:11, background:txCat.color+'22', border:'1px solid '+txCat.color+'44',
                 display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
-                boxShadow:'0 2px 8px '+txCat.color+'44, inset 0 0 4px rgba(255,255,255,0.1)'
+                boxShadow: isLight ? 'none' : '0 2px 8px '+txCat.color+'44, inset 0 0 4px rgba(255,255,255,0.1)'
               }}, txCat.icon),
               h('div',{style:{flex:1, minWidth:0}},
                 h('div',{style:{display:'flex', alignItems:'center', gap:5, marginBottom:2, flexWrap:'wrap'}},
-                  h('span',{style:{color:'#F0F0FF', fontSize:13, fontWeight:800}}, tx.store || '미입력'),
+                  h('span',{style:{color:C.text, fontSize:13, fontWeight:800}}, tx.store || '미입력'),
                   h('span',{style:{
                     background:txCat.color+'22', color:txCat.color,
-                    fontSize:8.5, padding:'1px 6px', borderRadius:6, fontWeight:700,
-                    border:'1px solid '+txCat.color+'33'
+                    fontSize:8.5, padding:'1px 6px', borderRadius:6, fontWeight:700, border:'1px solid '+txCat.color+'33'
                   }}, txCat.name),
                   tx.subCat && h('span',{style:{
-                    background:'rgba(255,255,255,0.04)', color:'rgba(240,240,255,0.5)',
-                    fontSize:8, padding:'1px 5px', borderRadius:5
+                    background: isLight ? C.faint : 'rgba(255,255,255,0.04)', color:C.muted,
+                    fontSize:8, padding:'1px 5px', borderRadius:5, border: isLight ? '1px solid '+C.border : 'none'
                   }}, tx.subCat)
                 ),
-                h('p',{style:{color:'rgba(240,240,255,0.45)', fontSize:10, margin:'1px 0'}},
+                h('p',{style:{color:C.muted, fontSize:10, margin:'1px 0'}},
                   (tx.date||'')+' · '+mem.name+' · '+(tx.method||'기타')
                 ),
-                hasTxMemo && h('div',{className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color:'rgba(0,245,255,0.75)'}},
+                hasTxMemo && h('div',{className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color: isLight ? C.accent : 'rgba(0,245,255,0.75)', background: isLight ? C.accent+'11' : 'rgba(0,0,0,0.15)'}},
                   h('span',{className:longMemo?'memo-scroll':'', style:{paddingLeft:longMemo?0:4}}, '📝 '+tx.memo)
                 )
               ),
               h('div',{style:{textAlign:'right', flexShrink:0}},
                 h('p',{style:{
                   color:amtColor, fontSize:14, fontWeight:900, margin:0,
-                  textShadow:'0 0 8px '+amtColor+'55', letterSpacing:'-0.2px'
+                  textShadow: isLight ? 'none' : '0 0 8px '+amtColor+'55', letterSpacing:'-0.2px'
                 }}, (isInc?'+':'-')+fmt(tx.amount).replace('₩','')),
-                h('span',{style:{fontSize:8.5, color:'rgba(240,240,255,0.4)', fontWeight:700}}, isInc?'수입':'지출')
+                h('span',{style:{fontSize:8.5, color:C.muted, fontWeight:700}}, isInc?'수입':'지출')
               )
             );
           })
