@@ -1150,39 +1150,247 @@ function HologramDonut(props) {
   return h('canvas', { ref: cvRef, width: size, height: size, style: { width: size + 'px', height: size + 'px', flexShrink: 0 } });
 }
 
-/* ★★★ [CYBER 2030] 🎬 시네마틱 영상 기후 엔진 (Video Background Engine) ★★★ */
+/* ★★★ [CYBER 2030] 🌳 초고도화 생태계 기후 시각 엔진 (Living Ecosystem) ★★★ */
 function CyberEcologyCanvas(props) {
   var ratio = Math.max(0, props.ratio || 0);
+  var canvasRef = useRef(null);
+  var rafRef = useRef(null);
+  var pSys = useRef({ leaves:[], rain:[], meteors:[], ripples:[] });
+  var frame = useRef(0);
+  var lightning = useRef(0);
 
-  // 예산 소진율에 따라 영상의 재생 속도나 필터 효과를 다르게 줄 수 있습니다.
-  var videoSrc = 'v2_collapse.mp4'; // 여기에 사용자님의 영상 파일명을 입력하세요.
+  useEffect(function() {
+    var canvas = canvasRef.current; if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
 
-  return h('div', {
-    style: {
-      position: 'relative', width: '100%', height: 260, borderRadius: 12,
-      overflow: 'hidden', border: '1px solid ' + C.border
+    // 파티클 초기화
+    if(pSys.current.leaves.length === 0) {
+      for(var i=0; i<40; i++) pSys.current.leaves.push({x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-0.5)*2, vy:Math.random()+0.5, sz:Math.random()*3+2, ang:0, spn:(Math.random()-0.5)*0.1});
     }
-  },
-    // 비디오 배경 요소
-    h('video', {
-      src: videoSrc,
-      autoPlay: true,
-      loop: true,
-      muted: true,
-      playsInline: true,
-      style: {
-        width: '100%', height: '100%', objectFit: 'cover',
-        filter: 'contrast(1.2) saturate(1.1)' + (ratio >= 0.75 ? ' sepia(0.5)' : '')
+
+    function draw() {
+      frame.current++; var f = frame.current;
+      ctx.clearRect(0, 0, W, H);
+
+      var stage = 1; // 1:봄, 2:가을, 3:비, 4:폭풍/일식, 5:파국
+      if(ratio >= 1.0) stage = 5; else if(ratio >= 0.75) stage = 4; else if(ratio >= 0.50) stage = 3; else if(ratio >= 0.25) stage = 2;
+
+      // 1. 다이나믹 스카이 (Skybox)
+      var skyG = ctx.createLinearGradient(0, 0, 0, H);
+      if(stage===1){ skyG.addColorStop(0,'#4ECDC4'); skyG.addColorStop(1,'#A8E6CF'); }
+      else if(stage===2){ skyG.addColorStop(0,'#D35400'); skyG.addColorStop(1,'#F39C12'); }
+      else if(stage===3){ skyG.addColorStop(0,'#2C3E50'); skyG.addColorStop(1,'#5D6D7E'); }
+      else if(stage===4){ skyG.addColorStop(0,'#1A002A'); skyG.addColorStop(1,'#4A004A'); }
+      else { skyG.addColorStop(0,'#110000'); skyG.addColorStop(1,'#4A0000'); }
+      ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, H);
+
+      // 2. 천체 (해 / 개기일식)
+      var sX = W*0.8, sY = H*0.25;
+      if(stage<=2) {
+        ctx.fillStyle = stage===1?'#FFFDE7':'#FFEAA7'; ctx.shadowColor = stage===1?'#FFF':'#FF9800'; ctx.shadowBlur = 40;
+        ctx.beginPath(); ctx.arc(sX, sY, 35, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+      } else if(stage===4) {
+        ctx.strokeStyle = '#FF00FF'; ctx.lineWidth = 4; ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(sX, sY, 25, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(sX, sY, 24, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
       }
+
+      // 3. 원경: 산맥 (Mountains)
+      ctx.fillStyle = stage===5?'#220000':stage>=3?'#1A252F':stage===2?'#A04000':'#27AE60';
+      ctx.beginPath(); ctx.moveTo(0, H); ctx.lineTo(0, H-90); ctx.quadraticCurveTo(W*0.3, H-150, W*0.6, H-80); ctx.quadraticCurveTo(W*0.8, H-110, W, H-70); ctx.lineTo(W, H); ctx.fill();
+
+      // 4. 지면 (Ground)
+      var gy = H - 40;
+      ctx.fillStyle = stage===5?'#110000':stage>=3?'#2E4053':stage===2?'#873600':'#2ECC71';
+      ctx.fillRect(0, gy, W, 40);
+
+      // 5. 시냇물 (Stream)
+      ctx.fillStyle = stage===5?'#FF3300':stage>=3?'#1A5276':'#3498DB';
+      ctx.beginPath(); ctx.moveTo(W*0.2, gy); ctx.quadraticCurveTo(W*0.4, H-20, W*0.1, H); ctx.lineTo(W*0.4, H); ctx.quadraticCurveTo(W*0.5, H-20, W*0.35, gy); ctx.fill();
+      if(stage===5) { // 용암 글로우
+        ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+      }
+
+      // 6. 바위 (Rocks)
+      ctx.fillStyle = stage===5?'#000':stage>=3?'#566573':'#95A5A6';
+      ctx.beginPath(); ctx.ellipse(W*0.15, gy+5, 15, 8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(W*0.85, gy+15, 20, 10, 0, 0, Math.PI*2); ctx.fill();
+
+      // 7. 오두막 집 (Cozy House)
+      var hx = W*0.75, hy = gy-30;
+      if(stage < 5) {
+        // 집 본체
+        ctx.fillStyle = stage>=3?'#3E2723':'#5D4037'; ctx.fillRect(hx, hy, 45, 30);
+        // 지붕
+        ctx.fillStyle = stage>=3?'#212F3D':'#C0392B';
+        ctx.beginPath(); ctx.moveTo(hx-5, hy); ctx.lineTo(hx+22.5, hy-20); ctx.lineTo(hx+50, hy); ctx.fill();
+        // 창문
+        var winColor = stage>=3?'#FFD54F':'#81D4FA'; // 비오면 불이 켜짐
+        ctx.fillStyle = winColor;
+        ctx.shadowColor = stage>=3?'#FFB300':'transparent'; ctx.shadowBlur = stage>=3?15:0;
+        ctx.fillRect(hx+15, hy+8, 15, 15); ctx.shadowBlur=0;
+        // 창문틀
+        ctx.strokeStyle = '#3E2723'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(hx+22.5, hy+8); ctx.lineTo(hx+22.5, hy+23); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx+15, hy+15.5); ctx.lineTo(hx+30, hy+15.5); ctx.stroke();
+        
+        // 날씨가 안좋을 때 창문 안의 실루엣 (토끼와 새가 숨어있음)
+        if(stage >= 3) {
+          ctx.fillStyle = '#221100';
+          // 토끼 실루엣
+          ctx.beginPath(); ctx.arc(hx+19, hy+20, 3, 0, Math.PI*2); ctx.fill(); // 얼굴
+          ctx.fillRect(hx+17, hy+14, 1.5, 5); ctx.fillRect(hx+19.5, hy+14, 1.5, 5); // 귀
+          // 새 실루엣
+          ctx.beginPath(); ctx.arc(hx+26, hy+21, 2, 0, Math.PI*2); ctx.fill();
+        }
+      } else {
+        // 파국 단계: 불타는 집 잔해
+        ctx.fillStyle = '#110000'; ctx.fillRect(hx, hy+15, 45, 15);
+        ctx.fillStyle = '#FF3300'; ctx.beginPath(); ctx.moveTo(hx, hy+15); ctx.lineTo(hx+10, hy); ctx.lineTo(hx+20, hy+15); ctx.fill();
+      }
+
+      // 8. 날씨 입자 (벚꽃/단풍/비/불씨) & 지면 파동
+      if (stage >= 3) {
+        var rCnt = stage===3?4 : stage===4?12 : 20;
+        while(pSys.current.rain.length < rCnt) pSys.current.rain.push({x:Math.random()*W, y:-20, sp:Math.random()*10+10, l:Math.random()*15+10});
+        ctx.strokeStyle = stage===5?'rgba(255,0,0,0.5)':'rgba(0,255,255,0.4)'; ctx.lineWidth=1;
+        for(var i=pSys.current.rain.length-1; i>=0; i--) {
+          var r = pSys.current.rain[i];
+          ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x+(stage>=4?-3:-1), r.y+r.l); ctx.stroke();
+          r.y+=r.sp; r.x+=(stage>=4?-3:-1);
+          if(r.y>gy) {
+            if(stage<5) pSys.current.ripples.push({x:r.x, y:gy+Math.random()*30, r:1, op:0.8});
+            pSys.current.rain.splice(i,1);
+          }
+        }
+        // 파동 그리기
+        for(var k=pSys.current.ripples.length-1; k>=0; k--) {
+          var rp = pSys.current.ripples[k];
+          ctx.strokeStyle='rgba(0,255,255,'+rp.op+')'; ctx.beginPath(); ctx.ellipse(rp.x,rp.y,rp.r*2,rp.r,0,0,Math.PI*2); ctx.stroke();
+          rp.r+=0.5; rp.op-=0.04;
+          if(rp.op<=0) pSys.current.ripples.splice(k,1);
+        }
+        // 번개
+        if(stage>=4 && Math.random()>0.97) lightning.current = 8;
+        if(lightning.current > 0) {
+          ctx.fillStyle = stage===5?'rgba(255,0,0,0.3)':'rgba(0,255,255,0.4)'; ctx.fillRect(0,0,W,H); lightning.current--;
+        }
+        // 메테오
+        if(stage===5) {
+          if(f%10===0) pSys.current.meteors.push({x:Math.random()*W,y:-20,v:Math.random()*5+5});
+          for(var m=pSys.current.meteors.length-1; m>=0; m--) {
+            var mt = pSys.current.meteors[m];
+            ctx.beginPath(); ctx.moveTo(mt.x, mt.y); ctx.lineTo(mt.x-mt.v, mt.y-mt.v*2);
+            ctx.strokeStyle='#FF3300'; ctx.lineWidth=3; ctx.shadowColor='#FF0000'; ctx.shadowBlur=15; ctx.stroke(); ctx.shadowBlur=0;
+            ctx.beginPath(); ctx.arc(mt.x, mt.y, 4, 0, Math.PI*2); ctx.fillStyle='#FFF'; ctx.fill();
+            mt.x+=mt.v*0.5; mt.y+=mt.v;
+            if(mt.y>H) pSys.current.meteors.splice(m,1);
+          }
+        }
+      }
+
+      // 9. 풍성한 나무 (The Lush Tree)
+      var tX = W*0.35, tY = gy;
+      // 기둥
+      ctx.strokeStyle = stage===1?'#4E342E':stage===2?'#3E2723':stage===5?'#110000':'#212121';
+      ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(tX, tY); ctx.lineTo(tX, tY-60); ctx.stroke();
+      
+      // 풍성한 잎사귀 군락 (Canopy Blobs)
+      if(stage <= 3) {
+        var cCol1 = stage===1?'#FFB7D5':stage===2?'#E67E22':'#5D4037';
+        var cCol2 = stage===1?'#FF80AB':stage===2?'#D35400':'#3E2723';
+        var wind = Math.sin(f*0.05)*(stage===3?5:2);
+        
+        ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 10;
+        ctx.fillStyle = cCol2;
+        ctx.beginPath(); ctx.arc(tX-25+wind, tY-85, 45, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tX+25+wind, tY-85, 45, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tX+wind, tY-110, 55, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = cCol1;
+        ctx.beginPath(); ctx.arc(tX-15+wind, tY-90, 40, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tX+15+wind, tY-90, 40, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tX+wind, tY-115, 45, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // 잎사귀 디테일
+        if(stage===1 || stage===2) {
+          ctx.fillStyle = stage===1?'#FFF':'#F39C12';
+          for(var k=0; k<10; k++) {
+            ctx.beginPath(); ctx.arc(tX-30+k*6+wind, tY-110+Math.sin(k)*20, 3, 0, Math.PI*2); ctx.fill();
+          }
+        }
+      } else if (stage >= 4) {
+        // 위기 최고조 및 파국: 앙상한 프랙탈 가지만 표시
+        ctx.lineWidth = 3;
+        function drawDeadBranch(x,y,len,ang,dep) {
+          if(dep===0) return;
+          var nx = x + Math.cos(ang)*len, ny = y + Math.sin(ang)*len;
+          ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nx,ny); ctx.stroke();
+          drawDeadBranch(nx, ny, len*0.7, ang-0.5, dep-1);
+          drawDeadBranch(nx, ny, len*0.7, ang+0.5, dep-1);
+        }
+        drawDeadBranch(tX, tY-60, 30, -Math.PI/2, stage===5?3:4);
+      }
+
+      // 10. 동물들 (새와 토끼) - 맑은 날에만 밖에서 활동
+      if(stage <= 2) {
+        // 날아다니는 새 (V자형)
+        var birdX = W - (f*1.2)%W, birdY = 60 + Math.sin(f*0.05)*15;
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(birdX, birdY); ctx.quadraticCurveTo(birdX+5, birdY-5, birdX+10, birdY); ctx.quadraticCurveTo(birdX+15, birdY-5, birdX+20, birdY); ctx.stroke();
+        
+        // 뛰어노는 토끼
+        var rbX = 40 + (f*0.8)%(W-80);
+        var isHop = Math.sin(f*0.15) > 0;
+        var rbY = gy + 10 - (isHop ? 8 : 0);
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath(); ctx.arc(rbX, rbY, 5, 0, Math.PI*2); ctx.fill(); // 몸통
+        ctx.beginPath(); ctx.ellipse(rbX+3, rbY-6, 1.5, 5, Math.PI/6, 0, Math.PI*2); ctx.fill(); // 귀
+      }
+
+      // 11. 날리는 나뭇잎/불씨
+      pSys.current.leaves.forEach(function(p) {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+        if(stage===1) { ctx.fillStyle='#FFB7D5'; ctx.beginPath(); ctx.ellipse(0,0,p.sz,p.sz*0.6,0,0,Math.PI*2); ctx.fill(); }
+        else if(stage<=3) { ctx.fillStyle='#E67E22'; ctx.fillRect(-p.sz,-p.sz,p.sz*2,p.sz*2); }
+        else { ctx.fillStyle='#FF3300'; ctx.beginPath(); ctx.arc(0,0,p.sz*0.8,0,Math.PI*2); ctx.fill(); }
+        ctx.restore();
+        p.x += p.vx + (stage>=3?-2:0.5); p.y += p.vy + (stage>=4?-1:0); p.ang += p.spn;
+        if(p.y>gy+20 || p.x<0) { p.y = stage===5?gy+20:0; p.x = Math.random()*W; }
+      });
+
+      // 12. 기획안 HUD (홀로그램 게이지)
+      ctx.save();
+      var hudY = 15;
+      var hudCol = stage===1?'#00FF88':stage===2?'#FFD700':stage===3?'#FF9800':stage===4?'#FF00FF':'#FF0000';
+      var hudTxt = stage===1?'0-25% 활기찬 봄':stage===2?'25-50% 전환기':stage===3?'50-75% 위기 진입':stage===4?'75-90% 위기 최고조':'100% 예산 붕괴';
+      
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.strokeStyle = hudCol; ctx.lineWidth = 1.5; ctx.shadowColor = hudCol; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.roundRect(10, hudY, 180, 34, 8); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+      
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.roundRect(16, hudY+18, 168, 8, 4); ctx.fill();
+      ctx.fillStyle = hudCol; ctx.beginPath(); ctx.roundRect(16, hudY+18, Math.max(10, 168*Math.min(ratio, 1)), 8, 4); ctx.fill();
+
+      ctx.fillStyle = '#FFF'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+      ctx.fillText(hudTxt, 16, hudY+12);
+      ctx.restore();
+
+      rafRef.current = requestAnimationFrame(draw);
+    }
+    draw();
+    return function() { cancelAnimationFrame(rafRef.current); };
+  }, [ratio]);
+
+  return h('div', {style:{position:'relative', width:'100%', height:280, borderRadius:16, overflow:'hidden', border:'1px solid rgba(0,255,255,0.3)', boxShadow:'0 10px 30px rgba(0,0,0,0.8)'}},
+    h('canvas', {
+      ref: canvasRef, width: 400, height: 280,
+      style: { width: '100%', height: '100%', display: 'block' }
     }),
-    
-    // 비디오 위에 띄울 홀로그램 게이지들 (기존 로직 보존)
-    ratio >= 0.75 && h('div', {style:{
-      position:'absolute', bottom:0, left:0, right:0, 
-      background:'rgba(255,0,0,0.7)', padding:'4px', textAlign:'center', 
-      color:'#FFF', fontSize:10, fontWeight:800, fontFamily:'monospace', 
-      animation:'pulse 1s infinite'
-    }}, ratio >= 1 ? '💀 시스템 완전 고갈! 문명 최후 단계' : '⚠️ 예산 파국 경고! 즉각 지출 중단 요망')
+    ratio >= 0.75 && h('div', {style:{position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,0,0,0.8)', padding:'4px', textAlign:'center', color:'#FFF', fontSize:10, fontWeight:800, fontFamily:'monospace', animation:'pulse 1s infinite'}}, 
+      ratio >= 1 ? '💀 시스템 완전 고갈! 문명 최후 단계' : '⚠️ 예산 파국 경고! 즉각 지출 중단 요망'
+    )
   );
 }
 
@@ -1476,16 +1684,51 @@ goalStyles.innerHTML = `
   
   /* ★ 횡스크롤 직관성 확보용 사이버 스크롤바 */
   .cyber-h-scroll::-webkit-scrollbar {
-    height: 4px;
+    height: 10px;
     display: block !important;
   }
   .cyber-h-scroll::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.02);
-    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
   }
   .cyber-h-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0,255,255,0.3);
-    border-radius: 4px;
+    background: rgba(0,255,255,0.65);
+    border-radius: 6px;
+    border: 1px solid rgba(0,255,255,0.3);
+  }
+  .cyber-h-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,255,255,0.9);
+  }
+
+@keyframes chameleonBlink {
+    0%   { box-shadow: 0 0 8px #FF0000, 0 0 20px #FF0000, 0 0 40px #FF000066; border-color: #FF0000; }
+    14%  { box-shadow: 0 0 8px #FF4400, 0 0 20px #FF4400, 0 0 40px #FF440066; border-color: #FF4400; }
+    28%  { box-shadow: 0 0 8px #FF00FF, 0 0 20px #FF00FF, 0 0 40px #FF00FF66; border-color: #FF00FF; }
+    42%  { box-shadow: 0 0 8px #00FFFF, 0 0 20px #00FFFF, 0 0 40px #00FFFF66; border-color: #00FFFF; }
+    56%  { box-shadow: 0 0 8px #00FF88, 0 0 20px #00FF88, 0 0 40px #00FF8866; border-color: #00FF88; }
+    70%  { box-shadow: 0 0 8px #FFD700, 0 0 20px #FFD700, 0 0 40px #FFD70066; border-color: #FFD700; }
+    85%  { box-shadow: 0 0 8px #9D00FF, 0 0 20px #9D00FF, 0 0 40px #9D00FF66; border-color: #9D00FF; }
+    100% { box-shadow: 0 0 8px #FF0000, 0 0 20px #FF0000, 0 0 40px #FF000066; border-color: #FF0000; }
+  }
+  @keyframes fireGlow {
+    0%, 100% { box-shadow: 0 0 10px #FF4400, 0 0 20px #FF4400, 0 0 40px #FF0000, inset 0 0 10px rgba(255,68,0,0.1); }
+    25%  { box-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF, 0 0 40px #FF00FF, inset 0 0 10px rgba(255,0,255,0.1); }
+    50%  { box-shadow: 0 0 10px #00FFFF, 0 0 20px #00FFFF, 0 0 40px #00FFFF, inset 0 0 10px rgba(0,255,255,0.1); }
+    75%  { box-shadow: 0 0 10px #FF4400, 0 0 20px #FF8800, 0 0 40px #FFFF00, inset 0 0 10px rgba(255,136,0,0.1); }
+  }
+  .neo2030-fire-border {
+    position: relative;
+    border-radius: 20px;
+    padding: 3px;
+    background: linear-gradient(90deg, #FF4400, #FF00FF, #00FFFF, #FF8800, #FF4400);
+    background-size: 300% 300%;
+    animation: fireBorder 3s linear infinite, fireGlow 3s ease-in-out infinite;
+  }
+  .neo2030-fire-border-inner {
+    background: #000;
+    border-radius: 18px;
+    width: 100%;
+    height: 100%;
   }
   
   @keyframes cyberRgb {
@@ -6382,6 +6625,28 @@ function DashboardNeo2030(props) {
 
   var spentRatio = cyberExpected > 0 ? curExp / cyberExpected : 0;
   var pctDisplay = Math.round(spentRatio * 100);
+var _BASE = 'https://kimyungkook.github.io/family-ledger/';
+  var _vsrc = spentRatio >= 0.75 ? _BASE + 'v5_collapse.mp4'
+            : spentRatio >= 0.50 ? _BASE + 'v4_collapse.mp4'
+            : spentRatio >= 0.25 ? _BASE + 'v3_collapse.mp4'
+            :                      _BASE + 'v2_collapse.mp4';
+  var _cyberVideo = h('video', {
+    key: _vsrc,
+    src: _vsrc,
+    autoPlay: true,
+    loop: true,
+    muted: true,
+    playsInline: true,
+    style: {
+      width: '100%',
+      borderRadius: 16,
+      border: '1px solid rgba(0,255,255,0.3)',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+      display: 'block',
+      objectFit: 'cover',
+      maxHeight: 280
+    }
+  });
 
   var weatherLabel = '활기찬 봄 (Cheerful Spring)';
   var weatherDesc = '예산 관리가 매우 양호합니다. 평화로운 생태계 상태입니다.';
@@ -6416,12 +6681,43 @@ function DashboardNeo2030(props) {
       var mTxs=txs.filter(function(t){var td=new Date(t.date);return td.getFullYear()===d.getFullYear()&&td.getMonth()===d.getMonth();});
       result.push(mTxs.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0)||0);
     }
+/* 불꽃 파티클 */
+  var fireParticles = [];
+  for(var fp=0; fp<4; fp++) {
+    fireParticles.push(h('div', {
+      key:'fp'+fp,
+      style:{
+        position:'fixed',
+        zIndex:1,
+        pointerEvents:'none',
+        width: fp%2===0 ? '100%' : 2,
+        height: fp%2===0 ? 2 : '100%',
+        top: fp===0 ? 0 : (fp===2 ? 'auto' : 0),
+        bottom: fp===2 ? 0 : 'auto',
+        left: fp===3 ? 'auto' : 0,
+        right: fp===3 ? 0 : 'auto',
+        background:'linear-gradient(90deg, #FF4400, #FF00FF, #00FFFF, #FF8800, #FF4400)',
+        backgroundSize:'300% 100%',
+        animation:'fireBorder '+(2+fp*0.5)+'s linear infinite',
+        maxWidth:430
+      }
+    }));
+  }
     return result;
   },[txs]);
 
   var monthXLabels = ['1월','2월','3월','4월','5월','6월'];
 
   return h('div', {style:{padding:'0 16px 120px', overflowY:'auto', height:'100vh', background:'#000', position:'relative'}},
+    h('div', {style:{
+      position:'fixed', top:0, left:0, right:0, bottom:60, zIndex:0,
+      pointerEvents:'none',
+      margin:'0 auto',
+      maxWidth: 430,
+      borderRadius: 20,
+      border: '1.5px solid #FF0000',
+      animation:'chameleonBlink 4s ease-in-out infinite'
+    }}),
     h('div',{style:{
       position:'fixed', top:0, left:0, right:0, bottom:0, zIndex:0, pointerEvents:'none',
       backgroundImage:'linear-gradient(rgba(160, 0, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(160, 0, 255, 0.05) 1px, transparent 1px)',
@@ -6433,7 +6729,7 @@ function DashboardNeo2030(props) {
         h('div',null,
           h('p',{style:{color:'rgba(255, 0, 255, 0.7)', fontSize:10, fontFamily:'monospace', margin:0, letterSpacing:2, fontWeight:700}},'⬡ CYBER_2030 · OS_v2.0'),
           h('p',{className:'bl', style:{color:'#FFF', fontSize:15, fontWeight:800, margin:'2px 0 0', fontFamily:'monospace', textShadow:'0 0 8px rgba(0,255,255,0.6)'}},
-            'LEDGER_SYS / ' + getMem(lsGet(LS_USER, {userId:'dad'}).userId || 'dad').name.toUpperCase()
+            '가계부시스템 / ' + getMem(lsGet(LS_USER, {userId:'dad'}).userId || 'dad').name
           )
         ),
         h('div',{style:{display:'flex', gap:8, alignItems:'center'}},
@@ -6453,8 +6749,21 @@ function DashboardNeo2030(props) {
         
         // 1. [LEFT SIDE] 실시간 생태계 날씨 나무
         h('div', null,
-          h('p', {className: 'cyber-panel-title'}, '// Ecology Weather Tree'),
-          h(CyberEcologyCanvas, {ratio: spentRatio}),
+          h('p', {className: 'cyber-panel-title'}, '// 생태계 날씨 모니터'),
+          h('video', {
+            key: spentRatio >= 0.75 ? 'v5' : spentRatio >= 0.50 ? 'v4' : spentRatio >= 0.25 ? 'v3' : 'v2',
+            src: 'https://kimyungkook.github.io/family-ledger/' + (
+              spentRatio >= 0.75 ? 'v5_collapse.mp4' :
+              spentRatio >= 0.50 ? 'v4_collapse.mp4' :
+              spentRatio >= 0.25 ? 'v3_collapse.mp4' : 'v2_collapse.mp4'),
+            autoPlay: true, loop: true, muted: true, playsInline: true,
+            style: {
+              width: '100%', borderRadius: 16,
+              border: '1px solid rgba(0,255,255,0.3)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+              display: 'block', objectFit: 'cover', maxHeight: 280
+            }
+          }),    
           h('div', {style:{marginTop:10, padding:12, background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid rgba(0,255,255,0.1)'}},
             h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}},
               h('span', {style:{color: spentRatio >= 0.75 ? C.red : C.green, fontSize:13, fontWeight:900, fontFamily:'monospace'}}, weatherLabel),
@@ -6466,12 +6775,12 @@ function DashboardNeo2030(props) {
 
         // 2. [RIGHT SIDE] 자산/예산 연동 제어 및 15개 독자 단추
         h('div', null,
-          h('p', {className: 'cyber-panel-title'}, '// Budget Controller & Categories'),
+          h('p', {className: 'cyber-panel-title'}, '// 예산 컨트롤러 & 카테고리'),
           
           h('div', {style:{background:'rgba(18, 0, 42, 0.8)', border:'1px solid rgba(255, 0, 255, 0.5)', borderRadius:14, padding:13, marginBottom:12, position:'relative', overflow:'hidden'}},
             h('div', {style:{position:'absolute',top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,#FF00FF,#00FFFF,#FF00FF)',backgroundSize:'200%',animation:'cyBdr 2s linear infinite'}}),
             h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}},
-              h('span', {style:{color:'rgba(255, 0, 255, 0.75)', fontSize:10, fontFamily:'monospace', fontWeight:700}}, '// EXPECTED_BUDGET'),
+              h('span', {style:{color:'rgba(255, 0, 255, 0.75)', fontSize:10, fontFamily:'monospace', fontWeight:700}}, '// 이번달 예상 예산'),
               !isEditingBdg && h('button', {
                 onClick:function(){ setIsEditingBdg(true); setTempBdgInput(String(cyberExpected)); },
                 style:{background:'rgba(255,0,255,0.12)', border:'1px solid rgba(255,0,255,0.45)', color:C.accent, padding:'2px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer'}
@@ -6554,8 +6863,8 @@ function DashboardNeo2030(props) {
       /* ── 최근 거래 내역 피드 (가로 슬라이딩) ── */
       h('div', {style:{marginTop:16}},
         h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}},
-          h('span', {style:{color:'rgba(0,255,255,0.7)', fontSize:12, fontFamily:'monospace', fontWeight:700}}, '// RECENT_ACTIVITY'),
-          h('span', {onClick:function(){ onNav('list'); }, style:{color:'rgba(0,255,255,0.5)', fontSize:10, fontFamily:'monospace', cursor:'pointer'}}, 'VIEW_ALL_LOG →')
+          h('span', {style:{color:'rgba(0,255,255,0.7)', fontSize:12, fontFamily:'monospace', fontWeight:700}}, '// 최근 거래내역'),
+          h('span', {onClick:function(){ onNav('list'); }, style:{color:'rgba(0,255,255,0.5)', fontSize:10, fontFamily:'monospace', cursor:'pointer'}}, '전체 내역 보기 →')
         ),
         // 명확한 스와이프 인지를 위한 커스텀 가로 스크롤 박스
         h('div', {className:'cyber-h-scroll', style:{display:'flex', gap:10, overflowX:'auto', paddingBottom:12, margin:'0 -12px', paddingLeft:12, paddingRight:12, scrollSnapType:'x mandatory'}},
@@ -6606,15 +6915,15 @@ function DashboardNeo2030(props) {
       /* ── 뇌전 스파크 6개월 트렌드 차트 ── */
       h('div', {style:{background:'#12002A', border:'1px solid rgba(0,255,255,0.45)', borderRadius:14, padding:13, marginBottom:10}},
         h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:9}},
-          h('span', {style:{color:'#00FFFF', fontSize:11, fontFamily:'monospace', fontWeight:800, textShadow:'0 0 8px rgba(0,255,255,0.5)'}}, '// EXPENSE_TREND ⚡'),
-          h('span', {style:{fontSize:9, color:'#FF4466', fontFamily:'monospace', fontWeight:700}}, 'LIGHTNING MODE')
+          h('span', {style:{color:'#00FFFF', fontSize:11, fontFamily:'monospace', fontWeight:800, textShadow:'0 0 8px rgba(0,255,255,0.5)'}}, '// 지출 추이 ⚡'),
+          h('span', {style:{fontSize:9, color:'#FF4466', fontFamily:'monospace', fontWeight:700}}, '번개 애니모드')
         ),
         h(PlasmaLineChart, {data: trendData, color:'#00FFFF', height:112, xLabels: monthXLabels})
       ),
 
       /* ── 🔮 홀로그램 도넛 매트릭스 ── */
       h('div', {style:{background:'#12002A', border:'1px solid rgba(200,0,255,0.45)', borderRadius:14, padding:13, marginBottom:10}},
-        h('div', {style:{color:'#CC44FF', fontSize:11, fontFamily:'monospace', fontWeight:800, marginBottom:11, textShadow:'0 0 8px rgba(200,0,255,0.5)'}}, '// CONSUMPTION_MATRIX'),
+        h('div', {style:{color:'#CC44FF', fontSize:11, fontFamily:'monospace', fontWeight:800, marginBottom:11, textShadow:'0 0 8px rgba(200,0,255,0.5)'}}, '// 소비 매트릭스'),
         h('div', {style:{display:'flex', gap:10, alignItems:'center'}},
           h(HologramDonut, {data: byC.slice(0, 5), size:112, totalLabel: fmtS(totE)}),
           h('div', {style:{flex:1}},
@@ -6642,7 +6951,10 @@ function DashboardNeo2030(props) {
       /* ── 구성원 지출 배지 ── */
       h('div', {style:{display:'flex', gap:7, marginBottom:10}},
         byM.map(function(m) {
-          return h('div', {key:m.id, style:{flex:1, background:'#0D0028', border: '1px solid ' + m.color + '80', borderRadius:13, padding:'11px 7px', textAlign:'center'}},
+          return h('div', {
+            key:m.id,
+            onClick: function(){ setMSht(m.id); },
+            style:{flex:1, background:'#0D0028', border: '1px solid ' + m.color + '80', borderRadius:13, padding:'11px 7px', textAlign:'center'}},
             h('div', {style:{width:34, height:34, borderRadius:'50%', background: m.color + '33', border: '2px solid ' + m.color + 'B3', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, margin:'0 auto 5px'}}, m.emoji),
             h('div', {style:{color: m.color, fontSize:10, fontWeight:800, fontFamily:'monospace', textShadow: '0 0 6px ' + m.color + '80'}}, m.name),
             h('div', {style:{color:'#FFFFFF', fontSize:12, fontWeight:900, fontFamily:'monospace'}}, fmtS(m.amt))
@@ -6651,7 +6963,8 @@ function DashboardNeo2030(props) {
       ),
 
       /* 중복된 구버전 RECENT_TX 영역 완전 삭제 완료 */
-    )
+    ),
+    mSht && h(MemModal, {member:mSht, txs:ftx, onClose:function(){setMSht(null);}})
   );
 }
 
@@ -8353,7 +8666,7 @@ function Analysis(props) {
   );
 }
 
-// ★★★ [신규] 달력 메뉴 — CalendarView ★★★
+// ★★★ [신규] 달력 메뉴 — CalendarView ★★★7
 function CalendarView(props) {
   var txs = props.txs;
   var startDay = props.startDay || 1;
@@ -8699,202 +9012,583 @@ function CalendarView(props) {
 
   var glw = C.glow || 'rgba(0,229,255,0.15)';
 
-  return h('div', {style:{padding:'16px 16px 95px', maxWidth:430, margin:'0 auto'}},
+  // ★ [v2030 리디자인] Nebula Calendar - 우주적 달력
+  return h('div', {style:{padding:'16px 16px 95px', maxWidth:430, margin:'0 auto', position:'relative'}},
     h(Hdr, {title:'📅 달력'}),
 
-    // 연도 네비게이션
-    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:12, marginBottom:8}},
-      h('button', {onClick:prevYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '◀'),
-      h('span', {style:{color:C.text, fontSize:18, fontWeight:800, minWidth:80, textAlign:'center'}}, calYear + '년'),
-      h('button', {onClick:nextYear, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:32, height:32, borderRadius:8, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}, '▶')
-    ),
+    // ═══ 연/월 통합 오비탈 네비게이션 ═══
+    h('div',{style:{
+      position:'relative', borderRadius:24, padding:1.4, marginBottom:12,
+      background:'linear-gradient(135deg, rgba(0,245,255,0.5), rgba(124,58,237,0.45) 50%, rgba(255,61,113,0.35))',
+      boxShadow:'0 10px 38px rgba(0,0,0,0.55), 0 0 60px rgba(0,229,255,0.08)'
+    }},
+      h('div',{style:{
+        position:'relative', borderRadius:23, overflow:'hidden', padding:'14px 14px 12px',
+        background:'linear-gradient(155deg, rgba(14,20,40,0.97), rgba(8,11,24,0.99) 60%, rgba(16,9,32,0.97))',
+        backdropFilter:'blur(28px)'
+      }},
+        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.28, pointerEvents:'none'}}),
+        h('div',{style:{
+          position:'absolute', top:-50, right:-30, width:160, height:160, borderRadius:'50%',
+          background:'radial-gradient(circle, rgba(0,245,255,0.18), transparent 65%)',
+          animation:'flai-prism-pulse 7s ease-in-out infinite', pointerEvents:'none'
+        }}),
 
-    // 월 네비게이션
-    h('div', {style:{display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:14}},
-      h('button', {onClick:prevMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '◀'),
-      h('div', {style:{display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center'}},
-        [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m) {
-          var isActive = m === calMonth;
-          return h('button', {key:m, onClick:function(){ setCalMonth(m); setSelDate(null); setMemoEdit(false); },
-            style:{padding:'5px 9px', borderRadius:8, fontSize:11, fontWeight:isActive?800:400, cursor:'pointer',
-              background:isActive ? C.accent : C.card, color:isActive ? '#0A0E27' : C.muted,
-              border:'1px solid '+(isActive ? C.accent : C.border), transition:'all 0.2s ease'}
-          }, m+'월');
-        })
-      ),
-      h('button', {onClick:nextMonth, style:{background:C.card, border:'1px solid '+C.border, color:C.accent, width:36, height:36, borderRadius:10, fontSize:16, cursor:'pointer', fontWeight:700}}, '▶')
-    ),
+        // 연도 다이얼
+        h('div',{style:{
+          position:'relative', zIndex:2,
+          display:'flex', alignItems:'center', justifyContent:'center', gap:14, marginBottom:10
+        }},
+          h('button',{onClick:prevYear, style:{
+            width:34, height:34, borderRadius:'50%', cursor:'pointer',
+            background:'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
+            border:'1px solid rgba(0,245,255,0.4)',
+            color:'#9BE7FF', fontSize:14, fontWeight:700,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
+          }}, '◀'),
+          h('div',{style:{
+            position:'relative', padding:'4px 18px', borderRadius:14,
+            background:'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(124,58,237,0.1))',
+            border:'1px solid rgba(0,245,255,0.3)'
+          }},
+            h('div',{style:{
+              color:'rgba(155,231,255,0.55)', fontSize:9, fontWeight:700, letterSpacing:'1.5px', textAlign:'center'
+            }}, 'YEAR'),
+            h('div',{style:{
+              fontSize:22, fontWeight:900, letterSpacing:'-0.5px', textAlign:'center',
+              background:'linear-gradient(90deg,#00F5FF 0%,#FFFFFF 60%,#C5A7FF 100%)',
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+              filter:'drop-shadow(0 0 6px rgba(0,229,255,0.4))'
+            }}, calYear)
+          ),
+          h('button',{onClick:nextYear, style:{
+            width:34, height:34, borderRadius:'50%', cursor:'pointer',
+            background:'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(124,58,237,0.12))',
+            border:'1px solid rgba(0,245,255,0.4)',
+            color:'#9BE7FF', fontSize:14, fontWeight:700,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 0 12px rgba(0,229,255,0.25), inset 0 0 6px rgba(0,229,255,0.15)'
+          }}, '▶')
+        ),
 
-    // 월 총합 요약
-    h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12}},
-      h(GCard, {onClick:function(){ if(monthTotals.incCnt>0) setDetailType('income'); }, style:{padding:'10px 12px', cursor:monthTotals.incCnt>0?'pointer':'default', border:'1px solid '+C.green+'44'}},
-        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 수입'),
-        h('p', {style:{color:C.green, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.income)),
-        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.incCnt+'건'+(monthTotals.incCnt>0?' · 👆상세':''))
-      ),
-      h(GCard, {onClick:function(){ if(monthTotals.expCnt>0) setDetailType('expense'); }, style:{padding:'10px 12px', cursor:monthTotals.expCnt>0?'pointer':'default', border:'1px solid '+C.red+'44'}},
-        h('p', {style:{color:C.muted, fontSize:10, margin:0}}, '이번 달 지출'),
-        h('p', {style:{color:C.red, fontSize:16, fontWeight:800, margin:'2px 0 0'}}, fmt(monthTotals.expense)),
-        h('p', {style:{color:C.muted, fontSize:9, margin:'2px 0 0'}}, monthTotals.expCnt+'건'+(monthTotals.expCnt>0?' · 👆상세':''))
+        // 12개월 오비탈 칩
+        h('div',{style:{
+          position:'relative', zIndex:2,
+          display:'flex', alignItems:'center', gap:8
+        }},
+          h('button',{onClick:prevMonth, style:{
+            width:30, height:30, borderRadius:10, cursor:'pointer',
+            background:'rgba(0,245,255,0.12)', border:'1px solid rgba(0,245,255,0.3)',
+            color:'#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
+          }}, '◀'),
+          h('div',{style:{
+            flex:1, display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:4
+          }},
+            [1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){
+              var isActive = m === calMonth;
+              return h('button',{key:m,
+                onClick:function(){ setCalMonth(m); setSelDate(null); setMemoEdit(false); },
+                className: isActive?'flai-anl-tab-active':'',
+                style:{
+                  padding:'5px 0', borderRadius:8, fontSize:10.5,
+                  fontWeight:isActive?900:600, cursor:'pointer',
+                  background: isActive
+                    ? 'linear-gradient(135deg,#00F5FF,#7C3AED)'
+                    : 'rgba(255,255,255,0.04)',
+                  color: isActive ? '#0A0E27' : 'rgba(240,240,255,0.55)',
+                  border:'1px solid '+(isActive ? 'rgba(0,245,255,0.6)' : 'rgba(255,255,255,0.06)'),
+                  textShadow: isActive ? '0 0 8px rgba(255,255,255,0.4)' : 'none',
+                  transition:'all 0.18s ease'
+                }
+              }, m+'월');
+            })
+          ),
+          h('button',{onClick:nextMonth, style:{
+            width:30, height:30, borderRadius:10, cursor:'pointer',
+            background:'rgba(0,245,255,0.12)', border:'1px solid rgba(0,245,255,0.3)',
+            color:'#9BE7FF', fontSize:14, fontWeight:800, flexShrink:0
+          }}, '▶')
+        )
       )
     ),
 
-    // 달력 범례
-    h('div', {style:{display:'flex', gap:12, justifyContent:'center', marginBottom:8, flexWrap:'wrap'}},
-      h('span', {style:{fontSize:10, color:C.muted}}, '● 지출'),
-      h('span', {style:{fontSize:10, color:C.muted}}, '★ 수입'),
-      h('span', {style:{fontSize:10, color:C.red}}, '공휴일'),
-      h('span', {style:{fontSize:10, color:C.muted}}, '📌 메모')
-    ),
-
-    // 달력 그리드
-    h(GCard, {style:{padding:'12px 8px', marginBottom:12}},
-      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:6}},
-        dayLabels.map(function(d, i) {
-          var dayColor = i === 0 ? C.red : (i === 6 ? C.accent : C.muted);
-          return h('div', {key:d, style:{textAlign:'center', fontSize:11, fontWeight:700, color:dayColor, padding:'4px 0'}}, d);
-        })
-      ),
-      h('div', {style:{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3}},
-        cells.map(function(cell, idx) {
-          if (!cell.inMonth) {
-            return h('div', {key:'e'+idx, style:{aspectRatio:'1', borderRadius:8, background:C.faint, opacity:0.3, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'4px 0'}},
-              h('span', {style:{fontSize:10, color:C.muted, opacity:0.5}}, cell.day)
-            );
-          }
-          var dateStr = makeDateStr(cell.day);
-          var data = dayMap[dateStr];
-          var hasInc = data && data.incCnt > 0;
-          var hasExp = data && data.expCnt > 0;
-          var hasData = hasInc || hasExp;
-          var isToday = dateStr === todayStr;
-          var isSel = dateStr === selDate;
-          var dow = idx % 7;
-          var holiday = getHoliday(dateStr);
-          var hasMemo = !!memos[dateStr];
-          var isHoliday = !!holiday;
-
-          var cellBg = isSel ? C.accent+'22' : (isToday ? C.gold+'15' : (isHoliday ? C.red+'0A' : (hasData ? C.card2 : 'transparent')));
-          var cellBorder = isSel ? C.accent : (isToday ? C.gold+'88' : (isHoliday ? C.red+'44' : (hasData ? C.border : 'transparent')));
-          var cellShadow = hasData ? '0 2px 8px '+glw : 'none';
-          var numColor = isHoliday ? C.red : (isToday ? C.gold : (dow===0 ? C.red : (dow===6 ? C.accent : C.text)));
-
-          return h('div', {key:dateStr, onClick:function(){ selectDate(dateStr); },
-            style:{aspectRatio:'1', borderRadius:10, background:cellBg, border:'1.5px solid '+cellBorder,
-              boxShadow:cellShadow, cursor:'pointer', display:'flex', flexDirection:'column',
-              alignItems:'center', justifyContent:'space-between', padding:'3px 2px',
-              transition:'all 0.2s ease', position:'relative', transform:isSel?'scale(1.08)':'scale(1)',
-              overflow:'hidden'}
-          },
-            // 날짜 숫자 + 메모 아이콘
-            h('div', {style:{display:'flex', justifyContent:'space-between', width:'100%', padding:'0 1px'}},
-              h('span', {style:{fontSize:12, fontWeight:isToday?800:(isSel?700:(isHoliday?700:400)), color:numColor, marginLeft:1}}, cell.day),
-              hasMemo && h('span', {style:{fontSize:10, lineHeight:1}}, '📌')
-            ),
-            // 공휴일 이름 (축약)
-            isHoliday && h('span', {style:{fontSize:6, color:C.red, fontWeight:600, opacity:0.9, lineHeight:1, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}, holiday.length > 3 ? holiday.substring(0,3) : holiday),
-            // 수입/지출 도트
-            (hasData || (!isHoliday && !hasMemo)) && h('div', {style:{display:'flex', gap:2, alignItems:'center', marginBottom:1, minHeight:10}},
-              hasExp && h('span', {style:{fontSize:7, color:C.red}}, '●'),
-              hasInc && h('span', {style:{fontSize:7, color:C.gold}}, '★')
-            )
-          );
-        })
-      )
-    ),
-
-    // 선택된 날짜 상세 패널
-    selDate && h(GCard, {style:{padding:'14px', marginBottom:12, border:'1px solid '+C.accent+'33', boxShadow:'0 4px 16px '+glw}},
-      // 헤더
-      h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}},
-        h('div', null,
-          h('p', {style:{color:C.accent, fontSize:10, fontWeight:700, margin:0, letterSpacing:1}}, calYear+'년 '+calMonth+'월'),
-          h('p', {style:{color:C.text, fontSize:16, fontWeight:900, margin:'2px 0 0'}}, '📅 '+parseInt(selDate.split('-')[2])+'일 ('+dayLabels[new Date(selDate).getDay()]+')')
-        ),
-        h('button', {onClick:function(){ setSelDate(null); setMemoEdit(false); }, style:{background:C.faint, border:'1px solid '+C.border, color:C.muted, padding:'4px 10px', borderRadius:6, fontSize:11, cursor:'pointer'}}, '닫기')
-      ),
-
-      // 공휴일 표시
-      getHoliday(selDate) && h('div', {style:{padding:'6px 10px', background:C.red+'15', borderRadius:8, border:'1px solid '+C.red+'33', marginBottom:8}},
-        h('span', {style:{color:C.red, fontSize:12, fontWeight:700}}, '🎌 공휴일: ' + getHoliday(selDate))
-      ),
-
-      // ★ 메모 영역
-      h('div', {style:{padding:'10px', background:C.card2, borderRadius:10, border:'1px solid '+C.border, marginBottom:10}},
-        h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}},
-          h('span', {style:{color:C.text, fontSize:12, fontWeight:700}}, '📌 메모'),
-          !isMemoEdit && h('button', {onClick:function(){ setMemoEdit(true); setMemoText(memos[selDate] || ''); },
-            style:{background:C.accent+'22', border:'1px solid '+C.accent+'44', color:C.accent, padding:'3px 10px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer'}
-          }, memos[selDate] ? '수정' : '추가')
-        ),
-        // 메모 표시 모드
-        !isMemoEdit && memos[selDate] && h('p', {style:{color:C.text, fontSize:12, margin:'4px 0 0', lineHeight:1.6}}, memos[selDate]),
-        !isMemoEdit && !memos[selDate] && h('p', {style:{color:C.muted, fontSize:11, margin:'4px 0 0', fontStyle:'italic'}}, '기념일이나 특별한 날을 기록해보세요'),
-        // 메모 편집 모드
-        isMemoEdit && h('div', {style:{marginTop:6}},
-          h('textarea', {
-            value:memoText, placeholder:'기념일, 약속, 특별한 날 등 자유롭게 기록하세요',
-            onChange:function(e){ setMemoText(e.target.value); },
-            style:{width:'100%', minHeight:60, padding:'8px 10px', background:C.bg, color:C.text, border:'1px solid '+C.accent+'44',
-              borderRadius:8, fontSize:12, resize:'vertical', outline:'none', fontFamily:'inherit'}
-          }),
-          h('div', {style:{display:'flex', gap:6, marginTop:6, justifyContent:'flex-end'}},
-            memos[selDate] && h('button', {onClick:deleteMemo,
-              style:{background:C.red+'22', border:'1px solid '+C.red+'44', color:C.red, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer'}
-            }, '삭제'),
-            h('button', {onClick:function(){ setMemoEdit(false); setMemoText(memos[selDate]||''); },
-              style:{background:C.faint, border:'1px solid '+C.border, color:C.muted, padding:'5px 12px', borderRadius:6, fontSize:11, cursor:'pointer'}
-            }, '취소'),
-            h('button', {onClick:saveMemo,
-              style:{background:C.accent, border:'none', color:'#0A0E27', padding:'5px 14px', borderRadius:6, fontSize:11, fontWeight:800, cursor:'pointer'}
-            }, '저장')
+    // ═══ 월 KPI 카드 (수입/지출) - 홀로그램 ═══
+    h('div',{style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12}},
+      h('div',{onClick:function(){ if(monthTotals.incCnt>0) setDetailType('income'); },
+        style:{
+          position:'relative', borderRadius:18, padding:1,
+          background:'linear-gradient(135deg, rgba(105,240,174,0.55), rgba(0,191,165,0.3))',
+          cursor:monthTotals.incCnt>0?'pointer':'default',
+          boxShadow:'0 6px 22px rgba(0,191,165,0.18)'
+        }},
+        h('div',{style:{
+          position:'relative', borderRadius:17, padding:'10px 12px', overflow:'hidden',
+          background:'linear-gradient(155deg, rgba(8,22,18,0.97), rgba(10,14,26,0.99))'
+        }},
+          h('div',{style:{
+            position:'absolute', top:-20, right:-15, width:80, height:80, borderRadius:'50%',
+            background:'radial-gradient(circle, rgba(105,240,174,0.18), transparent 70%)',
+            animation:'flai-prism-pulse 5s ease-in-out infinite', pointerEvents:'none'
+          }}),
+          h('div',{style:{display:'flex', alignItems:'center', gap:6, position:'relative'}},
+            h('div',{style:{
+              width:6, height:6, borderRadius:'50%', background:'#69F0AE',
+              boxShadow:'0 0 8px #69F0AE', animation:'flai-dot-pulse 2s ease-in-out infinite'
+            }}),
+            h('span',{style:{color:'rgba(105,240,174,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 수입')
+          ),
+          h('div',{style:{
+            position:'relative', fontSize:17, fontWeight:900, marginTop:3, letterSpacing:'-0.3px',
+            background:'linear-gradient(90deg,#B9F6CA,#69F0AE)',
+            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+          }}, fmt(monthTotals.income)),
+          h('div',{style:{position:'relative', display:'flex', alignItems:'center', gap:5, marginTop:2}},
+            h('span',{style:{color:'rgba(105,240,174,0.5)', fontSize:9, fontWeight:700}}, monthTotals.incCnt+'건'),
+            monthTotals.incCnt>0 && h('span',{style:{
+              fontSize:8, color:'#69F0AE', fontWeight:700, padding:'1px 5px', borderRadius:6,
+              background:'rgba(105,240,174,0.12)', border:'1px solid rgba(105,240,174,0.3)'
+            }}, '👆 상세')
           )
         )
       ),
-
-      // 수입/지출 요약
-      (selInc > 0 || selExp > 0) && h('div', {style:{display:'flex', gap:8, marginBottom:10}},
-        selInc > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.green+'11', borderRadius:8, border:'1px solid '+C.green+'33'}},
-          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '수입'),
-          h('p', {style:{color:C.green, fontSize:14, fontWeight:800, margin:0}}, fmt(selInc))
-        ),
-        selExp > 0 && h('div', {style:{flex:1, padding:'8px 10px', background:C.red+'11', borderRadius:8, border:'1px solid '+C.red+'33'}},
-          h('p', {style:{color:C.muted, fontSize:9, margin:0}}, '지출'),
-          h('p', {style:{color:C.red, fontSize:14, fontWeight:800, margin:0}}, fmt(selExp))
+      h('div',{onClick:function(){ if(monthTotals.expCnt>0) setDetailType('expense'); },
+        style:{
+          position:'relative', borderRadius:18, padding:1,
+          background:'linear-gradient(135deg, rgba(255,61,113,0.55), rgba(255,107,0,0.3))',
+          cursor:monthTotals.expCnt>0?'pointer':'default',
+          boxShadow:'0 6px 22px rgba(255,61,113,0.18)'
+        }},
+        h('div',{style:{
+          position:'relative', borderRadius:17, padding:'10px 12px', overflow:'hidden',
+          background:'linear-gradient(155deg, rgba(28,12,18,0.97), rgba(10,14,26,0.99))'
+        }},
+          h('div',{style:{
+            position:'absolute', top:-20, right:-15, width:80, height:80, borderRadius:'50%',
+            background:'radial-gradient(circle, rgba(255,61,113,0.18), transparent 70%)',
+            animation:'flai-prism-pulse 5.5s ease-in-out infinite', pointerEvents:'none'
+          }}),
+          h('div',{style:{display:'flex', alignItems:'center', gap:6, position:'relative'}},
+            h('div',{style:{
+              width:6, height:6, borderRadius:'50%', background:'#FF3D71',
+              boxShadow:'0 0 8px #FF3D71', animation:'flai-dot-pulse 2s ease-in-out infinite'
+            }}),
+            h('span',{style:{color:'rgba(255,182,193,0.75)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '월 지출')
+          ),
+          h('div',{style:{
+            position:'relative', fontSize:17, fontWeight:900, marginTop:3, letterSpacing:'-0.3px',
+            background:'linear-gradient(90deg,#FFB6C1,#FF3D71)',
+            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+          }}, fmt(monthTotals.expense)),
+          h('div',{style:{position:'relative', display:'flex', alignItems:'center', gap:5, marginTop:2}},
+            h('span',{style:{color:'rgba(255,182,193,0.5)', fontSize:9, fontWeight:700}}, monthTotals.expCnt+'건'),
+            monthTotals.expCnt>0 && h('span',{style:{
+              fontSize:8, color:'#FF3D71', fontWeight:700, padding:'1px 5px', borderRadius:6,
+              background:'rgba(255,61,113,0.12)', border:'1px solid rgba(255,61,113,0.3)'
+            }}, '👆 상세')
+          )
         )
-      ),
+      )
+    ),
 
-      // 거래 내역
-      selTxs.length === 0 && !(selInc > 0 || selExp > 0) && !getHoliday(selDate) && !memos[selDate] && h('p', {style:{textAlign:'center', color:C.muted, fontSize:12, padding:'8px 0'}}, '이 날짜에 기록이 없습니다'),
-      selTxs.length > 0 && h('div', null,
-        h('p', {style:{color:C.muted, fontSize:10, fontWeight:700, marginBottom:6}}, '거래 내역 ('+selTxs.length+'건)'),
-        selTxs.map(function(tx, ti) {
-          var txCat = getCat(tx.catId); var mem = getMem(tx.member);
-          var isInc = tx.type === 'income'; var amtColor = isInc ? C.green : C.red;
-          var hasTxMemo = tx.memo && tx.memo.length > 0;
-          var longMemo = tx.memo && tx.memo.length > 18;
-          return h('div', {key:tx.id, style:{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0',
-            borderBottom:ti < selTxs.length-1 ? '1px solid '+C.faint : 'none'}},
-            h('div', {style:{width:36, height:36, borderRadius:10, background:txCat.color+'22',
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
-              boxShadow:'0 2px 6px '+txCat.color+'33'}}, txCat.icon),
-            h('div', {style:{flex:1, minWidth:0}},
-              h('div', {style:{display:'flex', alignItems:'center', gap:6, marginBottom:2}},
-                h('span', {style:{color:C.text, fontSize:13, fontWeight:700}}, tx.store || '미입력'),
-                h('span', {style:{background:txCat.color+'22', color:txCat.color, fontSize:9, padding:'1px 5px', borderRadius:4}}, txCat.name),
-                tx.subCat && h('span', {style:{background:C.faint, color:C.muted, fontSize:8, padding:'1px 4px', borderRadius:3}}, tx.subCat)
+    // ═══ 범례 (네온 캡슐) ═══
+    h('div',{style:{
+      display:'flex', gap:6, justifyContent:'center', marginBottom:10, flexWrap:'wrap',
+      padding:'6px 10px', borderRadius:14,
+      background:'linear-gradient(90deg, rgba(0,229,255,0.05), rgba(124,58,237,0.05))',
+      border:'1px solid rgba(0,229,255,0.12)'
+    }},
+      [
+        {dot:'#FF3D71', label:'지출', sym:'●'},
+        {dot:'#FFD600', label:'수입', sym:'★'},
+        {dot:'#FF6B6B', label:'공휴일', sym:'🎌'},
+        {dot:'#00F5FF', label:'메모', sym:'📌'}
+      ].map(function(l,li){
+        return h('span',{key:li, style:{
+          display:'inline-flex', alignItems:'center', gap:4,
+          fontSize:9, fontWeight:700, color:'rgba(240,240,255,0.6)',
+          padding:'2px 8px', borderRadius:10,
+          background:'rgba(255,255,255,0.04)',
+          border:'1px solid rgba(255,255,255,0.08)'
+        }},
+          h('span',{style:{fontSize:9, color:l.dot, textShadow:'0 0 6px '+l.dot}}, l.sym),
+          l.label
+        );
+      })
+    ),
+
+    // ═══ 달력 그리드 (Cosmic Grid) ═══
+    h('div',{style:{
+      position:'relative', borderRadius:22, padding:1.4, marginBottom:12,
+      background:'linear-gradient(135deg, rgba(0,245,255,0.4), rgba(124,58,237,0.3), rgba(255,215,0,0.3))',
+      boxShadow:'0 10px 38px rgba(0,0,0,0.55)'
+    }},
+      h('div',{style:{
+        position:'relative', borderRadius:21, overflow:'hidden', padding:'12px 8px',
+        background:'linear-gradient(155deg, rgba(10,14,28,0.98), rgba(8,11,22,0.99))',
+        backdropFilter:'blur(20px)'
+      }},
+        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.22, pointerEvents:'none'}}),
+        // 요일 헤더
+        h('div',{style:{
+          position:'relative', display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:8,
+          padding:'4px 0', borderBottom:'1px solid rgba(0,229,255,0.12)'
+        }},
+          dayLabels.map(function(d,i){
+            var dayColor = i===0 ? '#FF6B6B' : (i===6 ? '#00F5FF' : 'rgba(240,240,255,0.65)');
+            return h('div',{key:d, style:{
+              textAlign:'center', fontSize:11, fontWeight:800, color:dayColor, padding:'4px 0',
+              letterSpacing:'0.3px',
+              textShadow:'0 0 8px '+dayColor+'55'
+            }}, d);
+          })
+        ),
+        // 날짜 셀
+        h('div',{style:{
+          position:'relative', display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3
+        }},
+          cells.map(function(cell, idx){
+            if (!cell.inMonth){
+              return h('div',{key:'e'+idx, style:{
+                aspectRatio:'1', borderRadius:10, opacity:0.22,
+                background:'rgba(255,255,255,0.02)',
+                display:'flex', alignItems:'center', justifyContent:'center'
+              }},
+                h('span',{style:{fontSize:10, color:'rgba(255,255,255,0.3)'}}, cell.day)
+              );
+            }
+            var dateStr = makeDateStr(cell.day);
+            var data = dayMap[dateStr];
+            var hasInc = data && data.incCnt > 0;
+            var hasExp = data && data.expCnt > 0;
+            var hasData = hasInc || hasExp;
+            var isToday = dateStr === todayStr;
+            var isSel = dateStr === selDate;
+            var dow = idx % 7;
+            var holiday = getHoliday(dateStr);
+            var hasMemo = !!memos[dateStr];
+            var isHoliday = !!holiday;
+
+            // 색상 결정
+            var numColor = isHoliday ? '#FF6B6B'
+              : (isToday ? '#FFD600'
+              : (dow===0 ? '#FF6B6B'
+              : (dow===6 ? '#00F5FF' : '#F0F0FF')));
+
+            // 셀 배경 결정
+            var bgGrad;
+            var brd = 'rgba(255,255,255,0.04)';
+            var shadow = 'none';
+            if(isSel){
+              bgGrad = 'linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,145,0,0.16))';
+              brd = 'rgba(255,215,0,0.8)';
+              shadow = '0 0 18px rgba(255,215,0,0.5)';
+            } else if(isToday){
+              bgGrad = 'linear-gradient(135deg, rgba(0,245,255,0.18), rgba(124,58,237,0.12))';
+              brd = 'rgba(0,245,255,0.5)';
+              shadow = '0 0 14px rgba(0,229,255,0.35)';
+            } else if(isHoliday){
+              bgGrad = 'linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,61,113,0.05))';
+              brd = 'rgba(255,107,107,0.3)';
+            } else if(hasData){
+              bgGrad = 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))';
+              brd = 'rgba(0,229,255,0.18)';
+            } else {
+              bgGrad = 'rgba(255,255,255,0.015)';
+            }
+
+            var cellClass = 'flai-cal-cell' +
+              (isToday?' flai-cal-today':'') +
+              (isSel?' flai-cal-selected':'');
+
+            return h('div',{
+              key:dateStr, onClick:function(){ selectDate(dateStr); },
+              className: cellClass,
+              style:{
+                aspectRatio:'1', borderRadius:10,
+                background:bgGrad,
+                border:'1px solid '+brd,
+                boxShadow:shadow,
+                cursor:'pointer',
+                display:'flex', flexDirection:'column',
+                alignItems:'stretch', justifyContent:'space-between',
+                padding:'3px 3px',
+                position:'relative', overflow:'hidden',
+                animationDelay: (idx*0.012)+'s'
+              }
+            },
+              // 상단: 날짜 + 메모
+              h('div',{style:{
+                display:'flex', justifyContent:'space-between', alignItems:'flex-start', width:'100%'
+              }},
+                h('span',{style:{
+                  fontSize:12, fontWeight:isToday||isSel?900:(isHoliday?700:600),
+                  color:numColor, lineHeight:1,
+                  textShadow:isToday||isSel?'0 0 8px '+numColor+'AA':'none'
+                }}, cell.day),
+                hasMemo && h('span',{style:{
+                  fontSize:8, lineHeight:1, filter:'drop-shadow(0 0 4px #00F5FF)'
+                }}, '📌')
               ),
-              h('p', {style:{color:C.muted, fontSize:10, margin:'1px 0'}}, (tx.date||'')+' · '+mem.name+' · '+(tx.method||'기타')),
-              hasTxMemo && h('div', {className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color:C.accent+'BB'}},
-                h('span', {className:longMemo?'memo-scroll':'', style:{paddingLeft:longMemo?0:4}}, '📝 '+tx.memo)
-              )
+              // 중앙: 공휴일 라벨
+              isHoliday && h('div',{style:{
+                fontSize:6, color:'#FF6B6B', fontWeight:700,
+                textAlign:'center', letterSpacing:'-0.2px',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                lineHeight:1, marginTop:1
+              }}, holiday.length > 3 ? holiday.substring(0,3) : holiday),
+              // 하단: 수입/지출 글로우 도트
+              hasData && h('div',{style:{
+                display:'flex', gap:3, justifyContent:'center', alignItems:'center', marginBottom:1
+              }},
+                hasExp && h('div',{style:{
+                  width:5, height:5, borderRadius:'50%',
+                  background:'radial-gradient(circle,#FF3D71,#FF007C)',
+                  boxShadow:'0 0 6px #FF3D71',
+                  animation:'flai-dot-pulse 2s ease-in-out infinite'
+                }}),
+                hasInc && h('div',{style:{
+                  width:5, height:5, borderRadius:'50%',
+                  background:'radial-gradient(circle,#FFD600,#FF9100)',
+                  boxShadow:'0 0 6px #FFD600',
+                  animation:'flai-dot-pulse 2.3s ease-in-out infinite'
+                }})
+              ),
+              // 선택 시 코너 마커
+              isSel && h('div',{style:{
+                position:'absolute', top:-1, right:-1, width:8, height:8,
+                background:'linear-gradient(135deg,#FFD600,#FF9100)',
+                clipPath:'polygon(100% 0, 0 0, 100% 100%)',
+                boxShadow:'0 0 6px #FFD600'
+              }})
+            );
+          })
+        )
+      )
+    ),
+
+    // ═══ 선택된 날짜 상세 패널 (Hologram Detail) ═══
+    selDate && h('div',{style:{
+      position:'relative', borderRadius:22, padding:1.4, marginBottom:12,
+      background:'linear-gradient(135deg, rgba(255,215,0,0.5), rgba(0,245,255,0.4) 50%, rgba(124,58,237,0.4))',
+      boxShadow:'0 10px 38px rgba(0,0,0,0.6), 0 0 50px rgba(255,215,0,0.15)'
+    }},
+      h('div',{className:'flai-holo-scan', style:{
+        position:'relative', borderRadius:21, overflow:'hidden', padding:14,
+        background:'linear-gradient(155deg, rgba(14,16,32,0.98), rgba(8,10,22,0.99))',
+        backdropFilter:'blur(28px)'
+      }},
+        h('div',{className:'flai-holo-grid', style:{position:'absolute', inset:0, opacity:0.25, pointerEvents:'none'}}),
+
+        // 헤더
+        h('div',{style:{
+          position:'relative', zIndex:2,
+          display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12
+        }},
+          h('div',null,
+            h('div',{style:{
+              color:'rgba(255,215,0,0.75)', fontSize:9, fontWeight:800, letterSpacing:'1.5px'
+            }}, calYear+' · '+String(calMonth).padStart(2,'0')),
+            h('div',{style:{
+              fontSize:18, fontWeight:900, letterSpacing:'-0.3px', marginTop:1,
+              background:'linear-gradient(90deg,#FFFFFF,#FFD600,#FF9100)',
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+              filter:'drop-shadow(0 0 6px rgba(255,215,0,0.4))'
+            }}, '📅 '+parseInt(selDate.split('-')[2])+'일 ('+dayLabels[new Date(selDate).getDay()]+')')
+          ),
+          h('button',{onClick:function(){ setSelDate(null); setMemoEdit(false); }, style:{
+            background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
+            color:'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:10,
+            fontSize:11, fontWeight:700, cursor:'pointer'
+          }}, '✕ 닫기')
+        ),
+
+        // 공휴일 배지
+        getHoliday(selDate) && h('div',{style:{
+          position:'relative', zIndex:2, marginBottom:10,
+          padding:'8px 12px', borderRadius:12,
+          background:'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,61,113,0.1))',
+          border:'1px solid rgba(255,107,107,0.4)',
+          boxShadow:'0 0 12px rgba(255,61,113,0.18)'
+        }},
+          h('span',{style:{color:'#FF6B6B', fontSize:12, fontWeight:800}}, '🎌 공휴일: '+getHoliday(selDate))
+        ),
+
+        // 메모 홀로그램 패널
+        h('div',{style:{
+          position:'relative', zIndex:2, marginBottom:10,
+          borderRadius:14, padding:1,
+          background:'linear-gradient(135deg, rgba(0,245,255,0.35), rgba(124,58,237,0.25))'
+        }},
+          h('div',{style:{
+            borderRadius:13, padding:'10px 12px',
+            background:'linear-gradient(155deg, rgba(10,18,32,0.95), rgba(12,10,24,0.95))'
+          }},
+            h('div',{style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}},
+              h('div',{style:{display:'flex', alignItems:'center', gap:6}},
+                h('div',{style:{
+                  width:18, height:18, borderRadius:5,
+                  background:'linear-gradient(135deg,#00F5FF,#7C3AED)',
+                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:10,
+                  boxShadow:'0 0 8px rgba(0,229,255,0.5)'
+                }}, '📌'),
+                h('span',{style:{color:'#9BE7FF', fontSize:11, fontWeight:800, letterSpacing:'0.5px'}}, '메모')
+              ),
+              !isMemoEdit && h('button',{onClick:function(){ setMemoEdit(true); setMemoText(memos[selDate] || ''); },
+                style:{
+                  background:'linear-gradient(135deg,rgba(0,245,255,0.2),rgba(124,58,237,0.2))',
+                  border:'1px solid rgba(0,245,255,0.5)', color:'#9BE7FF',
+                  padding:'3px 12px', borderRadius:8, fontSize:10, fontWeight:800, cursor:'pointer',
+                  boxShadow:'0 0 8px rgba(0,229,255,0.25)'
+                }
+              }, memos[selDate] ? '✎ 수정' : '+ 추가')
             ),
-            h('div', {style:{textAlign:'right', flexShrink:0}},
-              h('p', {style:{color:amtColor, fontSize:14, fontWeight:800, margin:0}}, (isInc?'+':'-')+fmt(tx.amount).replace('₩','')),
-              h('span', {style:{fontSize:9, color:C.muted}}, isInc?'수입':'지출')
+            !isMemoEdit && memos[selDate] && h('p',{style:{
+              color:'rgba(240,240,255,0.85)', fontSize:12, margin:'4px 0 0', lineHeight:1.6,
+              padding:'6px 8px', borderRadius:8, background:'rgba(0,245,255,0.04)'
+            }}, memos[selDate]),
+            !isMemoEdit && !memos[selDate] && h('p',{style:{
+              color:'rgba(155,231,255,0.45)', fontSize:11, margin:'4px 0 0', fontStyle:'italic'
+            }}, '✨ 기념일이나 특별한 날을 기록해보세요'),
+            isMemoEdit && h('div',{style:{marginTop:6}},
+              h('textarea',{
+                value:memoText, placeholder:'기념일, 약속, 특별한 날 등 자유롭게 기록하세요',
+                onChange:function(e){ setMemoText(e.target.value); },
+                style:{
+                  width:'100%', minHeight:60, padding:'8px 10px',
+                  background:'rgba(0,0,0,0.3)', color:'#F0F0FF',
+                  border:'1px solid rgba(0,245,255,0.4)', borderRadius:8,
+                  fontSize:12, resize:'vertical', outline:'none', fontFamily:'inherit'
+                }
+              }),
+              h('div',{style:{display:'flex', gap:6, marginTop:6, justifyContent:'flex-end'}},
+                memos[selDate] && h('button',{onClick:deleteMemo, style:{
+                  background:'rgba(255,61,113,0.15)', border:'1px solid rgba(255,61,113,0.4)',
+                  color:'#FF6B6B', padding:'5px 12px', borderRadius:8,
+                  fontSize:11, fontWeight:800, cursor:'pointer'
+                }}, '🗑 삭제'),
+                h('button',{onClick:function(){ setMemoEdit(false); setMemoText(memos[selDate]||''); }, style:{
+                  background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
+                  color:'rgba(240,240,255,0.7)', padding:'5px 12px', borderRadius:8,
+                  fontSize:11, fontWeight:700, cursor:'pointer'
+                }}, '취소'),
+                h('button',{onClick:saveMemo, style:{
+                  background:'linear-gradient(135deg,#00F5FF,#7C3AED)', border:'none',
+                  color:'#0A0E27', padding:'5px 14px', borderRadius:8,
+                  fontSize:11, fontWeight:900, cursor:'pointer',
+                  boxShadow:'0 0 12px rgba(0,229,255,0.4)'
+                }}, '✓ 저장')
+              )
             )
-          );
-        })
+          )
+        ),
+
+        // 수입/지출 미니 KPI
+        (selInc > 0 || selExp > 0) && h('div',{style:{
+          position:'relative', zIndex:2,
+          display:'flex', gap:8, marginBottom:10
+        }},
+          selInc > 0 && h('div',{style:{
+            flex:1, padding:'8px 12px', borderRadius:12,
+            background:'linear-gradient(135deg, rgba(105,240,174,0.12), rgba(0,191,165,0.06))',
+            border:'1px solid rgba(105,240,174,0.35)',
+            position:'relative', overflow:'hidden'
+          }},
+            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:'#69F0AE', boxShadow:'0 0 8px #69F0AE'}}),
+            h('div',{style:{color:'rgba(105,240,174,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '수입'),
+            h('div',{style:{
+              fontSize:15, fontWeight:900, marginTop:1,
+              background:'linear-gradient(90deg,#B9F6CA,#69F0AE)',
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+            }}, fmt(selInc))
+          ),
+          selExp > 0 && h('div',{style:{
+            flex:1, padding:'8px 12px', borderRadius:12,
+            background:'linear-gradient(135deg, rgba(255,61,113,0.12), rgba(255,107,0,0.06))',
+            border:'1px solid rgba(255,61,113,0.35)',
+            position:'relative', overflow:'hidden'
+          }},
+            h('div',{style:{position:'absolute', left:0, top:0, bottom:0, width:3, background:'#FF3D71', boxShadow:'0 0 8px #FF3D71'}}),
+            h('div',{style:{color:'rgba(255,182,193,0.7)', fontSize:9, fontWeight:700, letterSpacing:'1px'}}, '지출'),
+            h('div',{style:{
+              fontSize:15, fontWeight:900, marginTop:1,
+              background:'linear-gradient(90deg,#FFB6C1,#FF3D71)',
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'
+            }}, fmt(selExp))
+          )
+        ),
+
+        // 거래 내역
+        selTxs.length === 0 && !(selInc > 0 || selExp > 0) && !getHoliday(selDate) && !memos[selDate] && h('div',{style:{
+          position:'relative', zIndex:2,
+          textAlign:'center', padding:'14px 0', color:'rgba(240,240,255,0.4)',
+          fontSize:12, fontStyle:'italic'
+        }}, '🌌 이 날짜에 기록이 없습니다'),
+        selTxs.length > 0 && h('div',{style:{position:'relative', zIndex:2}},
+          h('div',{style:{
+            display:'flex', alignItems:'center', gap:6, marginBottom:8
+          }},
+            h('div',{style:{
+              width:14, height:14, borderRadius:4,
+              background:'linear-gradient(135deg,#FFD600,#FF9100)',
+              boxShadow:'0 0 6px rgba(255,215,0,0.5)'
+            }}),
+            h('span',{style:{
+              color:'rgba(240,240,255,0.85)', fontSize:11, fontWeight:800, letterSpacing:'0.3px'
+            }}, '거래 내역'),
+            h('span',{style:{
+              fontSize:9, padding:'1px 8px', borderRadius:8,
+              background:'rgba(0,245,255,0.1)', color:'#9BE7FF', fontWeight:700,
+              border:'1px solid rgba(0,245,255,0.25)'
+            }}, selTxs.length+'건')
+          ),
+          selTxs.map(function(tx, ti){
+            var txCat = getCat(tx.catId); var mem = getMem(tx.member);
+            var isInc = tx.type === 'income'; var amtColor = isInc ? '#69F0AE' : '#FF6B6B';
+            var hasTxMemo = tx.memo && tx.memo.length > 0;
+            var longMemo = tx.memo && tx.memo.length > 18;
+            return h('div',{key:tx.id, style:{
+              display:'flex', alignItems:'flex-start', gap:10, padding:'10px 8px',
+              borderRadius:10,
+              background:ti%2===0 ? 'rgba(255,255,255,0.025)' : 'transparent',
+              marginBottom:4, position:'relative'
+            }},
+              h('div',{style:{
+                width:36, height:36, borderRadius:11, background:txCat.color+'22',
+                border:'1px solid '+txCat.color+'44',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0,
+                boxShadow:'0 2px 8px '+txCat.color+'44, inset 0 0 4px rgba(255,255,255,0.1)'
+              }}, txCat.icon),
+              h('div',{style:{flex:1, minWidth:0}},
+                h('div',{style:{display:'flex', alignItems:'center', gap:5, marginBottom:2, flexWrap:'wrap'}},
+                  h('span',{style:{color:'#F0F0FF', fontSize:13, fontWeight:800}}, tx.store || '미입력'),
+                  h('span',{style:{
+                    background:txCat.color+'22', color:txCat.color,
+                    fontSize:8.5, padding:'1px 6px', borderRadius:6, fontWeight:700,
+                    border:'1px solid '+txCat.color+'33'
+                  }}, txCat.name),
+                  tx.subCat && h('span',{style:{
+                    background:'rgba(255,255,255,0.04)', color:'rgba(240,240,255,0.5)',
+                    fontSize:8, padding:'1px 5px', borderRadius:5
+                  }}, tx.subCat)
+                ),
+                h('p',{style:{color:'rgba(240,240,255,0.45)', fontSize:10, margin:'1px 0'}},
+                  (tx.date||'')+' · '+mem.name+' · '+(tx.method||'기타')
+                ),
+                hasTxMemo && h('div',{className:'memo-container', style:{marginTop:3, height:18, fontSize:11, color:'rgba(0,245,255,0.75)'}},
+                  h('span',{className:longMemo?'memo-scroll':'', style:{paddingLeft:longMemo?0:4}}, '📝 '+tx.memo)
+                )
+              ),
+              h('div',{style:{textAlign:'right', flexShrink:0}},
+                h('p',{style:{
+                  color:amtColor, fontSize:14, fontWeight:900, margin:0,
+                  textShadow:'0 0 8px '+amtColor+'55', letterSpacing:'-0.2px'
+                }}, (isInc?'+':'-')+fmt(tx.amount).replace('₩','')),
+                h('span',{style:{fontSize:8.5, color:'rgba(240,240,255,0.4)', fontWeight:700}}, isInc?'수입':'지출')
+              )
+            );
+          })
+        )
       )
     ),
 
@@ -10264,7 +10958,7 @@ function BNav(props) {
     {id:'settings',  icon:'⚙️', lbl:'설정'}
   ];
 
-  return h('div', {
+return h('div', {
     style: {
       position: 'fixed',
       bottom: 12,
@@ -10280,6 +10974,7 @@ function BNav(props) {
       display: 'flex',
       zIndex: 100,
       padding: '6px 2px',
+      overflow: 'visible',
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px ' + C.glow
     }
   },
@@ -10305,36 +11000,40 @@ function BNav(props) {
           color: ia ? C.accent : C.muted,
           transition: 'all 0.2s ease',
           outline: 'none',
-          position: 'relative'
+          position: 'relative',
+          overflow: 'visible'
         }
       },
         isA
           ? h('div', {
               style: {
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 borderRadius: '50%',
                 background: C.navGrad,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginTop: -24,
-                fontSize: 24,
+                position: 'absolute',
+                top: -32,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                border: '3px solid rgba(8, 10, 20, 0.9)',
+                fontSize: 26,
                 color: '#000',
                 fontWeight: 900,
                 boxShadow: '0 8px 20px ' + C.glow + ', inset 0 1px 0 rgba(255, 255, 255, 0.4)'
               }
             }, '+')
           : h('div', {
-              style: {
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                transform: ia ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              style:{
+                display:'flex',
+                flexDirection:'column',
+                alignItems:'center',
+                gap: 2
               }
             },
-              h('span', { style: { fontSize: 18, marginBottom: 1 } }, t.icon),
+              h('span', { style: { fontSize: 18 } }, t.icon),
               h('span', { style: { fontSize: 8, fontWeight: ia ? 800 : 500, color: ia ? C.accent : C.muted } }, t.lbl)
             ),
         (!isA && ia) && h('div', {
