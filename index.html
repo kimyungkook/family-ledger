@@ -546,9 +546,81 @@ var THEME_NEO2030 = {
   navGrad: 'linear-gradient(90deg, #00FFFF, #FF00FF)'
 };
 
+/* =========================================================================
+   🎨 [THEME PALETTE MATRIX] 테마별 원클릭 독립형 3D 팔레트 정의
+   ========================================================================= */
+var PALETTES = {
+  dark: {
+    default: {
+      accent: '#00E5FF', bg: '#0A0E1A', card: '#141B2D', card2: '#1C2541', border: '#233056', text: '#E8ECF1', muted: '#7B8CA3',
+      chart: ['#00E5FF', '#7C3AED', '#FF007C', '#FFD600', '#00FF9D'], grad: '#7C3AED', glow: 'rgba(0,229,255,0.25)'
+    },
+    cyber_purple: {
+      accent: '#BD00FF', bg: '#070014', card: '#12002A', card2: '#1E003E', border: '#3A0066', text: '#F3E5F5', muted: '#B39DDB',
+      chart: ['#BD00FF', '#00FFFF', '#FF0055', '#FFD700', '#7C4DFF'], grad: '#BD00FF', glow: 'rgba(189,0,255,0.25)'
+    },
+    emerald_matrix: {
+      accent: '#00FF88', bg: '#020C06', card: '#061D0F', card2: '#0D331A', border: '#124D28', text: '#E8F5E9', muted: '#81C784',
+      chart: ['#00FF88', '#00E5FF', '#FFD700', '#7C4DFF', '#FF3D71'], grad: '#00FF88', glow: 'rgba(0,255,136,0.25)'
+    }
+  },
+  light: {
+    default: {
+      accent: '#00BFA5', bg: '#EFF4FB', card: '#FFFFFF', card2: '#E4EBF5', border: '#D1D9E6', text: '#1A2138', muted: '#7B8794',
+      chart: ['#00BFA5', '#6C5CE7', '#FF6B6B', '#FFB300', '#0984E3'], grad: '#0984E3', glow: 'rgba(0,191,165,0.12)'
+    },
+    neo_light: {
+      accent: '#3B82F6', bg: '#F8FAFC', card: '#FFFFFF', card2: '#F1F5F9', border: '#E2E8F0', text: '#0F172A', muted: '#64748B',
+      chart: ['#7DD3FC', '#3B82F6', '#60A5FA', '#4ADE80', '#FDBA74'], grad: '#3B82F6', glow: 'rgba(59,130,246,0.12)'
+    },
+    lavender_haze: {
+      accent: '#8E44AD', bg: '#F5EDF9', card: '#FFFFFF', card2: '#EADCF2', border: '#D5C4E0', text: '#2C1B3D', muted: '#8A7A99',
+      chart: ['#8E44AD', '#D980FA', '#4ECDC4', '#FF7E67', '#00CECE'], grad: '#8E44AD', glow: 'rgba(142,68,173,0.12)'
+    }
+  },
+  cozy: {
+    default: {
+      accent: '#FFAC5F', bg: 'linear-gradient(180deg, #1E1E1E 0%, #121212 100%)', 
+      card: 'linear-gradient(135deg, rgba(50,35,25,0.98) 0%, rgba(35,22,15,0.95) 50%, rgba(20,12,8,0.98) 100%)',
+      card2: 'linear-gradient(135deg, rgba(70,50,40,0.98) 0%, rgba(45,30,22,0.95) 100%)',
+      border: 'rgba(255, 196, 107, 0.35)', text: '#FFF9F2', muted: '#C7B19D',
+      chart: ['#FFAC5F', '#FFD38C', '#FF7E67', '#FFC46B', '#74E682'], grad: 'linear-gradient(135deg, #FFD38C 0%, #FF9E45 40%, #E67E22 100%)', glow: 'rgba(255,158,69,0.35)'
+    },
+    cozy_wood: {
+      accent: '#D97706', bg: 'linear-gradient(180deg, #1A0D00 0%, #0A0500 100%)', 
+      card: 'linear-gradient(135deg, #3A230F 0%, #201205 100%)',
+      card2: 'linear-gradient(135deg, #4D3118 0%, #2F1A0B 100%)',
+      border: 'rgba(217,119,6,0.35)', text: '#FFFBEB', muted: '#D97706',
+      chart: ['#F59E0B', '#D97706', '#B45309', '#FBBF24', '#78350F'], grad: 'linear-gradient(135deg, #FBBF24, #D97706)', glow: 'rgba(217,119,6,0.3)'
+    },
+    cozy_moss: {
+      accent: '#84CC16', bg: 'linear-gradient(180deg, #0F172A 0%, #020617 100%)', 
+      card: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+      card2: 'linear-gradient(135deg, #334155 0%, #1E293B 100%)',
+      border: 'rgba(132,204,22,0.3)', text: '#F8FAFC', muted: '#94A3B8',
+      chart: ['#84CC16', '#65A30D', '#4D7C0F', '#A3E635', '#475569'], grad: 'linear-gradient(135deg, #A3E635, #65A30D)', glow: 'rgba(132,204,22,0.3)'
+    }
+  },
+  neo2030: {
+    default: {
+      accent: '#00FFFF', bg: '#000000', card: 'rgba(0, 255, 255, 0.03)', card2: 'rgba(15, 0, 40, 0.88)', border: 'rgba(0, 255, 255, 0.22)', text: '#E8F4FF', muted: 'rgba(160, 220, 255, 0.62)',
+      chart: ['#00FFFF', '#FF00FF', '#FF0066', '#00FF88', '#FFD700'], grad: '#FF00FF', glow: 'rgba(0, 255, 255, 0.42)'
+    },
+    laser_grid: {
+      accent: '#FF007F', bg: '#0A000A', card: 'rgba(255,0,127,0.03)', card2: 'rgba(20,0,30,0.85)', border: 'rgba(255,0,127,0.22)', text: '#FFE4E1', muted: 'rgba(255,182,193,0.6)',
+      chart: ['#FF007F', '#00FFFF', '#7C3AED', '#FFD600', '#00FF88'], grad: '#00FFFF', glow: 'rgba(255,0,127,0.42)'
+    }
+  }
+};
+
 var C = savedTheme === 'light' ? THEME_LIGHT 
       : (savedTheme === 'cozy' ? THEME_COZY 
       : (savedTheme === 'neo2030' ? THEME_NEO2030 : THEME_DARK));
+
+/* ★ 테마별 원클릭 독립형 활성화 팔레트 추출 및 주입 */
+var activePalKey = localStorage.getItem('flai_palette_' + savedTheme) || 'default';
+var activePal = PALETTES[savedTheme][activePalKey] || PALETTES[savedTheme]['default'];
+Object.assign(C, activePal);
 
 document.body.style.background = typeof C.bg === 'string' ? C.bg : '#000000';
 document.body.style.color = C.text;
@@ -2115,16 +2187,21 @@ function DonutChart(props) {
   var size = props.size || 110;
   var totalLabel = props.totalLabel || null;
 
+  /* ★ 테마 정보 불러오기 */
+  var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+  var isLight = currentTheme === 'light';
+  var isCozy  = currentTheme === 'cozy';
+
   if (!data.length) return h('div',{style:{
     width:size, height:size, borderRadius:'50%',
-    background:'radial-gradient(circle, #1C2541, #0A0E1A)',
-    boxShadow:'0 0 20px rgba(0,229,255,0.1)'
+    background: isLight ? '#F1F5F9' : 'radial-gradient(circle, #1C2541, #0A0E1A)',
+    boxShadow: isLight ? 'inset 0 2px 6px rgba(0,0,0,0.05)' : '0 0 20px rgba(0,229,255,0.1)'
   }});
 
   var total = data.reduce(function(s,d){return s+d.value;},0);
   if (!total) return h('div',{style:{
     width:size, height:size, borderRadius:'50%',
-    background:'radial-gradient(circle, #1C2541, #0A0E1A)'
+    background: isLight ? '#F1F5F9' : 'radial-gradient(circle, #1C2541, #0A0E1A)'
   }});
 
   var cx = size/2, cy = size/2;
@@ -2132,8 +2209,14 @@ function DonutChart(props) {
   var angle = -Math.PI/2;
   var paths = [], glowFilters = [];
 
-  // 네온 그라데이션 팔레트
-  var neonPalette = [
+  /* ★ 테마별 완벽 맞춤 팔레트 */
+  var neonPalette = isLight ? [
+    ['#FF7E67','#FF4757'], ['#00CECE','#0097A7'], ['#FFC312','#F39C12'],
+    ['#00E676','#00BFA5'], ['#D980FA','#8E44AD'], ['#FF8A65','#FF5252']
+  ] : isCozy ? [
+    ['#E67E22','#D35400'], ['#16A085','#1ABC9C'], ['#F1C40F','#F39C12'],
+    ['#E74C3C','#C0392B'], ['#8E44AD','#9B59B6'], ['#FF8A65','#FF5252']
+  ] : [
     ['#FF6B6B','#FF007C'], ['#00E5FF','#536DFE'], ['#FFD600','#FF9800'],
     ['#69F0AE','#00BFA5'], ['#CE93D8','#7C3AED'], ['#FF8A65','#FF5252']
   ];
@@ -2162,19 +2245,19 @@ function DonutChart(props) {
       )
     );
 
-    // 글로우 + 메인 슬라이스
+    // 글로우 + 메인 슬라이스 (라이트 테마에서는 글로우 약하게)
     paths.push(
       h('path', {
         key:'g'+i,
         d:'M'+x1+','+y1+' A'+R+','+R+' 0 '+lg+' 1 '+x2+','+y2+' L'+xi1+','+yi1+' A'+r+','+r+' 0 '+lg+' 0 '+xi2+','+yi2+' Z',
-        fill: 'url(#'+gradId+')', opacity:'0.3',
+        fill: 'url(#'+gradId+')', opacity: isLight ? '0.1' : '0.3',
         style:{filter:'blur(3px)'}
       }),
       h('path', {
         key:'p'+i,
         d:'M'+x1+','+y1+' A'+R+','+R+' 0 '+lg+' 1 '+x2+','+y2+' L'+xi1+','+yi1+' A'+r+','+r+' 0 '+lg+' 0 '+xi2+','+yi2+' Z',
         fill: 'url(#'+gradId+')',
-        stroke: 'rgba(255,255,255,0.1)',
+        stroke: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.1)',
         strokeWidth: 1
       })
     );
@@ -2184,23 +2267,23 @@ function DonutChart(props) {
   return h('div', {style:{position:'relative', width:size, height:size}},
     h('svg', {
       width:size, height:size, viewBox:'0 0 '+size+' '+size,
-      style:{filter:'drop-shadow(0 4px 16px rgba(0,0,0,0.5))'}
+      style:{filter: isLight ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.1))' : 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))'}
     },
       glowFilters, paths,
       h('circle', {
         cx:cx, cy:cy, r:r-2,
-        fill:'rgba(10,14,26,0.9)',
-        stroke:'rgba(255,255,255,0.1)',
+        fill: isLight ? '#FFFFFF' : 'rgba(10,14,26,0.9)',
+        stroke: isLight ? '#E2E8F0' : 'rgba(255,255,255,0.1)',
         strokeWidth:1
       }),
       totalLabel && h('text', {
         x:cx, y:cy-4, textAnchor:'middle',
-        fontSize:9, fill:'rgba(255,255,255,0.6)',
+        fontSize:9, fill: isLight ? '#64748B' : 'rgba(255,255,255,0.6)',
         fontWeight:'600'
       }, '총지출'),
       totalLabel && h('text', {
         x:cx, y:cy+6, textAnchor:'middle',
-        fontSize:12, fill:'#ffffff',
+        fontSize:12, fill: isLight ? '#0F172A' : '#ffffff',
         fontWeight:'800'
       }, totalLabel)
     )
@@ -4594,15 +4677,43 @@ function FamilyGoalManager(props) {
   
   var pct = goals.target > 0 ? Math.min((currentSavings / goals.target) * 100, 100) : 0;
 
-  var barBg;
-  if (pct >= 80) barBg = 'linear-gradient(90deg, #FF8C00, #FFD700)';
-  else if (pct >= 50) barBg = 'linear-gradient(90deg, #F5F5DC, #E1C699)';
-  else barBg = 'linear-gradient(90deg, #5C4033, #3E2723)';
+var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+  var isLight = currentTheme === 'light';
+  var isCozy  = currentTheme === 'cozy';
 
-  var barAnim = pct >= 80 ? 'sparkleOrange 1s infinite alternate' : 'none';
-  var barShadow = 'inset 0 2px 5px rgba(255,255,255,0.4), inset 0 -2px 5px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3)';
+/* ★ 테마별 트랙(배경) 색상 (3D 파이프 느낌) */
+  var trackBg = isLight ? '#E9ECEF' : (isCozy ? '#3E2A1E' : '#1A1A2E');
+  var trackShadow = isLight ? 'inset 0 3px 6px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,1)' : 'inset 0 4px 8px rgba(0,0,0,0.6)';
+  
+  /* ★ 리퀴드 에너지 색상 조합 */
+  var baseGrad = pct >= 80 ? (isLight ? '#FF4757, #FF6B81' : '#FF007C, #FF6B6B') 
+               : pct >= 50 ? (isLight ? '#00BFA5, #1DD1A1' : '#00E5FF, #00BFA5') 
+               : (isLight ? '#536DFE, #70A1FF' : '#7C3AED, #536DFE');
 
+  /* 사선 투명 스트라이프 패턴을 겹쳐서 애니메이션 텍스처 생성 */
+  var barBg = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent), linear-gradient(90deg, ' + baseGrad + ')';
+  var headColor = pct >= 80 ? (isLight?'#FF4757':'#FF007C') : pct >= 50 ? (isLight?'#00BFA5':'#00E5FF') : (isLight?'#536DFE':'#7C3AED');
+
+  /* ★ CSS 애니메이션 동적 주입 */
   useEffect(function() {
+    if(!document.getElementById('flai-liquid-bar-style')) {
+      var s = document.createElement('style');
+      s.id = 'flai-liquid-bar-style';
+      s.innerHTML = 
+        "@keyframes flaiFlowStripe { 0% { background-position: 0 0, 0 0; } 100% { background-position: 40px 0, 0 0; } }\n" +
+        ".flai-liquid-fill {\n" +
+        "  background-size: 40px 40px, 100% 100% !important;\n" +
+        "  animation: flaiFlowStripe 1s linear infinite !important;\n" +
+        "}\n" +
+        ".flai-liquid-head {\n" +
+        "  position: absolute; right: -2px; top: -2px; bottom: -2px; width: 14px;\n" +
+        "  border-radius: 50%; background: #FFF;\n" +
+        "  box-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 16px currentColor;\n" +
+        "  z-index: 2;\n" +
+        "}";
+      document.head.appendChild(s);
+    }
+
     if (pct >= 100 && !goals.isCompleted) {
       setShowFirework(true);
       setGoals(Object.assign({}, goals, { isCompleted: true }));
@@ -4622,7 +4733,7 @@ function FamilyGoalManager(props) {
     setGoals(newGoal); lsSet(LS_GOALS, newGoal); setIsEditing(false); setAiMsg('');
   }
 
-  return h(GCard, {style:{marginBottom:14, background:'linear-gradient(145deg, '+C.card+', '+C.faint+')', border:'1px solid '+C.border, position:'relative', overflow:'hidden'}},
+  return h(GCard, {style:{marginBottom:14, background: isLight ? '#FFFFFF' : 'linear-gradient(145deg, '+C.card+', '+C.faint+')', border: isLight ? '1px solid #E2E8F0' : '1px solid '+C.border, position:'relative', overflow:'hidden', boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.03)' : 'none'}},
     showFirework && h(FireworkHologram, null),
     h('div', {style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}},
       h('div', {style:{display:'flex', alignItems:'center', gap:8}}, h('span', {style:{fontSize:20}}, '🎯'), h('p', {style:{color:C.text, fontSize:15, fontWeight:800, margin:0}}, '가족 공동 목표')),
@@ -4633,9 +4744,22 @@ function FamilyGoalManager(props) {
       h('input', {value:editTarget, onChange:function(e){setEditTarget(e.target.value.replace(/[^0-9]/g,''));}, placeholder:'목표 금액', type:'tel', style:{padding:10, borderRadius:8, background:C.card2, border:'1px solid '+C.border, color:C.text, outline:'none'}}),
       h('button', {onClick:saveGoal, style:{padding:12, borderRadius:8, border:'none', background:C.green, color:'#fff', fontWeight:800, cursor:'pointer'}}, '목표 저장')
     ) : h('div', null,
-      h('div', {style:{display:'flex', justifyContent:'space-between', marginBottom:8}}, h('span', {style:{color:C.text, fontSize:14, fontWeight:700}}, goals.title), h('span', {style:{color: pct >= 80 ? '#FFA500' : C.muted, fontSize:14, fontWeight:800}}, pct.toFixed(1) + '%')),
-      h('div', {style:{width:'100%', height:20, borderRadius:10, background:'#1A1A2E', boxShadow:'inset 0 2px 4px rgba(0,0,0,0.8)', overflow:'hidden', position:'relative'}},
-        h('div', {style:{width: pct+'%', height:'100%', background: barBg, borderRadius:10, boxShadow: barShadow, transition:'width 1s ease-in-out', animation: barAnim}})
+      h('div', {style:{display:'flex', justifyContent:'space-between', marginBottom:8}}, h('span', {style:{color:C.text, fontSize:14, fontWeight:700}}, goals.title), h('span', {style:{color: pct >= 80 ? (isLight?'#FF4757':'#FFA500') : headColor, fontSize:14, fontWeight:800}}, pct.toFixed(1) + '%')),
+      
+      /* ★ 3D 리퀴드 에너지 튜브 */
+      h('div', {style:{width:'100%', height:22, borderRadius:12, background:trackBg, boxShadow:trackShadow, position:'relative', border: isLight ? '1px solid #CBD5E0' : '1px solid #000'}},
+        h('div', {
+          className: 'flai-liquid-fill',
+          style:{
+            width: pct+'%', height:'100%', background: barBg, borderRadius:10, 
+            boxShadow: isLight ? 'inset 0 -2px 4px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.6)' : 'inset 0 -2px 4px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4)', 
+            transition:'width 1s cubic-bezier(0.4, 0, 0.2, 1)', position:'relative',
+            color: headColor // 발광 구슬 색상 상속
+          }
+        }, 
+          /* 채워진 끝부분 반짝이는 글로우 구슬 */
+          pct > 3 && h('div', {className: 'flai-liquid-head'})
+        )
       ),
       h('div', {style:{display:'flex', justifyContent:'space-between', marginTop:6}},
         h('span', {style:{color:C.green, fontSize:11, fontWeight:700}}, '모은돈 ' + fmtS(currentSavings)),
@@ -5211,185 +5335,207 @@ function CreditCardDetailSheet(props) {
     );
   }
 
-  // ── 메인 뷰 ──
-  return h('div',{style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:3000,overflowY:'auto',display:'flex',justifyContent:'center'}},
-    h('div',{style:{width:'100%',maxWidth:430,paddingBottom:100}},
+ // ── 메인 뷰 ──
+      var isLight = savedTheme === 'light'; /* ★ 라이트 모드 판별 */
 
-      h('div',{style:{position:'sticky',top:0,zIndex:10,background:C.bg,padding:'18px 16px 12px',borderBottom:'1px solid '+C.border}},
+      return h('div',{style:{position:'fixed',inset:0,background:C.bg,color:C.text,zIndex:3000,overflowY:'auto',display:'flex',justifyContent:'center'}},
+        h('div',{style:{width:'100%',maxWidth:430,paddingBottom:100}},
 
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
-          h('div',null,
-            h('p',{style:{color:'#7C4DFF',fontSize:10,margin:'0 0 4px',fontWeight:800,letterSpacing:2}},'💳 신용카드 결제 분석'),
-            h('p',{style:{color:C.text,fontSize:18,fontWeight:900,margin:0}},'신용카드 결제 내역')
-          ),
-          h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
-            h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
-              style:{background:'rgba(124,77,255,0.2)',border:'1px solid rgba(124,77,255,0.5)',
-                color:'#C4A0FF',padding:'5px 10px',borderRadius:8,cursor:'pointer',fontSize:11,fontWeight:700}},
-              '⚙️ 설정'),
-            h('button',{onClick:onClose,
-              style:{background:C.card2,border:'1px solid '+C.border,color:C.text,
-                padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},
-              '✕ 닫기')
-          )
-        ),
+          h('div',{style:{position:'sticky',top:0,zIndex:10,background:C.bg,padding:'18px 16px 12px',borderBottom:'1px solid '+C.border}},
 
-        h('div',{style:{padding:'14px 16px',background:'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))',borderRadius:14,border:'1px solid rgba(124,77,255,0.32)',marginBottom:12}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
-            h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
-              style:{display:'flex',alignItems:'center',gap:4,background:'rgba(124,77,255,0.15)',
-                border:'1px solid rgba(124,77,255,0.35)',borderRadius:8,padding:'4px 10px',cursor:'pointer'}},
-              h('span',{style:{color:'rgba(255,255,255,0.65)',fontSize:9,fontWeight:600}},'📅 '+startStr+' ~ '+endStr),
-              h('span',{style:{color:'#C4A0FF',fontSize:9}},' ✏️')
-            ),
-            h('button',{onClick:doToggleAll,
-              style:{background:'rgba(124,77,255,0.25)',border:'1px solid rgba(124,77,255,0.45)',
-                color:'#C4A0FF',padding:'5px 10px',borderRadius:8,fontSize:10,fontWeight:700,cursor:'pointer'}},
-              allOpen?'📁 전체접기':'📂 전체펼치기')
-          ),
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}},
-            h('div',null,
-              h('p',{style:{color:'#fff',fontSize:24,fontWeight:900,margin:'0 0 4px',letterSpacing:-0.5}},fmt(totalCredit)),
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+              h('div',null,
+                h('p',{style:{color: isLight ? '#7C4DFF' : '#7C4DFF',fontSize:10,margin:'0 0 4px',fontWeight:800,letterSpacing:2}},'💳 신용카드 결제 분석'),
+                h('p',{style:{color:C.text,fontSize:18,fontWeight:900,margin:0}},'신용카드 결제 내역')
+              ),
               h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
-                h('span',{style:{background:'rgba(124,77,255,0.3)',color:'#C4A0FF',fontSize:10,padding:'2px 8px',borderRadius:6,fontWeight:700}},creditTxs.length+'건'),
-                h('span',{style:{color:'rgba(255,255,255,0.2)',fontSize:10}},'|'),
-                h('span',{style:{color:incColor,fontSize:10,fontWeight:700}},'수입대비 '+incRatio+'%')
+                h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
+                  style:{background: isLight ? 'rgba(124,77,255,0.1)' : 'rgba(124,77,255,0.2)', border:'1px solid rgba(124,77,255,0.5)',
+                    color: isLight ? '#7C4DFF' : '#C4A0FF',padding:'5px 10px',borderRadius:8,cursor:'pointer',fontSize:11,fontWeight:700}},
+                  '⚙️ 설정'),
+                h('button',{onClick:onClose,
+                  style:{background:C.card2,border:'1px solid '+C.border,color:C.text,
+                    padding:'6px 14px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:12}},
+                  '✕ 닫기')
               )
             ),
-            creditLimit>0 && h('div',{style:{textAlign:'right'}},
-              h('p',{style:{color:'rgba(255,255,255,0.45)',fontSize:9,margin:'0 0 2px'}},'한도 '+fmtS(creditLimit)+' 중'),
-              h('p',{style:{color:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':'#00CFFF',fontSize:11,fontWeight:700,margin:0}},Math.round(limitRatio)+'% 사용')
-            )
-          ),
-          creditLimit>0 && h('div',{style:{marginTop:8,height:4,background:'rgba(255,255,255,0.1)',borderRadius:4,overflow:'hidden'}},
-            h('div',{style:{height:'100%',width:limitRatio+'%',borderRadius:4,transition:'width 0.8s ease',
-              background:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':'linear-gradient(90deg,#7C4DFF,#00CFFF)'}})
-          )
-        ),
 
-        h('div',{style:{display:'flex',gap:7,overflowX:'auto',paddingBottom:4}},
-          tabs.map(function(m){
-            var isSel=selMem===m.id;
-            var mAmt=m.id==='all'?totalCredit:creditTxs.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
-            return h('button',{key:m.id,
-              onClick:function(){setSelMem(m.id);setOpenCats({});setCatMemFilter({});},
-              style:{flexShrink:0,padding:'8px 12px',borderRadius:12,cursor:'pointer',
-                border:isSel?'1.5px solid '+m.color:'1px solid '+C.border,
-                background:isSel?m.color+'25':C.card2,
-                display:'flex',flexDirection:'column',alignItems:'center',gap:2,minWidth:62}},
-              h('span',{style:{fontSize:18}},m.emoji),
-              h('span',{style:{color:isSel?m.color:C.muted,fontSize:10,fontWeight:700}},m.name),
-              h('span',{style:{color:isSel?m.color:'rgba(255,255,255,0.25)',fontSize:9,fontWeight:600}},fmtS(mAmt))
-            );
-          })
-        )
-      ),
-
-      h('div',{style:{padding:'14px 16px 0'}},
-        grouped.length===0
-          ? h('div',{style:{textAlign:'center',padding:'60px 20px'}},
-              h('p',{style:{fontSize:48,marginBottom:12}},'💳'),
-              h('p',{style:{color:C.text,fontSize:15,fontWeight:700,marginBottom:8}},'신용카드 내역 없음'),
-              h('p',{style:{color:C.muted,fontSize:12}},'📅 '+startStr+' ~ '+endStr)
-            )
-          : grouped.map(function(g){
-              var cat=g.cat; var isOpen=openCats[cat.id];
-              var pct=grandTotal>0?Math.round(g.total/grandTotal*100):0;
-              var catMem=catMemFilter[cat.id];
-
-              return h('div',{key:cat.id,style:{marginBottom:10,borderRadius:14,overflow:'hidden',
-                border:'1px solid '+(isOpen?'rgba(124,77,255,0.5)':C.border),
-                background:C.card,
-                boxShadow:isOpen?'0 4px 24px rgba(124,77,255,0.25)':'0 2px 8px rgba(0,0,0,0.18)',
-                transition:'all 0.3s ease'}},
-
-                h('div',{onClick:function(){toggleCat(cat.id);},
-                  style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',cursor:'pointer',
-                    background:isOpen?'rgba(124,77,255,0.08)':'transparent',transition:'background 0.3s'}},
-                  h('div',{style:{width:44,height:44,borderRadius:13,background:cat.color+'22',
-                    display:'flex',alignItems:'center',justifyContent:'center',
-                    fontSize:22,flexShrink:0,boxShadow:'0 2px 10px '+cat.color+'33'}},cat.icon),
-                  h('div',{style:{flex:1,minWidth:0}},
-                    h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:5}},
-                      h('span',{style:{color:C.text,fontSize:14,fontWeight:800}},cat.name),
-                      h('span',{style:{background:'rgba(124,77,255,0.28)',color:'#C4A0FF',fontSize:10,padding:'2px 7px',borderRadius:6,fontWeight:700}},pct+'%'),
-                      h('span',{style:{color:C.muted,fontSize:10}},g.items.length+'건')
-                    ),
-                    h('div',{style:{height:3,background:'rgba(255,255,255,0.07)',borderRadius:4,overflow:'hidden'}},
-                      h('div',{style:{height:'100%',width:pct+'%',background:'linear-gradient(90deg,'+cat.color+',#7C4DFF)',borderRadius:4}})
-                    )
-                  ),
-                  h('div',{style:{textAlign:'right',flexShrink:0}},
-                    h('p',{style:{color:cat.color,fontSize:15,fontWeight:800,margin:'0 0 4px'}},fmt(g.total)),
-                    h('span',{style:{color:C.muted,fontSize:13,display:'inline-block',
-                      transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.3s ease'}},'▶')
+            /* ★ [라이트 테마 카드 개편] 텍스트가 흰색에 묻히지 않도록 선명한 소프트 블루/인디고 그라데이션 적용 */
+            h('div',{style:{
+              padding:'14px 16px',
+              background: isLight ? 'linear-gradient(135deg, #E0E7FF, #E0F2FE)' : 'linear-gradient(135deg,rgba(124,77,255,0.18),rgba(0,207,255,0.10))',
+              borderRadius:14,
+              border: isLight ? '1px solid #C7D2FE' : '1px solid rgba(124,77,255,0.32)',
+              marginBottom:12
+            }},
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+                h('button',{onClick:function(){setLimitInput(String(creditLimit||''));setSheetModal(true);},
+                  style:{
+                    display:'flex',alignItems:'center',gap:4,
+                    background: isLight ? '#FFFFFF' : 'rgba(124,77,255,0.15)',
+                    border: isLight ? '1px solid #A5B4FC' : '1px solid rgba(124,77,255,0.35)',
+                    borderRadius:8,padding:'4px 10px',cursor:'pointer'
+                  }},
+                  h('span',{style:{color: isLight ? '#4F46E5' : 'rgba(255,255,255,0.65)',fontSize:9,fontWeight:800}},'📅 '+startStr+' ~ '+endStr),
+                  h('span',{style:{color: isLight ? '#4F46E5' : '#C4A0FF',fontSize:9}},' ✏️')
+                ),
+                h('button',{onClick:doToggleAll,
+                  style:{
+                    background: isLight ? '#FFFFFF' : 'rgba(124,77,255,0.25)',
+                    border: isLight ? '1px solid #A5B4FC' : '1px solid rgba(124,77,255,0.45)',
+                    color: isLight ? '#4F46E5' : '#C4A0FF',padding:'5px 10px',borderRadius:8,fontSize:10,fontWeight:800,cursor:'pointer'
+                  }},
+                  allOpen?'📁 전체접기':'📂 전체펼치기')
+              ),
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}},
+                h('div',null,
+                  /* 메인 금액 가독성 극대화 */
+                  h('p',{style:{color: isLight ? '#1E1B4B' : '#fff',fontSize:24,fontWeight:900,margin:'0 0 4px',letterSpacing:-0.5}},fmt(totalCredit)),
+                  h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+                    h('span',{style:{background: isLight ? '#EEF2FF' : 'rgba(124,77,255,0.3)',color: isLight ? '#4F46E5' : '#C4A0FF',fontSize:10,padding:'2px 8px',borderRadius:6,fontWeight:700}},creditTxs.length+'건'),
+                    h('span',{style:{color: isLight ? '#C7D2FE' : 'rgba(255,255,255,0.2)',fontSize:10}},'|'),
+                    h('span',{style:{color:incColor,fontSize:10,fontWeight:700}},'수입대비 '+incRatio+'%')
                   )
                 ),
+                creditLimit>0 && h('div',{style:{textAlign:'right'}},
+                  h('p',{style:{color: isLight ? '#475569' : 'rgba(255,255,255,0.45)',fontSize:9,margin:'0 0 2px',fontWeight:700}},'한도 '+fmtS(creditLimit)+' 중'),
+                  h('p',{style:{color:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':(isLight ? '#0284C7' : '#00CFFF'),fontSize:11,fontWeight:800,margin:0}},Math.round(limitRatio)+'% 사용')
+                )
+              ),
+              creditLimit>0 && h('div',{style:{marginTop:8,height:4,background: isLight ? '#CBD5E1' : 'rgba(255,255,255,0.1)',borderRadius:4,overflow:'hidden'}},
+                h('div',{style:{height:'100%',width:limitRatio+'%',borderRadius:4,transition:'width 0.8s ease',
+                  background:limitRatio>90?'#FF2266':limitRatio>70?'#FF9E45':'linear-gradient(90deg,#7C4DFF,#00CFFF)'}})
+              )
+            ),
 
-                isOpen ? h('div',{style:{borderTop:'1px solid rgba(255,255,255,0.05)'}},
-                  h('div',{style:{display:'flex',gap:7,padding:'10px 16px',background:'rgba(0,0,0,0.2)',overflowX:'auto',borderBottom:'1px solid rgba(255,255,255,0.04)'}},
-                    MEMBERS.map(function(m){
-                      var mAmt=g.items.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
-                      if(!mAmt) return null;
-                      var isCatSel=catMem===m.id;
-                      return h('div',{key:m.id,
-                        onClick:function(e){
-                          e.stopPropagation();
-                          setCatMemFilter(function(prev){
-                            var n=Object.assign({},prev);
-                            if(n[cat.id]===m.id){delete n[cat.id];}
-                            else{n[cat.id]=m.id;}
-                            return n;
-                          });
-                        },
-                        style:{flexShrink:0,textAlign:'center',padding:'7px 12px',borderRadius:10,
-                          background:isCatSel?m.color+'40':m.color+'16',
-                          border:'1.5px solid '+(isCatSel?m.color:m.color+'38'),
-                          minWidth:62,cursor:'pointer',transition:'all 0.2s',
-                          boxShadow:isCatSel?'0 0 8px '+m.color+'55':'none'}},
-                        h('span',{style:{fontSize:18,display:'block'}},m.emoji),
-                        h('span',{style:{color:m.color,fontSize:9,fontWeight:isCatSel?800:700,display:'block',marginTop:2}},m.name),
-                        h('span',{style:{color:'rgba(255,255,255,0.85)',fontSize:11,fontWeight:800,display:'block'}},fmtS(mAmt))
-                      );
-                    })
-                  ),
-                  (catMem?g.items.filter(function(t){return t.member===catMem;}):g.items)
-                    .map(function(tx,ti,arr){
-                      var mem=getMem(tx.member);
-                      var mStr=String(tx.method||'').length>12?String(tx.method||'').slice(0,10)+'..':String(tx.method||'');
-                      return h('div',{key:tx.id,
-                        onClick:function(){setEditTx(tx);},
-                        style:{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',
-                          borderBottom:ti<arr.length-1?'1px solid rgba(255,255,255,0.04)':'none',
-                          cursor:'pointer'}},
-                        h('div',{style:{width:36,height:36,borderRadius:11,background:mem.color+'22',
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:18,flexShrink:0,border:'1px solid '+mem.color+'33'}},mem.emoji),
-                        h('div',{style:{flex:1,minWidth:0}},
-                          h('p',{style:{color:C.text,fontSize:13,fontWeight:700,margin:'0 0 3px',
-                            overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store||'미입력'),
-                          h('div',{style:{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}},
-                            h('span',{style:{color:mem.color,fontSize:10,fontWeight:600}},mem.name),
-                            h('span',{style:{color:'rgba(255,255,255,0.2)'}},'·'),
-                            h('span',{style:{color:C.muted,fontSize:10}},tx.date),
-                            tx.subCat?h('span',{style:{background:cat.color+'1E',color:cat.color,fontSize:9,padding:'1px 5px',borderRadius:4,marginLeft:2}},tx.subCat):null
-                          ),
-                          tx.memo?h('p',{style:{color:C.accent+'AA',fontSize:10,margin:'3px 0 0'}},'📝 '+tx.memo):null
+            h('div',{style:{display:'flex',gap:7,overflowX:'auto',paddingBottom:4}},
+              tabs.map(function(m){
+                var isSel=selMem===m.id;
+                var mAmt=m.id==='all'?totalCredit:creditTxs.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+                return h('button',{key:m.id,
+                  onClick:function(){setSelMem(m.id);setOpenCats({});setCatMemFilter({});},
+                  style:{flexShrink:0,padding:'8px 12px',borderRadius:12,cursor:'pointer',
+                    border:isSel?'1.5px solid '+m.color:'1px solid '+C.border,
+                    background:isSel?m.color+'25':C.card2,
+                    display:'flex',flexDirection:'column',alignItems:'center',gap:2,minWidth:62}},
+                  h('span',{style:{fontSize:18}},m.emoji),
+                  h('span',{style:{color:isSel?m.color:(isLight ? '#475569' : C.muted),fontSize:10,fontWeight:700}},m.name),
+                  /* ★ 미선택된 유저 소계 텍스트가 허옇게 안 보이던 버그를 Slate 그레이색으로 복구 */
+                  h('span',{style:{color:isSel?m.color:(isLight ? '#64748B' : 'rgba(255,255,255,0.25)'),fontSize:9,fontWeight:800}},fmtS(mAmt))
+                );
+              })
+            )
+          ),
+
+          h('div',{style:{padding:'14px 16px 0'}},
+            grouped.length===0
+              ? h('div',{style:{textAlign:'center',padding:'60px 20px'}},
+                  h('p',{style:{fontSize:48,marginBottom:12}},'💳'),
+                  h('p',{style:{color:C.text,fontSize:15,fontWeight:700,marginBottom:8}},'신용카드 내역 없음'),
+                  h('p',{style:{color:C.muted,fontSize:12}},'📅 '+startStr+' ~ '+endStr)
+                )
+              : grouped.map(function(g){
+                  var cat=g.cat; var isOpen=openCats[cat.id];
+                  var pct=grandTotal>0?Math.round(g.total/grandTotal*100):0;
+                  var catMem=catMemFilter[cat.id];
+
+                  return h('div',{key:cat.id,style:{marginBottom:10,borderRadius:14,overflow:'hidden',
+                    border:'1px solid '+(isOpen?'rgba(124,77,255,0.5)':C.border),
+                    background:C.card,
+                    boxShadow:isOpen?'0 4px 24px rgba(124,77,255,0.25)':'0 2px 8px rgba(0,0,0,0.18)',
+                    transition:'all 0.3s ease'}},
+
+                    h('div',{onClick:function(){toggleCat(cat.id);},
+                      style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',cursor:'pointer',
+                        background:isOpen?'rgba(124,77,255,0.08)':'transparent',transition:'background 0.3s'}},
+                      h('div',{style:{width:44,height:44,borderRadius:13,background:cat.color+'22',
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        fontSize:22,flexShrink:0,boxShadow:'0 2px 10px '+cat.color+'33'}},cat.icon),
+                      h('div',{style:{flex:1,minWidth:0}},
+                        h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:5}},
+                          h('span',{style:{color:C.text,fontSize:14,fontWeight:800}},cat.name),
+                          h('span',{style:{background:'rgba(124,77,255,0.28)',color: isLight ? '#7C4DFF' : '#C4A0FF',fontSize:10,padding:'2px 7px',borderRadius:6,fontWeight:800}},pct+'%'),
+                          h('span',{style:{color:C.muted,fontSize:10,fontWeight:600}},g.items.length+'건')
                         ),
-                        h('div',{style:{textAlign:'right',flexShrink:0}},
-                          h('p',{style:{color:'#C4A0FF',fontSize:14,fontWeight:800,margin:'0 0 3px'}},fmt(tx.amount)),
-                          h('p',{style:{color:'rgba(255,255,255,0.35)',fontSize:9,margin:0}},mStr),
-                          h('p',{style:{color:'rgba(124,77,255,0.7)',fontSize:9,margin:'2px 0 0',fontWeight:700}},'✏️ 수정')
+                        h('div',{style:{height:3,background: isLight ? '#E2E8F0' : 'rgba(255,255,255,0.07)',borderRadius:4,overflow:'hidden'}},
+                          h('div',{style:{height:'100%',width:pct+'%',background:'linear-gradient(90deg,'+cat.color+',#7C4DFF)',borderRadius:4}})
                         )
-                      );
-                    })
-                ):null
-              );
-            })
-      )
-    )
-  );
-}
+                      ),
+                      h('div',{style:{textAlign:'right',flexShrink:0}},
+                        h('p',{style:{color:cat.color,fontSize:15,fontWeight:800,margin:'0 0 4px'}},fmt(g.total)),
+                        h('span',{style:{color:C.muted,fontSize:13,display:'inline-block',
+                          transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.3s ease'}},'▶')
+                      )
+                    ),
+
+                    isOpen ? h('div',{style:{borderTop:'1px solid rgba(255,255,255,0.05)'}},
+                      /* 소계 영역 배경 최적화 */
+                      h('div',{style:{display:'flex',gap:7,padding:'10px 16px',background: isLight ? '#F8FAFC' : 'rgba(0,0,0,0.2)',overflowX:'auto',borderBottom: isLight ? '1px solid #E2E8F0' : '1px solid rgba(255,255,255,0.04)'}},
+                        MEMBERS.map(function(m){
+                          var mAmt=g.items.filter(function(t){return t.member===m.id;}).reduce(function(s,t){return s+t.amount;},0);
+                          if(!mAmt) return null;
+                          var isCatSel=catMem===m.id;
+                          return h('div',{key:m.id,
+                            onClick:function(e){
+                              e.stopPropagation();
+                              setCatMemFilter(function(prev){
+                                var n=Object.assign({},prev);
+                                if(n[cat.id]===m.id){delete n[cat.id];}
+                                else{n[cat.id]=m.id;}
+                                return n;
+                              });
+                            },
+                            style:{flexShrink:0,textAlign:'center',padding:'7px 12px',borderRadius:10,
+                              background:isCatSel?m.color+'40':m.color+'16',
+                              border:'1.5px solid '+(isCatSel?m.color:m.color+'38'),
+                              minWidth:62,cursor:'pointer',transition:'all 0.2s',
+                              boxShadow:isCatSel?'0 0 8px '+m.color+'55':'none'}},
+                            h('span',{style:{fontSize:18,display:'block'}},m.emoji),
+                            h('span',{style:{color:m.color,fontSize:9,fontWeight:isCatSel?800:700,display:'block',marginTop:2}},m.name),
+                            /* ★ 소계 글씨가 흰색으로 묻히던 현상 완전 교정 */
+                            h('span',{style:{color: isLight ? '#0F172A' : 'rgba(255,255,255,0.85)',fontSize:11,fontWeight:800,display:'block'}},fmtS(mAmt))
+                          );
+                        })
+                      ),
+                      (catMem?g.items.filter(function(t){return t.member===catMem;}):g.items)
+                        .map(function(tx,ti,arr){
+                          var mem=getMem(tx.member);
+                          var mStr=String(tx.method||'').length>12?String(tx.method||'').slice(0,10)+'..':String(tx.method||'');
+                          return h('div',{key:tx.id,
+                            onClick:function(){setEditTx(tx);},
+                            style:{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',
+                              borderBottom:ti<arr.length-1?'1px solid rgba(255,255,255,0.04)':'none',
+                              cursor:'pointer'}},
+                            h('div',{style:{width:36,height:36,borderRadius:11,background:mem.color+'22',
+                              display:'flex',alignItems:'center',justifyContent:'center',
+                              fontSize:18,flexShrink:0,border:'1px solid '+mem.color+'33'}}, mem.emoji),
+                            h('div',{style:{flex:1,minWidth:0}},
+                              h('p',{style:{color:C.text,fontSize:13,fontWeight:700,margin:'0 0 3px',
+                                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},tx.store||'미입력'),
+                              h('div',{style:{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}},
+                                h('span',{style:{color:mem.color,fontSize:10,fontWeight:700}},mem.name),
+                                h('span',{style:{color: isLight ? '#CBD5E1' : 'rgba(255,255,255,0.18)'}},'·'),
+                                h('span',{style:{color:C.muted,fontSize:10,fontWeight:600}},tx.date),
+                                tx.subCat?h('span',{style:{background:cat.color+'1E',color:cat.color,fontSize:9,padding:'1px 5px',borderRadius:4,marginLeft:2}},tx.subCat):null
+                              ),
+                              tx.memo?h('p',{style:{color:C.accent+'AA',fontSize:10,margin:'3px 0 0'}},'📝 '+tx.memo):null
+                            ),
+                            h('div',{style:{textAlign:'right',flexShrink:0}},
+                              /* ★ 흐리멍텅한 보라색 금액을 짙은 퍼플로 강력 선명화 */
+                              h('p',{style:{color: isLight ? '#7C4DFF' : '#C4A0FF',fontSize:14,fontWeight:900,margin:'0 0 3px'}},fmt(tx.amount)),
+                              /* ★ 카드 명세 텍스트 가독성 복구 */
+                              h('p',{style:{color: isLight ? C.muted : 'rgba(255,255,255,0.35)',fontSize:9,margin:0,fontWeight:600}},mStr),
+                              h('p',{style:{color: isLight ? '#5F27CD' : 'rgba(124,77,255,0.7)',fontSize:9,margin:'2px 0 0',fontWeight:800}},'✏️ 수정')
+                            )
+                          );
+                        })
+                    ):null
+                  );
+                })
+          )
+        )
+      );
+    }
 
 // ★★★ [CreditCardDetailSheet 끝] ★★★
 
@@ -6181,15 +6327,16 @@ function Dashboard(props) {
           border: isAnl ? '2px solid '+C.accent : '1px solid '+C.accent+'44',
           transition: 'all 0.5s ease'}
       },
-        h('div',{style:{display:'flex', alignItems:'center', justifyContent:'space-between', opacity: isAnl ? 0.7 : 1}}, 
-          h('div', null, 
-            h('p',{style:{color: isAnl ? C.accent : C.text, fontSize:15, fontWeight:800, margin:'0 0 2px'}}, 
-              isAnl ? '🧬 AI 분석 중...' : '🧬 AI 재무 분석 및 컨설팅'), 
-            h('p',{style:{color:C.muted, fontSize:11, margin:0}}, 
-              isAnl ? 'Groq Llama-3.3 연산 중' : dp + ' 데이터 기반 마스터 리포트') 
-          ), 
-          h('span',{style:{fontSize:24, animation: isAnl ? 'pulse 1s infinite' : 'none'}}, isAnl ? '⏳' : '✨') 
-        )
+       h('div',{style:{display:'flex', alignItems:'center', justifyContent:'space-between', opacity: isAnl ? 0.7 : 1}}, 
+              h('div', null, 
+                h('p',{style:{color: C.accent, fontSize:15, fontWeight:800, margin:'0 0 2px'}}, 
+                  isAnl ? '🤖 AI 전력 분석 및 연산 중...' : '🤖 AI 재무 분석 및 컨설팅'), 
+                h('p',{style:{color:C.muted, fontSize:11, margin:0}}, 
+                  isAnl ? 'Llama-3.3 70B 모델 동기화 중' : dp + ' 데이터 기반 마스터 리포트') 
+              ), 
+              /* ★ 구형 이모티콘을 실시간 자가발광 AI 로봇 비서 아바타로 치환 연동! */
+              h(AIBotAvatar, { isAnalyzing: isAnl })
+            )
       );
     })(),
 
@@ -6243,117 +6390,130 @@ function Dashboard(props) {
       );
     })(),
 
-    h('div', {style:{marginBottom:14}},
-      h('div', {style:{
-        position:'relative', borderRadius:24, padding:1,
-        background:'linear-gradient(135deg, rgba(0,229,255,0.3), rgba(124,58,237,0.2))',
-        boxShadow:'0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(0,229,255,0.06)'
-      }},
+(function(){
+      /* ★ 테마 인식 변수 */
+      var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+      var isLight = currentTheme === 'light';
+      var isCozy  = currentTheme === 'cozy';
+
+      /* 테마별 카드 배경 및 그림자 */
+      var bgOuter = isLight ? 'linear-gradient(135deg, rgba(0,206,206,0.2), rgba(255,255,255,1))' 
+                  : (isCozy ? 'linear-gradient(135deg, rgba(22,160,133,0.3), rgba(42,31,23,1))' 
+                  : 'linear-gradient(135deg, rgba(0,229,255,0.3), rgba(124,58,237,0.2))');
+      var bgInner = isLight ? '#FFFFFF' : (isCozy ? '#2A1F17' : 'linear-gradient(145deg, rgba(20,27,45,0.97), rgba(10,14,26,0.99))');
+      var shadowOuter = isLight ? '0 8px 24px rgba(0,151,167,0.08)' : '0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(0,229,255,0.06)';
+      
+      var txtMain = isLight ? '#0F172A' : '#F0F0FF';
+      var txtSub  = isLight ? '#64748B' : 'rgba(240,240,255,0.75)';
+
+      return h('div', {style:{marginBottom:14}},
         h('div', {style:{
-          borderRadius:23,
-          background:'linear-gradient(145deg, rgba(20,27,45,0.97), rgba(10,14,26,0.99))',
-          backdropFilter:'blur(24px)', padding:'18px 16px 14px', overflow:'hidden'
+          position:'relative', borderRadius:24, padding: isLight ? 0 : 1,
+          background: bgOuter, boxShadow: shadowOuter, border: isLight ? '1px solid rgba(0,151,167,0.2)' : 'none'
         }},
           h('div', {style:{
-            position:'absolute', top:-40, right:-30,
-            width:160, height:160, borderRadius:'50%',
-            background:'radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%)'
-          }}),
-          
-          h('div', {style:{
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            marginBottom:16
+            borderRadius:23, background: bgInner,
+            backdropFilter: isLight ? 'none' : 'blur(24px)', padding:'18px 16px 14px', overflow:'hidden'
           }},
-            h('div', {style:{display:'flex', alignItems:'center', gap:8}},
-              h('div', {style:{
-                width:28, height:28, borderRadius:8,
-                background:'linear-gradient(135deg,#00E5FF,#7C3AED)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:13, boxShadow:'0 0 12px rgba(0,229,255,0.4)'
-              }}, '📊'),
-              h('span', {style:{
-                color:'#F0F0FF', fontSize:14, fontWeight:800
-              }}, '카테고리별 지출')
-            ),
-            h('div', {style:{
-              display:'flex', alignItems:'center', gap:5,
-              background:'rgba(0,229,255,0.08)',
-              border:'1px solid rgba(0,229,255,0.2)',
-              borderRadius:20, padding:'4px 10px'
-            }},
-              h('div', {style:{
-                width:6, height:6, borderRadius:'50%',
-                background:'#00E5FF', boxShadow:'0 0 6px #00E5FF'
-              }}),
-              h('span', {style:{color:'rgba(0,229,255,0.8)', fontSize:10, fontWeight:600}}, 'AI 분석중')
-            )
-          ),
-
-          h('div', {style:{display:'flex', alignItems:'center', gap:14}},
-            h('div', {style:{position:'relative', flexShrink:0}},
-              h(DonutChart, {data:byC, size:120, totalLabel: byC.length > 0 ? fmtS(totE) : null})
-            ),
+            !isLight && h('div', {style:{
+              position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%',
+              background:'radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%)', pointerEvents:'none'
+            }}),
             
-            h('div', {style:{flex:1, display:'flex', flexDirection:'column', gap:7}},
-              byC.slice(0,5).map(function(c, i){
-                var pct = totE > 0 ? Math.round(c.value/totE*100) : 0;
-                var neonCols = [
-                  ['#FF6B6B','#FF007C'], ['#00E5FF','#536DFE'], ['#FFD600','#FF9800'],
-                  ['#69F0AE','#00BFA5'], ['#CE93D8','#7C3AED']
-                ];
-                var nc = neonCols[i % neonCols.length];
-                
-                return h('div', {key:c.id},
-                  h('div', {style:{display:'flex', alignItems:'center', gap:7, marginBottom:3}},
-                    h('div', {style:{
-                      width:7, height:7, borderRadius:'50%',
-                      background:'linear-gradient(135deg,'+nc[0]+','+nc[1]+')',
-                      boxShadow:'0 0 6px '+nc[0]+'88'
-                    }}),
-                    h('span', {style:{
-                      color:'rgba(240,240,255,0.75)', fontSize:11, flex:1, fontWeight:500
-                    }}, c.name),
-                    h('span', {style:{
-                      color:'#ffffff', fontSize:12, fontWeight:800
-                    }}, fmtS(c.value)),
-                    h('span', {style:{
-                      color:'rgba(240,240,255,0.35)', fontSize:9, fontWeight:600, minWidth:28, textAlign:'right'
-                    }}, pct+'%')
-                  ),
-                  h('div', {style:{
-                    height:2, borderRadius:2, background:'rgba(255,255,255,0.06)', overflow:'hidden', marginLeft:14
-                  }},
-                    h('div', {style:{
-                      width:pct+'%', height:'100%',
-                      background:'linear-gradient(90deg,'+nc[0]+','+nc[1]+')',
-                      borderRadius:2, boxShadow:'0 0 6px '+nc[0]+'66'
-                    }})
-                  )
-                );
-              })
-            )
-          ),
-
-          byC.length > 0 && h('div', {style:{
-            marginTop:14, paddingTop:12,
-            borderTop:'1px solid rgba(255,255,255,0.06)',
-            display:'flex', alignItems:'flex-start', gap:8
-          }},
-            h('span', {style:{fontSize:13}}, '🧬'),
-            h('p', {style:{
-              color:'rgba(240,240,255,0.45)', fontSize:11,
-              margin:0, lineHeight:1.6, fontStyle:'italic'
+            h('div', {style:{
+              display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16
             }},
-              byC.length > 0
-                ? '"'+byC[0].name+' 지출이 전체의 '+
-                  (totE>0?Math.round(byC[0].value/totE*100):0)+'%를 차지합니다. '+
-                  (byC[0].value > totE*0.3 ? '집중 절감이 필요합니다.' : '균형 잡힌 소비 패턴입니다.')+'"'
-                : '"이번 달 지출 데이터를 분석하고 있습니다."'
+              h('div', {style:{display:'flex', alignItems:'center', gap:8}},
+                h('div', {style:{
+                  width:28, height:28, borderRadius:8,
+                  background: isLight ? 'linear-gradient(135deg,#00CECE,#8E44AD)' : 'linear-gradient(135deg,#00E5FF,#7C3AED)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:13, boxShadow: isLight ? '0 2px 6px rgba(0,206,206,0.3)' : '0 0 12px rgba(0,229,255,0.4)'
+                }}, '📊'),
+                h('span', {style:{color:txtMain, fontSize:15, fontWeight:800}}, '카테고리별 지출')
+              ),
+              h('div', {style:{
+                display:'flex', alignItems:'center', gap:5,
+                background: isLight ? 'rgba(0,151,167,0.08)' : 'rgba(0,229,255,0.08)',
+                border:'1px solid ' + (isLight ? 'rgba(0,151,167,0.2)' : 'rgba(0,229,255,0.2)'),
+                borderRadius:20, padding:'4px 10px'
+              }},
+                h('div', {style:{
+                  width:6, height:6, borderRadius:'50%',
+                  background: isLight ? '#0097A7' : '#00E5FF', boxShadow:'0 0 6px ' + (isLight ? '#0097A7' : '#00E5FF')
+                }}),
+                h('span', {style:{color: isLight ? '#0097A7' : 'rgba(0,229,255,0.8)', fontSize:10, fontWeight:700}}, 'AI 분석중')
+              )
+            ),
+
+            h('div', {style:{display:'flex', alignItems:'center', gap:14}},
+              /* ★ 3D 오비탈 플라즈마 홀로그램 도넛 장착 (사이즈 150px로 확장) */
+              h('div', {style:{position:'relative', flexShrink:0}},
+                h(HologramPlasmaDonut, {data:byC, size:150, totalLabel: byC.length > 0 ? fmtS(totE) : null})
+              ),
+              
+              h('div', {style:{flex:1, display:'flex', flexDirection:'column', gap:7}},
+                byC.slice(0,5).map(function(c, i){
+                  var pct = totE > 0 ? Math.round(c.value/totE*100) : 0;
+                  var neonCols = isLight ? [
+                    ['#FF7E67','#FF4757'], ['#00CECE','#0097A7'], ['#FFC312','#F39C12'],
+                    ['#00E676','#00BFA5'], ['#D980FA','#8E44AD']
+                  ] : isCozy ? [
+                    ['#E67E22','#D35400'], ['#16A085','#1ABC9C'], ['#F1C40F','#F39C12'],
+                    ['#E74C3C','#C0392B'], ['#8E44AD','#9B59B6']
+                  ] : [
+                    ['#FF6B6B','#FF007C'], ['#00E5FF','#536DFE'], ['#FFD600','#FF9800'],
+                    ['#69F0AE','#00BFA5'], ['#CE93D8','#7C3AED']
+                  ];
+                  var nc = neonCols[i % neonCols.length];
+                  
+                  return h('div', {key:c.id},
+                    h('div', {style:{display:'flex', alignItems:'center', gap:7, marginBottom:3}},
+                      h('div', {style:{
+                        width:8, height:8, borderRadius:'50%',
+                        background:'linear-gradient(135deg,'+nc[0]+','+nc[1]+')',
+                        boxShadow: isLight ? 'inset -1px -1px 2px rgba(0,0,0,0.1)' : '0 0 6px '+nc[0]+'88'
+                      }}),
+                      h('span', {style:{
+                        color:txtMain, fontSize:12, flex:1, fontWeight:600
+                      }}, c.name),
+                      h('span', {style:{
+                        color: isLight ? nc[1] : '#ffffff', fontSize:13, fontWeight:800
+                      }}, fmtS(c.value)),
+                      h('span', {style:{
+                        color:txtSub, fontSize:10, fontWeight:700, minWidth:28, textAlign:'right'
+                      }}, pct+'%')
+                    ),
+                    /* ★ 밋밋하던 가로 막대바를 실시간으로 전류가 기어 다니는 라이트닝 프로그레스 바로 대체! */
+                    h('div', {style:{ marginLeft:15 }},
+                      h(PlasmaProgressBar, {pct: pct, color: nc[0], height: 10})
+                    )
+                  );
+                })
+              )
+            ),
+
+            byC.length > 0 && h('div', {style:{
+              marginTop:16, paddingTop:12,
+              borderTop: '1px solid ' + (isLight ? '#E2E8F0' : 'rgba(255,255,255,0.06)'),
+              display:'flex', alignItems:'flex-start', gap:8
+            }},
+              h('span', {style:{fontSize:13}}, '🧬'),
+              h('p', {style:{
+                color: txtSub, fontSize:11,
+                margin:0, lineHeight:1.6, fontStyle:'italic'
+              }},
+                byC.length > 0
+                  ? '"'+byC[0].name+' 지출이 전체의 '+
+                    (totE>0?Math.round(byC[0].value/totE*100):0)+'%를 차지합니다. '+
+                    (byC[0].value > totE*0.3 ? '집중 절감이 필요합니다.' : '균형 잡힌 소비 패턴입니다.')+'"'
+                  : '"이번 달 지출 데이터를 분석하고 있습니다."'
+              )
             )
           )
         )
-      )
-    ),
+      );
+    })(),
 
     h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,paddingLeft:4}}, h('p',{style:{color:C.muted,fontSize:12,margin:0}},'최근 거래 내역'), h('span',{onClick:function(){onNav('list');},style:{color:C.accent,fontSize:12,cursor:'pointer'}},'전체보기 →') ),
     h(GCard,{style:{marginBottom:14}},
@@ -6367,12 +6527,28 @@ function Dashboard(props) {
       })
     ),
 
-    (function(){
+(function(){
       var top5 = exp.slice().sort(function(a,b){return b.amount - a.amount;}).slice(0,5);
       if(top5.length === 0) return null;
       var maxAmt = top5[0].amount;
 
-      var rankPalette = [
+      var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+      var isLight = currentTheme === 'light';
+      var isCozy  = currentTheme === 'cozy';
+
+      var rankPalette = isLight ? [
+        {from:'#FF7E67', to:'#FF4757', glow:'rgba(255,71,87,0.3)'},
+        {from:'#FFC312', to:'#F39C12', glow:'rgba(243,156,18,0.3)'},
+        {from:'#00CECE', to:'#0097A7', glow:'rgba(0,151,167,0.3)'},
+        {from:'#00E676', to:'#00BFA5', glow:'rgba(0,191,165,0.3)'},
+        {from:'#D980FA', to:'#8E44AD', glow:'rgba(142,68,173,0.3)'}
+      ] : isCozy ? [
+        {from:'#E74C3C', to:'#C0392B', glow:'rgba(192,57,43,0.4)'},
+        {from:'#F1C40F', to:'#F39C12', glow:'rgba(243,156,18,0.4)'},
+        {from:'#16A085', to:'#1ABC9C', glow:'rgba(26,188,156,0.4)'},
+        {from:'#27AE60', to:'#2ECC71', glow:'rgba(46,204,113,0.4)'},
+        {from:'#8E44AD', to:'#9B59B6', glow:'rgba(155,89,182,0.4)'}
+      ] : [
         {from:'#FF007C', to:'#FF6B6B', glow:'rgba(255,0,124,0.5)'},
         {from:'#FF6B00', to:'#FFD600', glow:'rgba(255,107,0,0.4)'},
         {from:'#7C3AED', to:'#00E5FF', glow:'rgba(124,58,237,0.35)'},
@@ -6380,101 +6556,160 @@ function Dashboard(props) {
         {from:'#536DFE', to:'#00E5FF', glow:'rgba(83,109,254,0.25)'}
       ];
 
+      var bgOuter = isLight ? 'linear-gradient(135deg, rgba(255,118,117,0.15), rgba(255,255,255,1))' 
+                  : (isCozy ? 'linear-gradient(135deg, rgba(230,126,34,0.2), rgba(42,31,23,1))' 
+                  : 'linear-gradient(135deg, rgba(255,0,124,0.35), rgba(255,107,0,0.2))');
+      var bgInner = isLight ? '#FFFFFF' : (isCozy ? '#2A1F17' : 'linear-gradient(160deg, rgba(22,12,18,0.98), rgba(10,14,26,0.99))');
+      var alertColor = isLight ? '#FF4757' : (isCozy ? '#E74C3C' : '#FF007C');
+      var txtMain = isLight ? '#0F172A' : '#FFFFFF';
+      var txtSub = isLight ? '#64748B' : 'rgba(255,255,255,0.65)';
+
       return h('div', {style:{
-        marginBottom:14, position:'relative', borderRadius:24, padding:1,
-        background:'linear-gradient(135deg, rgba(255,0,124,0.35), rgba(255,107,0,0.2))',
-        boxShadow:'0 8px 40px rgba(0,0,0,0.7), 0 0 60px rgba(255,0,124,0.05)'
+        marginBottom:14, position:'relative', borderRadius:24, padding: isLight ? 0 : 1,
+        background: bgOuter,
+        boxShadow: isLight ? '0 8px 24px rgba(255,71,87,0.1)' : '0 8px 40px rgba(0,0,0,0.7), 0 0 60px rgba(255,0,124,0.05)',
+        border: isLight ? '1px solid rgba(255,71,87,0.2)' : 'none'
       }},
         h('div', {style:{
           borderRadius:23,
-          background:'linear-gradient(160deg, rgba(22,12,18,0.98), rgba(10,14,26,0.99))',
-          backdropFilter:'blur(24px)', padding:'18px 16px 16px', overflow:'hidden'
+          background: bgInner,
+          backdropFilter: isLight ? 'none' : 'blur(24px)', padding:'18px 16px 16px', overflow:'hidden'
         }},
-          h('div', {style:{
+          !isLight && h('div', {style:{
             position:'absolute', top:-30, right:-20,
             width:180, height:180, borderRadius:'50%',
-            background:'radial-gradient(circle, rgba(255,0,124,0.05) 0%, transparent 70%)'
+            background:'radial-gradient(circle, '+alertColor+'15 0%, transparent 70%)', pointerEvents:'none'
           }}),
 
           h('div', {style:{
-            display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18
+            display:'flex', alignItems:'center', justifyContent:'space-between', 
+            marginBottom: 45 /* ★ 텍스트와 차트 사이의 여백을 넉넉하게 확장 */
           }},
             h('div', {style:{display:'flex', alignItems:'center', gap:9}},
               h('div', {style:{
-                width:30, height:30, borderRadius:9,
-                background:'linear-gradient(135deg,#FF007C,#FF6B00)',
+                width:34, height:34, borderRadius:10,
+                background: isLight ? 'linear-gradient(135deg,#FF7E67,#FF4757)' : 'linear-gradient(135deg,'+alertColor+',#FF9E45)',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:15, boxShadow:'0 0 14px rgba(255,0,124,0.5)'
+                fontSize:16, boxShadow: isLight ? '0 4px 10px rgba(255,71,87,0.3)' : '0 4px 10px '+alertColor+'55'
               }}, '🚨'),
               h('div', null,
                 h('p', {style:{
-                  color:'#ffffff', fontSize:14, fontWeight:800, margin:'0 0 1px'
+                  color: txtMain, fontSize:15, fontWeight:800, margin:'0 0 2px'
                 }}, '지출 경고: 최고 금액 Top 5'),
                 h('p', {style:{
-                  color:'rgba(255,107,0,0.7)', fontSize:10, margin:0, fontWeight:600
+                  color: isLight ? '#FF4757' : 'rgba(255,107,0,0.8)', fontSize:11, margin:0, fontWeight:700
                 }}, '큰 지출부터 줄여야 저축이 늘어납니다.')
               )
             ),
             h('div', {style:{
-              background:'rgba(255,0,124,0.1)',
-              border:'1px solid rgba(255,0,124,0.25)',
+              background: isLight ? 'rgba(255,71,87,0.08)' : alertColor+'15',
+              border:'1px solid ' + (isLight ? 'rgba(255,71,87,0.2)' : alertColor+'44'),
               borderRadius:16, padding:'4px 10px'
             }},
-              h('span', {style:{color:'rgba(255,107,107,0.9)', fontSize:10, fontWeight:700}}, '⚠ ALERT')
+              h('span', {style:{color: isLight ? '#FF4757' : alertColor, fontSize:10, fontWeight:800}}, '⚠ ALERT')
             )
           ),
 
+    /* ★ [디자인 전면 개편] 100% 기기 호환성 보장 - 3D 메탈 리퀴드 실린더(시험관) 차트 */
           h('div', {style:{
             display:'flex', alignItems:'flex-end', justifyContent:'space-between',
-            height:160, padding:'0 4px', marginBottom:12
+            height: 190, /* 전체 컨테이너 높이 */
+            padding:'0 4px 35px', marginBottom:12, position: 'relative'
           }},
             top5.map(function(t, idx){
               var cat = getCat(t.catId);
-              var pct = Math.max((t.amount / maxAmt) * 100, 8);
-              var pal = rankPalette[idx];
+              var pct = Math.max((t.amount / maxAmt) * 100, 2); /* 실제 퍼센트 그대로 반영 (2% ~ 100%) */
+              
+              var isLight = savedTheme === 'light';
+              var isCozy  = savedTheme === 'cozy';
+              var txtMain = isLight ? '#0F172A' : '#FFFFFF';
+              var txtSub = isLight ? '#64748B' : 'rgba(255,255,255,0.65)';
+
+              /* 테마별 리퀴드 컬러 정의 */
+              var liquidPalette = [
+                { dark: '#1D4ED8', light: '#93C5FD', main: '#3B82F6' }, // 1. Blue
+                { dark: '#B45309', light: '#FFE082', main: '#F59E0B' }, // 2. Yellow/Orange (실제 2위로 변경)
+                { dark: '#047857', light: '#6EE7B7', main: '#10B981' }, // 3. Green
+                { dark: '#B91C1C', light: '#FCA5A5', main: '#EF4444' }, // 4. Red
+                { dark: '#6D28D9', light: '#C4B5FD', main: '#7C3AED' }  // 5. Purple
+              ];
+              var lp = liquidPalette[idx];
+
               var isFirst = idx === 0;
 
               return h('div', {key:t.id, style:{
                 display:'flex', flexDirection:'column', alignItems:'center',
-                width:'18%', height:'100%', justifyContent:'flex-end'
+                width:'18%', height:'100%', justifyContent:'flex-end', position:'relative'
               }},
-                h('span', {style:{
-                  color:'#ffffff', fontSize:isFirst?12:10, fontWeight:900, marginBottom:5,
-                  textShadow: isFirst ? '0 0 10px '+pal.glow : 'none'
-                }}, fmtS(t.amount)),
-
-                h('div', {style:{
-                  width:'100%', maxWidth:34, height:pct+'%', position:'relative',
-                  borderRadius:'8px 8px 0 0', overflow:'visible'
-                }},
-                  h('div', {style:{
-                    position:'absolute', inset:-2, borderRadius:'10px 10px 0 0',
-                    background:'linear-gradient(to top, '+pal.from+', '+pal.to+')',
-                    opacity:0.2, filter:'blur(6px)'
-                  }}),
-                  h('div', {style:{
-                    position:'absolute', inset:0, borderRadius:'8px 8px 0 0',
-                    background:'linear-gradient(to top, '+pal.from+', '+pal.to+')',
-                    boxShadow:'0 -4px 16px '+pal.glow+', inset 0 1px 0 rgba(255,255,255,0.2)'
-                  }}),
-                  h('div', {style:{
-                    position:'absolute', top:6, left:0, right:0,
-                    textAlign:'center', fontSize:isFirst?15:12
-                  }}, cat.icon),
-                  isFirst && h('div', {style:{
-                    position:'absolute', top:-18, left:0, right:0,
-                    textAlign:'center', fontSize:14
-                  }}, '👑')
+                
+                /* 상단 텍스트 (금액 표시) */
+                h('div', {style:{ position: 'absolute', bottom: 138, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 }},
+                  h('span', {style:{
+                    color: txtMain, fontSize:isFirst?12:11, fontWeight:900, whiteSpace: 'nowrap'
+                  }}, fmtS(t.amount))
                 ),
 
-                h('div', {style:{marginTop:6, textAlign:'center', width:'100%'}},
-                  h('p', {style:{
-                    color:'rgba(255,255,255,0.65)', fontSize:8, margin:'0 0 1px',
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:700
+                /* ★ 메인 리퀴드 실린더 (유리 시험관 구조) */
+                h('div', {style:{
+                  position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: 26, height: 130, borderRadius: 13, overflow: 'hidden',
+                  background: isLight ? '#F1F5F9' : '#161925',
+                  border: isLight ? '1px solid #CBD5E1' : '1px solid #334155',
+                  boxShadow: isLight ? 'inset 0 2px 4px rgba(0,0,0,0.05)' : 'inset 0 4px 8px rgba(0,0,0,0.5)',
+                  zIndex: 3
+                }},
+                  /* 1. 액체 (Liquid Fill) - 3D 둥근 그라데이션 적용 */
+                  h('div', {style:{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    height: pct + '%',
+                    background: 'linear-gradient(90deg, ' + lp.dark + ' 0%, ' + lp.light + ' 30%, ' + lp.main + ' 70%, ' + lp.dark + ' 100%)',
+                    transition: 'height 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: 'inset 0 2px 3px rgba(255,255,255,0.4)',
+                    zIndex: 1
+                  }}),
+
+                  /* 2. 상단 금속 캡 (Top Silver Cap) */
+                  h('div', {style:{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 12,
+                    background: 'linear-gradient(90deg, #64748B 0%, #F1F5F9 35%, #E2E8F0 60%, #475569 100%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.3)',
+                    zIndex: 3
+                  }}),
+
+                  /* 3. 하단 금속 캡 (Bottom Silver Cap) + 아이콘 부착 */
+                  h('div', {style:{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 26,
+                    background: 'linear-gradient(90deg, #64748B 0%, #F1F5F9 35%, #E2E8F0 60%, #475569 100%)',
+                    borderTop: '1px solid rgba(255,255,255,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 3
+                  }}, 
+                    h('span', {style:{ fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))' }}, cat.icon)
+                  ),
+
+                  /* 4. 유리 튜브 세로 하이라이트 (Glass Reflection) */
+                  h('div', {style:{
+                    position: 'absolute', inset: 0, pointerEvents: 'none',
+                    background: 'linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.25) 10%, rgba(255,255,255,0) 25%, rgba(255,255,255,0) 85%, rgba(0,0,0,0.15) 100%)',
+                    zIndex: 4
+                  }})
+                ),
+
+                /* 하단 텍스트 */
+                h('div', {style:{ 
+                  position: 'absolute', bottom: -38, left: '50%', transform: 'translateX(-50%)', 
+                  textAlign: 'center', width: '100%',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center'
+                }},
+                  h('p', {style:{ 
+                    color: isLight ? C.text : 'rgba(255,255,255,0.8)', fontSize: 10, margin: '0 0 2px', 
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800,
+                    width: '100%'
                   }}, cat.name),
-                  h('p', {style:{
-                    color:'rgba(255,255,255,0.35)', fontSize:8, margin:0,
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+                  h('p', {style:{ 
+                    color: C.muted, fontSize: 9, margin: 0, 
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600,
+                    width: '100%'
                   }}, t.store)
                 )
               );
@@ -6483,18 +6718,18 @@ function Dashboard(props) {
 
           h('div', {style:{
             height:1,
-            background:'linear-gradient(90deg, transparent, rgba(255,0,124,0.3), rgba(255,107,0,0.3), transparent)',
-            marginBottom:12
+            background: isLight ? 'linear-gradient(90deg, transparent, rgba(255,71,87,0.3), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,0,124,0.3), rgba(255,107,0,0.3), transparent)',
+            marginBottom:14, marginTop:8
           }}),
 
           h('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between'}},
             h('div', {style:{display:'flex', alignItems:'center', gap:6}},
-              h('span', {style:{fontSize:12}}, '🔥'),
-              h('span', {style:{color:'rgba(240,240,255,0.45)', fontSize:11}}, 'Top5 합계')
+              h('span', {style:{fontSize:14}}, '🔥'),
+              h('span', {style:{color: txtSub, fontSize:12, fontWeight:700}}, 'Top5 합계')
             ),
             h('span', {style:{
-              color:'#FF6B6B', fontSize:14, fontWeight:900,
-              textShadow:'0 0 10px rgba(255,107,107,0.4)'
+              color: isLight ? '#FF4757' : alertColor, fontSize:16, fontWeight:900,
+              textShadow: isLight ? 'none' : '0 0 10px '+alertColor+'66'
             }}, fmt(top5.reduce(function(s,t){return s+t.amount;},0)))
           )
         )
@@ -9313,13 +9548,13 @@ var glw = C.glow || 'rgba(0,229,255,0.15)';
             var hasMemo = !!memos[dateStr];
             var isHoliday = !!holiday;
 
-            // 색상 결정 (라이트 모드 대응)
-            var numColor = isHoliday ? C.red
-              : (isToday ? (isLight ? C.accent : '#FFD600')
-              : (dow===0 ? C.red
+           // ★ 오늘(TODAY) 판별 우선순위를 공휴일보다 위로 격상하여 가독성 확보
+            var numColor = isToday ? '#FFFFFF' /* ★ 짙은 차콜 배경 위에서 글씨가 가장 또렷하게 보이도록 백색 고정 */
+              : (isHoliday ? '#FF6B6B'
+              : (dow===0 ? '#FF6B6B'
               : (dow===6 ? (isLight ? C.accent : '#00F5FF') : (isLight ? C.text : '#F0F0FF'))));
 
-            // 셀 배경/테두리 결정 (라이트 모드 대응)
+            // 셀 배경 결정 (라이트 테마 최적화)
             var bgGrad;
             var brd = isLight ? C.border : 'rgba(255,255,255,0.04)';
             var shadow = 'none';
@@ -9328,18 +9563,19 @@ var glw = C.glow || 'rgba(0,229,255,0.15)';
               brd = isLight ? C.accent : 'rgba(255,215,0,0.8)';
               shadow = isLight ? 'none' : '0 0 18px rgba(255,215,0,0.5)';
             } else if(isToday){
-              bgGrad = isLight ? C.gold+'15' : 'linear-gradient(135deg, rgba(0,245,255,0.18), rgba(124,58,237,0.12))';
-              brd = isLight ? C.gold : 'rgba(0,245,255,0.5)';
-              shadow = isLight ? 'none' : '0 0 14px rgba(0,229,255,0.35)';
+              /* ★ [라이트 테마 최적화] 튀지 않으면서도 가장 확실한 대비를 주는 차콜 그레이(#2D3748) 배경 적용 */
+              bgGrad = isLight ? '#2D3748' : 'linear-gradient(135deg, rgba(0,245,255,0.18), rgba(124,58,237,0.12))';
+              brd = isLight ? '#1A202C' : 'rgba(0,245,255,0.5)';
+              shadow = isLight ? '0 4px 10px rgba(0,0,0,0.12)' : '0 0 14px rgba(0,229,255,0.35)';
             } else if(isHoliday){
-              bgGrad = isLight ? C.red+'0A' : 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,61,113,0.1))';
-              brd = isLight ? C.red+'44' : 'rgba(255,107,107,0.4)';
+              bgGrad = isLight ? '#FFF0F2' : 'linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,61,113,0.1))';
+              brd = isLight ? '#FFB3C1' : 'rgba(255,107,107,0.3)';
             } else if(hasData){
               bgGrad = isLight ? '#FFFFFF' : 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))';
               brd = isLight ? C.border : 'rgba(0,229,255,0.18)';
             } else {
               bgGrad = isLight ? C.card : 'rgba(255,255,255,0.015)';
-              brd = isLight ? C.border : 'transparent'; /* 빈 셀도 라이트 테마에선 선명하게 */
+              brd = isLight ? C.border : 'transparent';
             }
 
              var cellClass = 'flai-cal-cell' +
@@ -10553,6 +10789,7 @@ function Settings(props) {
             [{id:'dark',n:'🌙 다크',c:'#1A1A2E'},{id:'light',n:'☀️ 라이트',c:'#fff'},{id:'cozy',n:'☕ 코지',c:'#2A1F14'},{id:'neo2030',n:'⚡ CYBER 2030',c:'#000'}].map(function(t){
               var isSel = savedTheme === t.id;
               var isNeo = t.id === 'neo2030';
+              /* 원본 테마 버튼 클릭 로직 100% 그대로 유지 */
               return h('button',{key:t.id, onClick:function(){ localStorage.setItem('flai_theme', t.id); window.location.reload(); },
                 style:{
                   padding:'15px 8px', borderRadius:12, cursor:'pointer',
@@ -10565,6 +10802,72 @@ function Settings(props) {
               }, t.n);
             })
           ),
+
+          /* ★ [추가 기획] 원클릭 색상 팔레트 적용 UI */
+          h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 10px',fontWeight:700}},'🎨 원클릭 색상 팔레트 적용'),
+          h('div', {style:{display:'flex', flexDirection:'column', gap:8, marginBottom:8}},
+            (function(){
+              var currentThemePalettes = PALETTES[savedTheme] || {};
+              var curActivePal = localStorage.getItem('flai_palette_' + savedTheme) || 'default';
+              
+              var palNames = {
+                default: savedTheme === 'light' ? 'NEO LIGHT (기본)' : (savedTheme === 'cozy' ? 'COZY 2.0 (기본)' : 'NEO DARK (기본)'),
+                cyber_purple: 'CYBER PURPLE 성운',
+                emerald_matrix: 'EMERALD MATRIX 그리드',
+                neo_light: 'NEO LIGHT 슬레이트',
+                lavender_haze: 'LAVENDER HAZE 파스텔',
+                cozy_wood: 'COZY WOOD 브론즈',
+                cozy_moss: 'COZY MOSS 올리브',
+                laser_grid: 'LASER GRID 푸크시아'
+              };
+
+              return Object.keys(currentThemePalettes).map(function(pKey) {
+                var isPalActive = curActivePal === pKey;
+                var palObj = currentThemePalettes[pKey];
+                return h(GCard, {
+                  key: pKey,
+                  onClick: function() {
+                    localStorage.setItem('flai_palette_' + savedTheme, pKey);
+                    window.location.reload();
+                  },
+                  style: {
+                    padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    border: isPalActive ? '2px solid ' + C.accent : '1px solid ' + C.border,
+                    background: isPalActive ? C.accent + '11' : C.card2,
+                    boxShadow: isPalActive ? '0 0 12px ' + C.accent + '44' : 'none'
+                  }
+                },
+                  h('span', {style:{fontSize:12, fontWeight:800, color: C.text}}, palNames[pKey] || pKey),
+                  h('div', {style:{display:'flex', gap:5, alignItems:'center'}},
+                    (palObj.chart || []).map(function(colorValue, cIdx) {
+                      return h('div', {
+                        key: cIdx,
+                        style: {
+                          width: 13, height: 13, borderRadius: '50%', background: colorValue,
+                          boxShadow: 'inset -2px -2px 3px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)'
+                        }
+                      });
+                    })
+                  )
+                );
+              });
+            })()
+          ),
+
+          /* ★ [원복단추] 원복 기능 완벽 구현 */
+          h('button', {
+            onClick: function() {
+              localStorage.removeItem('flai_palette_' + savedTheme); 
+              window.location.reload(); 
+            },
+            style: {
+              width: '100%', padding: '12px', borderRadius: 10, marginBottom: 20,
+              border: '1.5px dashed ' + C.accent, background: C.accent + '08',
+              color: C.accent, fontSize: '12px', fontWeight: 800, cursor: 'pointer',
+              textAlign: 'center', transition: 'all 0.2s', outline: 'none'
+            }
+          }, '↩️ 이 테마의 원본 고유 색상으로 복구 (원복)'),
+
           h('p',{style:{color:C.muted,fontSize:11,margin:'0 0 10px'}},'글꼴 선택'),
           h('div', {style:{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}},
             [{id:'Pretendard', n:'기본 고딕'}, {id:'"Jua"', n:'주아체'}, {id:'"Nanum Pen Script"', n:'나눔손글씨'}, {id:'"Gowun Dodum"', n:'고운돋움'}].map(function(f){
@@ -10985,26 +11288,42 @@ function BNav(props) {
     {id:'settings',  icon:'⚙️', lbl:'설정'}
   ];
 
-return h('div', {
+  var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+  var isLight = currentTheme === 'light';
+  var isCozy = currentTheme === 'cozy';
+
+  /* ★ 공중부양 높이 미세 조정 및 애니메이션 튜닝 */
+  var floatStyle = h('style', null, 
+    "@keyframes holoFloat { " +
+    "  0% { transform: translate(-50%, -4px); box-shadow: 0 8px 20px rgba(0,229,255,0.4), inset 0 0 10px rgba(255,255,255,0.4); } " +
+    "  50% { transform: translate(-50%, -10px); box-shadow: 0 16px 30px rgba(0,229,255,0.2), inset 0 0 15px rgba(255,255,255,0.6); } " +
+    "  100% { transform: translate(-50%, -4px); box-shadow: 0 8px 20px rgba(0,229,255,0.4), inset 0 0 10px rgba(255,255,255,0.4); } " +
+    "}" +
+    "@keyframes holoFloatLight { " +
+    "  0% { transform: translate(-50%, -4px); box-shadow: 0 8px 16px rgba(0,191,165,0.3), inset 0 0 8px rgba(255,255,255,0.5); } " +
+    "  50% { transform: translate(-50%, -10px); box-shadow: 0 14px 24px rgba(0,191,165,0.15), inset 0 0 12px rgba(255,255,255,0.7); } " +
+    "  100% { transform: translate(-50%, -4px); box-shadow: 0 8px 16px rgba(0,191,165,0.3), inset 0 0 8px rgba(255,255,255,0.5); } " +
+    "}" +
+    "@keyframes groundShadow { " +
+    "  0% { transform: translateX(-50%) scale(1); opacity: 0.7; } " +
+    "  50% { transform: translateX(-50%) scale(0.65); opacity: 0.3; } " +
+    "  100% { transform: translateX(-50%) scale(1); opacity: 0.7; } " +
+    "}" +
+    ".holo-add-btn { animation: " + (isLight ? "holoFloatLight" : "holoFloat") + " 3.5s ease-in-out infinite; }"
+  );
+
+  return h('div', {
     style: {
-      position: 'fixed',
-      bottom: 12,
-      left: 12,
-      right: 12,
-      maxWidth: 406,
-      margin: '0 auto',
-      background: savedTheme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(8, 10, 20, 0.9)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      border: '1px solid ' + C.border,
-      borderRadius: 24,
-      display: 'flex',
-      zIndex: 100,
-      padding: '6px 2px',
+      position: 'fixed', bottom: 12, left: 12, right: 12, maxWidth: 406, margin: '0 auto',
+      background: isLight ? 'rgba(255, 255, 255, 0.85)' : (isCozy ? 'rgba(20, 15, 10, 0.9)' : 'rgba(8, 10, 20, 0.9)'),
+      backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+      border: isLight ? '1px solid #E2E8F0' : '1px solid ' + C.border,
+      borderRadius: 24, display: 'flex', zIndex: 100, padding: '6px 2px',
       overflow: 'visible',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px ' + C.glow
+      boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.06)' : '0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px ' + C.glow
     }
   },
+    floatStyle,
     tabs.map(function(t) {
       var ia = props.active === t.id;
       var isA = t.id === 'add';
@@ -11014,64 +11333,53 @@ return h('div', {
         onClick: function() { props.onTab(t.id); },
         className: 'neo-clickable cyber-glow-button',
         style: {
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-          padding: '6px 0',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: ia ? C.accent : C.muted,
-          transition: 'all 0.2s ease',
-          outline: 'none',
-          position: 'relative',
-          overflow: 'visible'
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 2, padding: '6px 0', background: 'none', border: 'none', cursor: 'pointer',
+          color: ia ? C.accent : C.muted, transition: 'all 0.2s ease', outline: 'none',
+          position: 'relative', overflow: 'visible'
         }
       },
         isA
-          ? h('div', {
-              style: {
-                width: 46,
-                height: 46,
-                borderRadius: '50%',
-                background: C.navGrad,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'absolute',
-                top: -32,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                border: '3px solid rgba(8, 10, 20, 0.9)',
-                fontSize: 26,
-                color: '#000',
-                fontWeight: 900,
-                boxShadow: '0 8px 20px ' + C.glow + ', inset 0 1px 0 rgba(255, 255, 255, 0.4)'
-              }
-            }, '+')
-          : h('div', {
-              style:{
-                display:'flex',
-                flexDirection:'column',
-                alignItems:'center',
-                gap: 2
-              }
-            },
+          ? h('div', { style: { position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' } },
+              /* ★ 공중부양 바닥 반사광 위치 미세 조정 */
+              h('div', { style: { 
+                position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+                width: 30, height: 6, borderRadius: '50%', filter: 'blur(3px)',
+                background: isLight ? 'rgba(0,191,165,0.4)' : 'rgba(0,229,255,0.4)',
+                animation: 'groundShadow 3.5s ease-in-out infinite'
+              }}),
+              
+              /* ★ 공중부양 높이를 기존 -48px에서 약 5% 낮춘 -38px로 정밀 하강 */
+              h('div', {
+                className: 'holo-add-btn',
+                style: {
+                  position: 'absolute', top: -38, left: '50%',
+                  width: 50, height: 50, borderRadius: '50%',
+                  background: isLight ? 'linear-gradient(135deg, #00BFA5, #0984E3)' : 'linear-gradient(135deg, rgba(0,229,255,0.85), rgba(124,58,237,0.85))',
+                  backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                  display: 'flex', alignItems:'center', justifyContent: 'center',
+                  border: isLight ? '2px solid rgba(255,255,255,0.9)' : '2px solid rgba(0,255,255,0.8)',
+                  fontSize: 28, color: '#FFF', fontWeight: 300, zIndex: 10
+                }
+              }, '+'),
+              
+              /* ★ 다른 메뉴들과 완벽한 수평 정렬을 유지하는 "입력" 텍스트 (가독성 강화 및 11px 확대) */
+              h('span', { style: { 
+                fontSize: 11, /* ★ 기존 8px에서 11px로 시원하게 확대 */
+                fontWeight: ia ? 900 : 700, /* ★ 글꼴 두께를 진하게 세팅하여 선명도 극대화 */
+                color: ia ? C.accent : (isLight ? '#475569' : C.muted), /* 테마별 고대비 글자색 매핑 */
+                position: 'relative', zIndex: 11, pointerEvents: 'none',
+                marginTop: 2
+              } }, '입력')
+            )
+          : h('div', { style:{ display:'flex', flexDirection:'column', alignItems:'center', gap: 2 } },
               h('span', { style: { fontSize: 18 } }, t.icon),
               h('span', { style: { fontSize: 8, fontWeight: ia ? 800 : 500, color: ia ? C.accent : C.muted } }, t.lbl)
             ),
         (!isA && ia) && h('div', {
           style: {
-            position: 'absolute',
-            bottom: 0,
-            width: 3,
-            height: 3,
-            borderRadius: '50%',
-            background: C.accent,
-            boxShadow: '0 0 8px ' + C.accent
+            position: 'absolute', bottom: 0, width: 3, height: 3,
+            borderRadius: '50%', background: C.accent, boxShadow: '0 0 8px ' + C.accent
           }
         })
       );
@@ -11911,6 +12219,557 @@ function BulkIn(props) {
     )
   );
 }
+
+/* =========================================================================
+   ⚡ [최종 통합 버전] 3D 오비탈 플라즈마 도넛 & 4.5초 충전 전류 바 시스템
+   ========================================================================= */
+
+/* 1. 외경을 따라 3D 지그재그 번개가 공전하고 내경에선 뇌전 스톰이 치는 고화질 도넛 차트 */
+function HologramPlasmaDonut(props) {
+  var data = props.data || [];
+  var size = props.size || 150; /* ★ 기본 사이즈를 150px로 대폭 키워 시인성 확보 */
+  var totalLabel = props.totalLabel || '';
+  var cvRef = React.useRef(null);
+  var rafRef = React.useRef(null);
+  var timeRef = React.useRef(0);
+  var sparksRef = React.useRef([]);
+
+  React.useEffect(function() {
+    var cv = cvRef.current; if (!cv) return;
+    var ctx = cv.getContext('2d');
+    var cx = size / 2, cy = size / 2;
+    var R = size * 0.38;       // 원형 그래프 외경 반지름 (57px)
+    var R_in = size * 0.25;    // 원형 그래프 내경 반지름 (37.5px)
+    var ri = R_in;
+    var R_light = R + 8;       // ★ 번개가 원형그래프의 외경 바깥을 타고 돌도록 반지름을 넓게 설정 (65px)
+
+    // 카멜레온 5대 에너지 컬러 루프
+    var chameleonColors = ['#00F5FF', '#BD00FF', '#FF0055', '#FFD600', '#00FF88'];
+
+    function hexToRgb(hex) {
+      var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+      hex = hex.replace(shorthandRegex, function(m, r, g, b) { return r + r + g + g + b + b; });
+      var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : { r: 0, g: 245, b: 255 };
+    }
+
+    function draw() {
+      timeRef.current += 0.012;
+      var t = timeRef.current;
+      var total = data.reduce(function(s, d) { return s + d.value; }, 0);
+      ctx.clearRect(0, 0, size, size);
+
+      if (total === 0) return;
+
+      var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+      var isLight = currentTheme === 'light';
+
+      // --- 1단계: 깔끔한 평면 원형 그래프 베이스 그리기 (가독성 100% 확보) ---
+      var sAngle = -Math.PI / 2;
+      data.forEach(function(d, idx) {
+        var arc = (d.value / total) * Math.PI * 2;
+        if (arc < 0.01) { sAngle += arc; return; }
+
+        var palette = isLight ? [
+          '#FF7E67', '#00CECE', '#FFC312', '#00E676', '#D980FA'
+        ] : [
+          '#FF007C', '#00E5FF', '#FFD600', '#69F0AE', '#CE93D8'
+        ];
+        var col = palette[idx % palette.length];
+
+        // 1차: 글로우 헤일로
+ctx.beginPath();
+ctx.arc(cx, cy, (R + R_in) / 2, sAngle, sAngle + arc);
+ctx.strokeStyle = col;
+ctx.lineWidth = (R - R_in) + 6;
+ctx.shadowColor = col;
+ctx.shadowBlur = 18;
+ctx.globalAlpha = 0.45;
+ctx.stroke();
+ctx.shadowBlur = 0;
+ctx.globalAlpha = 1.0;
+// 2차: 코어 선명 렌더링
+ctx.beginPath();
+ctx.arc(cx, cy, (R + R_in) / 2, sAngle, sAngle + arc);
+ctx.strokeStyle = col;
+ctx.lineWidth = R - R_in;
+ctx.shadowColor = col;
+ctx.shadowBlur = 8;
+ctx.stroke();
+ctx.shadowBlur = 0;
+// 3차: 하이라이트 흰 선
+ctx.beginPath();
+ctx.arc(cx, cy, R_in + (R - R_in) * 0.28, sAngle + 0.04, sAngle + arc - 0.04);
+ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+        sAngle += arc;
+      });
+
+      // --- ⚡ [대표님 지시사항 1] 번개가 원형그래프의 외경 바깥을 타고 돌아가는 리얼 번개 형상 구현 ---
+      var orbitTime = 6; // 6초에 한바퀴
+      var orbitCount = t / orbitTime;
+      var cometAngle = (t * (Math.PI * 2) / orbitTime) % (Math.PI * 2);
+      var currentLap = Math.floor(orbitCount) % 5;
+      var nextLap = (currentLap + 1) % 5;
+      var lapProgress = orbitCount - Math.floor(orbitCount);
+
+      // 도도리표식 우아한 카멜레온 변색
+      var rgb1 = hexToRgb(chameleonColors[currentLap]);
+      var rgb2 = hexToRgb(chameleonColors[nextLap]);
+      var curR = Math.round(rgb1.r + (rgb2.r - rgb1.r) * lapProgress);
+      var curG = Math.round(rgb1.g + (rgb2.g - rgb1.g) * lapProgress);
+      var curB = Math.round(rgb1.b + (rgb2.b - rgb1.b) * lapProgress);
+      var cometColor = 'rgb(' + curR + ',' + curG + ',' + curB + ')';
+
+// ⚡ 사이버 플라즈마 번개 v5 — 다중 실타래 필라멘트 번들 시스템
+      var CYAN = '#00F5FF';
+
+      /* 아크 파이버 점 생성 — 짧은 호 위에 반경 편차로 꼬인 실타래 */
+      function arcFiber(sa, ea, br, rough, nPts) {
+        var fp = [];
+        for (var i=0; i<=nPts; i++) {
+          var a = sa + (i/nPts)*(ea-sa);
+          var r = br + (Math.random()-0.5)*rough*2.2;
+          fp.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});
+        }
+        return fp;
+      }
+
+      /* 수직변위 미드포인트 치환 (번개 가지용) */
+      function mpD(x1,y1,x2,y2,dep,rough) {
+        if (dep<=0) return [{x:x1,y:y1},{x:x2,y:y2}];
+        var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+        var nx=-dy/len,ny=dx/len;
+        var d=(Math.random()-0.5)*rough;
+        var mx=(x1+x2)/2+nx*d, my=(y1+y2)/2+ny*d;
+        var Lp=mpD(x1,y1,mx,my,dep-1,rough*0.52);
+        var Rp=mpD(mx,my,x2,y2,dep-1,rough*0.52);
+        return Lp.concat(Rp.slice(1));
+      }
+
+      /* 번개 가지 렌더링 */
+      function rBolt(pts,lw,col,blur,alpha) {
+        if (!pts||pts.length<2) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x,pts[0].y);
+        for (var _ri=1;_ri<pts.length;_ri++) ctx.lineTo(pts[_ri].x,pts[_ri].y);
+        ctx.strokeStyle=col; ctx.lineWidth=lw;
+        ctx.shadowColor=col; ctx.shadowBlur=blur;
+        ctx.globalAlpha=alpha; ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1.0;
+      }
+
+      var tailSpan = Math.PI * 1.35;
+      var ARC_N = 32;
+
+      /* ── 배경 앰비언트 글로우 (굵은 심 없음 — 희미한 경로 힌트만) ── */
+      for (var _ga=0;_ga<ARC_N;_ga++) {
+        var _gas=cometAngle-tailSpan+(_ga/ARC_N)*tailSpan;
+        var _gae=cometAngle-tailSpan+((_ga+1)/ARC_N)*tailSpan;
+        var _gaf=Math.pow(_ga/ARC_N,0.45);
+        ctx.beginPath(); ctx.arc(cx,cy,R_light,_gas,_gae);
+        ctx.strokeStyle=CYAN; ctx.lineWidth=26;
+        ctx.shadowColor=CYAN; ctx.shadowBlur=44;
+        ctx.globalAlpha=_gaf*0.08; ctx.lineCap='round'; ctx.stroke();
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+
+      for (var _gb=0;_gb<ARC_N;_gb++) {
+        var _gbs=cometAngle-tailSpan+(_gb/ARC_N)*tailSpan;
+        var _gbe=cometAngle-tailSpan+((_gb+1)/ARC_N)*tailSpan;
+        var _gbf=Math.pow(_gb/ARC_N,0.45);
+        ctx.beginPath(); ctx.arc(cx,cy,R_light,_gbs,_gbe);
+        ctx.strokeStyle=CYAN; ctx.lineWidth=10;
+        ctx.shadowColor=CYAN; ctx.shadowBlur=16;
+        ctx.globalAlpha=_gbf*0.17; ctx.lineCap='round'; ctx.stroke();
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+
+      /* ── 다중 실타래 필라멘트 번들 ──
+         각 실: 독립 위상(phase)으로 꿈틀 + 반경 편차로 교차/뒤얽힘
+         15% 역방향 이동 → 실들이 서로 반대방향으로 꼬이는 효과 */
+      var _numF = 38 + Math.floor(Math.random()*20); // 38~57개
+      for (var _fi=0;_fi<_numF;_fi++) {
+        var _fPos = Math.pow(Math.random(),0.58); // 앞쪽 집중
+        // 독립 위상: 각 실이 서로 다른 속도로 꿈틀거림
+        var _fPhase = Math.sin(t*2.6+_fi*0.81)*0.03;
+        // 15% 역방향 → 뒤엉킴/꼬임 강조
+        var _fRev = Math.random()<0.15 ? -0.08 : 0;
+        var _fCenter = cometAngle - tailSpan*(1-_fPos) + _fPhase + _fRev;
+
+        // 실 길이 (짧은 조각들)
+        var _fSpan = 0.03 + Math.random()*0.24;
+        var _fSA = _fCenter - _fSpan*0.5;
+        var _fEA = _fCenter + _fSpan*0.5;
+
+        // 반경: R_light ±8px → 서로 다른 반경 = 교차/교란 효과
+        var _fR = R_light + (Math.random()-0.4)*16;
+
+        // 실 굵기 (매우 얇게)
+        var _fW = 0.1 + Math.random()*0.52;
+
+        // 투명도 (꼬리=희미, 머리=밝음)
+        var _fAlpha = _fPos*(0.28+Math.random()*0.72);
+
+        // 색상: 65% 흰청색, 35% 시안
+        var _fCol = Math.random()>0.35
+          ? 'rgba(208,246,255,0.95)' : CYAN;
+
+        // 파이버 점 (7점, 반경 편차로 꺾임 구현)
+        var _fPts = arcFiber(_fSA,_fEA,_fR, 2.0+Math.random()*4.2, 7);
+
+        ctx.beginPath();
+        ctx.moveTo(_fPts[0].x,_fPts[0].y);
+        for (var _fpi=1;_fpi<_fPts.length;_fpi++)
+          ctx.lineTo(_fPts[_fpi].x,_fPts[_fpi].y);
+        ctx.strokeStyle=_fCol;
+        ctx.lineWidth=_fW;
+        ctx.shadowColor=CYAN;
+        ctx.shadowBlur=1+Math.random()*5;
+        ctx.globalAlpha=_fAlpha;
+        ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1;
+      }
+
+      /* ── 번개 가지 (얇게 조정) ── */
+      var _numB = 8+Math.floor(Math.random()*8);
+      for (var _bi=0;_bi<_numB;_bi++) {
+        var _bFrac=Math.pow(Math.random(),0.62);
+        var _bAng=cometAngle-tailSpan*(1-_bFrac);
+        var _bRr=R_light+(Math.random()-0.38)*4;
+        var _bx0=cx+_bRr*Math.cos(_bAng);
+        var _by0=cy+_bRr*Math.sin(_bAng);
+        var _aBias=Math.random()<0.5
+          ?(Math.random()-0.5)*0.55:(Math.random()-0.5)*Math.PI*0.9;
+        var _oDir=_bAng+_aBias;
+        var _bLen=4+Math.random()*20;
+        var _bAlp=_bFrac*(0.4+Math.random()*0.5);
+        var _bx1=_bx0+Math.cos(_oDir)*_bLen;
+        var _by1=_by0+Math.sin(_oDir)*_bLen;
+        var _bPts=mpD(_bx0,_by0,_bx1,_by1,3,_bLen*0.72);
+        rBolt(_bPts,1.7,CYAN,12,_bAlp*0.58);
+        rBolt(_bPts,0.5,'rgba(218,248,255,0.95)',3,_bAlp);
+
+        if (Math.random()>0.55 && _bPts.length>3) {
+          var _mIdx=1+Math.floor(Math.random()*(_bPts.length-2));
+          var _fkBias=(Math.random()>0.5?1:-1)*(0.7+Math.random()*0.95);
+          var _fkDir=_oDir+_fkBias;
+          var _fkLen=_bLen*(0.28+Math.random()*0.48);
+          var _fkx1=_bPts[_mIdx].x+Math.cos(_fkDir)*_fkLen;
+          var _fky1=_bPts[_mIdx].y+Math.sin(_fkDir)*_fkLen;
+          var _fkPts=mpD(_bPts[_mIdx].x,_bPts[_mIdx].y,
+                         _fkx1,_fky1,2,_fkLen*0.78);
+          rBolt(_fkPts,0.95,CYAN,8,_bAlp*0.42);
+          rBolt(_fkPts,0.36,'rgba(218,248,255,0.88)',2,_bAlp*0.46);
+        }
+      }
+
+      /* ── 마이크로 스파크 (전표면 불규칙) ── */
+      var _spN=6+Math.floor(Math.random()*11);
+      for (var _sk=0;_sk<_spN;_sk++) {
+        var _skF=Math.random();
+        var _skA=cometAngle-tailSpan*(1-_skF);
+        var _skR=R_light+(Math.random()-0.5)*12;
+        var _skX=cx+_skR*Math.cos(_skA);
+        var _skY=cy+_skR*Math.sin(_skA);
+        var _skL=1+Math.random()*11;
+        var _skD=_skA+(Math.random()-0.5)*Math.PI*2.4;
+        ctx.beginPath();
+        ctx.moveTo(_skX,_skY);
+        ctx.lineTo(_skX+Math.cos(_skD)*_skL,_skY+Math.sin(_skD)*_skL);
+        ctx.strokeStyle=Math.random()>0.3?CYAN:'rgba(218,248,255,0.95)';
+        ctx.lineWidth=0.3+Math.random()*1.2;
+        ctx.shadowColor=CYAN; ctx.shadowBlur=4+Math.random()*8;
+        ctx.globalAlpha=0.28+Math.random()*0.72;
+        ctx.lineCap='round'; ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1;
+      }
+
+      /* ── 헤드: 방사 글로우 (원형 구체 없음) ── */
+      var _hx=cx+R_light*Math.cos(cometAngle);
+      var _hy=cy+R_light*Math.sin(cometAngle);
+      var _hG=ctx.createRadialGradient(_hx,_hy,0,_hx,_hy,16);
+      _hG.addColorStop(0,'rgba(235,252,255,0.72)');
+      _hG.addColorStop(0.3,'rgba(0,245,255,0.48)');
+      _hG.addColorStop(0.72,'rgba(0,245,255,0.09)');
+      _hG.addColorStop(1,'rgba(0,245,255,0)');
+      ctx.beginPath(); ctx.arc(_hx,_hy,16,0,Math.PI*2);
+      ctx.fillStyle=_hG;
+      ctx.shadowColor=CYAN; ctx.shadowBlur=26;
+      ctx.globalAlpha=0.82; ctx.fill();
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+
+      var _hRot=t*3.4;
+      for (var _hr=0;_hr<8;_hr++) {
+        var _hDir=_hRot+_hr*(Math.PI/4)+(Math.random()-0.5)*0.4;
+        var _hL=3+Math.random()*10;
+        ctx.beginPath(); ctx.moveTo(_hx,_hy);
+        ctx.lineTo(_hx+Math.cos(_hDir)*_hL,_hy+Math.sin(_hDir)*_hL);
+        ctx.strokeStyle=Math.random()>0.4?'rgba(218,248,255,0.9)':CYAN;
+        ctx.lineWidth=0.4+Math.random()*1.1;
+        ctx.shadowColor=CYAN; ctx.shadowBlur=8;
+        ctx.globalAlpha=0.4+Math.random()*0.6;
+        ctx.lineCap='round'; ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1;
+      }
+
+      // --- ⚡ [대표님 지시사항 2] 내경 플라즈마 뇌전 스톰 (밝은 청색 고정 스파크 무작위 발사) ---
+      if (Math.random() > 0.55) {
+        var targetAngle = Math.random() * Math.PI * 2;
+        var sparkPath = [];
+        var segments = 5;
+        sparkPath.push({ x: cx, y: cy });
+
+        for (var k = 1; k <= segments; k++) {
+          var segmentDist = (ri * (k / segments));
+          var jitterX = (Math.random() - 0.5) * 5;
+          var jitterY = (Math.random() - 0.5) * 5;
+          if (k === segments) { jitterX = 0; jitterY = 0; }
+          var rx = cx + segmentDist * Math.cos(targetAngle) + jitterX;
+          var ry = cy + segmentDist * Math.sin(targetAngle) + jitterY;
+          sparkPath.push({ x: rx, y: ry });
+        }
+        sparksRef.current.push({ path: sparkPath, alpha: 1.0 });
+      }
+
+      sparksRef.current = sparksRef.current.filter(function(s) { return s.alpha > 0.05; });
+      sparksRef.current.forEach(function(s) {
+        ctx.beginPath();
+        ctx.moveTo(s.path[0].x, s.path[0].y);
+        for (var pi = 1; pi < s.path.length; pi++) {
+          ctx.lineTo(s.path[pi].x, s.path[pi].y);
+        }
+        ctx.strokeStyle = isLight
+  ? 'rgba(0, 60, 200, ' + s.alpha + ')'
+  : 'rgba(0, 245, 255, ' + s.alpha + ')';
+ctx.lineWidth = 1.4;
+ctx.shadowColor = isLight ? '#003388' : '#00F5FF';
+ctx.shadowBlur = isLight ? 6 : 8;
+ctx.stroke();
+ctx.shadowBlur = 0;
+
+ctx.strokeStyle = isLight
+  ? 'rgba(0, 30, 150, ' + s.alpha * 0.8 + ')'
+  : 'rgba(255, 255, 255, ' + s.alpha * 1.2 + ')';
+ctx.lineWidth = isLight ? 0.8 : 0.5;
+ctx.stroke();
+        s.alpha -= 0.15;
+      });
+
+      // 중앙 텍스트 캡 보호막
+      ctx.beginPath(); ctx.arc(cx, cy, ri, 0, Math.PI * 2);
+      ctx.fillStyle = isLight ? '#FFFFFF' : '#0B0D19';
+      ctx.shadowColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,245,255,0.08)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = isLight ? '#CBD5E1' : 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = isLight ? '#64748B' : 'rgba(255,255,255,0.5)';
+      ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('총지출', cx, cy - 6);
+
+      ctx.fillStyle = isLight ? '#0F172A' : '#FFFFFF';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(totalLabel, cx, cy + 6);
+
+      rafRef.current = requestAnimationFrame(draw);
+    }
+    draw();
+    return function() { cancelAnimationFrame(rafRef.current); };
+  }, [data, size, totalLabel]);
+
+  return h('canvas', { ref: cvRef, width: size, height: size, style: { width: size + 'px', height: size + 'px', flexShrink: 0 } });
+}
+
+/* 2. 기둥 내부에서 번개가 질주하는 전류 에너지 프로그레스 바 (4.5초 주기 정교화 버전) */
+function PlasmaProgressBar(props) {
+  var pct = props.pct || 0;
+  var color = props.color || '#00FFFF';
+  var height = props.height || 10;
+  var cvRef = React.useRef(null);
+  var rafRef = React.useRef(null);
+
+  React.useEffect(function() {
+    var cv = cvRef.current; if (!cv) return;
+    var ctx = cv.getContext('2d');
+    cv.height = height;
+    var W = cv.width;
+
+    function draw() {
+      ctx.clearRect(0, 0, W, height);
+      var isLight = localStorage.getItem('flai_theme') === 'light';
+
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2); ctx.lineTo(W, height / 2);
+      ctx.strokeStyle = isLight ? '#E2E8F0' : 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // 4.5초 주기 정밀 시간 제어 연산
+      var cycleDuration = 4500;
+      var surgeDuration = 2000;
+      var t = Date.now() % cycleDuration;
+
+      var progress = 1.0;
+      if (t < surgeDuration) {
+        progress = t / surgeDuration;
+      }
+
+      var currentW = (pct / 100) * W * progress;
+
+      if (currentW > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2); ctx.lineTo(currentW, height / 2);
+        ctx.strokeStyle = color + '22';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        var segments = Math.max(5, Math.floor(currentW / 14));
+        ctx.moveTo(0, height / 2);
+        for (var i = 1; i <= segments; i++) {
+          var x = (i / segments) * currentW;
+          var jitter = (Math.random() - 0.5) * 4.5;
+          if (i === segments) jitter = 0;
+          ctx.lineTo(x, height / 2 + jitter);
+        }
+        ctx.strokeStyle = isLight ? '#00BFA5' : '#00F5FF'; // 밝은 청색 고정
+        ctx.lineWidth = 1.8;
+        ctx.shadowColor = isLight ? '#00BFA5' : '#00F5FF';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(currentW, height / 2, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = isLight ? '#00BFA5' : '#00F5FF';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    }
+    draw();
+    return function() { cancelAnimationFrame(rafRef.current); };
+  }, [pct, color, height]);
+
+  return h('canvas', { ref: cvRef, style: { width: '100%', height: height + 'px', display: 'block', pointerEvents: 'none' } });
+}
+
+/* =========================================================================
+   🤖 [PREMIUM AI BOT ENGINE] 자가발광 및 실시간 눈 깜빡임 로봇 아바타 컴포넌트
+   ========================================================================= */
+function AIBotAvatar(props) {
+  var isAnalyzing = props.isAnalyzing;
+  var currentTheme = localStorage.getItem('flai_theme') || 'dark';
+  var isLight = currentTheme === 'light';
+
+  var styleBlock = h('style', null, 
+    "@keyframes eyeBlink { 0%, 90%, 100% { transform: scaleY(1); opacity: 1; } 95% { transform: scaleY(0.08); opacity: 0.1; } }\n" +
+    "@keyframes eyeSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }\n" +
+    "@keyframes beaconPulse { 0% { fill: #00BFA5; filter: drop-shadow(0 0 2px #00BFA5); } 100% { fill: #00FFFF; filter: drop-shadow(0 0 10px #00FFFF); } }\n" +
+    "@keyframes auraPulse { 0%, 100% { filter: drop-shadow(0 0 4px rgba(0,229,255,0.3)); } 50% { filter: drop-shadow(0 0 12px rgba(0,229,255,0.7)); } }\n" +
+    "@keyframes botHover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }"
+  );
+
+  return h('div', {
+    className: 'holo-bot-container',
+    style: {
+      width: 74, height: 74, position: 'relative', flexShrink: 0,
+      animation: 'botHover 3s ease-in-out infinite'
+    }
+  },
+    styleBlock,
+    h('svg', {
+      viewBox: '10 1 44 53', /* ★ 빈 공간 크롭하여 로봇 자체의 크기 최대화 */
+      width: 74, height: 74,
+      style: { display: 'block', overflow: 'visible', filter: isLight ? 'none' : 'drop-shadow(0 0 8px rgba(0,229,255,0.45))' }
+    },
+      h('defs', null,
+        h('radialGradient', { id: 'botGlow', cx: '50%', cy: '50%', r: '50%' },
+          h('stop', { offset: '0%', stopColor: 'rgba(0,245,255,0.3)' }),
+          h('stop', { offset: '100%', stopColor: 'rgba(0,245,255,0)' })
+        ),
+        h('linearGradient', { id: 'botBody', x1: '0%', y1: '0%', x2: '100%', y2: '100%' },
+          h('stop', { offset: '0%', stopColor: isLight ? '#475569' : '#1E293B' }),
+          h('stop', { offset: '100%', stopColor: isLight ? '#1E293B' : '#0F172A' })
+        ),
+        h('linearGradient', { id: 'botFace', x1: '0%', y1: '0%', x2: '100%', y2: '100%' },
+          h('stop', { offset: '0%', stopColor: '#0F172A' }),
+          h('stop', { offset: '100%', stopColor: '#05070F' })
+        ),
+        h('linearGradient', { id: 'neonCyan', x1: '0%', y1: '0%', x2: '0%', y2: '100%' },
+          h('stop', { offset: '0%', stopColor: '#00FFFF' }),
+          h('stop', { offset: '100%', stopColor: '#00BFA5' })
+        ),
+        /* ★ 에러 원인이었던 괄호 오타 '})'를 단정하게 ')'로 교정 완료 */
+        h('linearGradient', { id: 'neonPurple', x1: '0%', y1: '0%', x2: '100%', y2: '0%' },
+          h('stop', { offset: '0%', stopColor: '#BD00FF' }),
+          h('stop', { offset: '100%', stopColor: '#00FFFF' })
+        )
+      ),
+
+      /* 1. 배경 플라즈마 아우라 */
+      h('circle', { cx: 32, cy: 32, r: 28, fill: 'url(#botGlow)', style: { animation: 'auraPulse 4s ease-in-out infinite' } }),
+
+      /* 2. 입체 메탈 로봇 팔 */
+      h('path', { d: 'M18,44 Q13,49 15,53', stroke: 'url(#neonCyan)', strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' }),
+      h('path', { d: 'M46,44 Q51,49 49,53', stroke: 'url(#neonCyan)', strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' }),
+
+      /* 3. 메탈 바디 몸체 */
+      h('path', { d: 'M16,52 C16,43 22,39 32,39 C42,39 48,43 48,52 Z', fill: 'url(#botBody)', stroke: isLight ? '#CBD5E1' : '#00FFFF', strokeWidth: 1 }),
+
+      /* 4. 사이버 헤드폰 */
+      h('rect', { x: 13, y: 22, width: 5, height: 11, rx: 2.5, fill: 'url(#neonPurple)', stroke: '#00FFFF', strokeWidth: 0.5 }),
+      h('rect', { x: 46, y: 22, width: 5, height: 11, rx: 2.5, fill: 'url(#neonPurple)', stroke: '#00FFFF', strokeWidth: 0.5 }),
+
+      /* 5. 안테나 및 발광 노드 */
+      h('line', { x1: 32, y1: 16, x2: 32, y2: 8, stroke: 'url(#neonCyan)', strokeWidth: 2 }),
+      h('circle', { cx: 32, cy: 6.5, r: 2.5, fill: isAnalyzing ? '#FF1155' : '#00FFFF', style: { animation: isAnalyzing ? 'none' : 'beaconPulse 1.5s infinite alternate' } }),
+
+      /* 6. 로봇 머리 쉘 */
+      h('rect', { x: 18, y: 15, width: 28, height: 25, rx: 12.5, fill: 'url(#botBody)', stroke: 'url(#neonCyan)', strokeWidth: 1.8 }),
+
+      /* 7. 글래스 안면 바이저 */
+      h('rect', { x: 21, y: 19, width: 22, height: 16, rx: 8, fill: 'url(#botFace)', stroke: 'rgba(0,255,255,0.25)', strokeWidth: 0.8 }),
+
+      /* 8. 생기 넘치는 고해상도 인간형 눈동자 (홍채 + 동공 + 2중 반사광 탑재) */
+      h('g', { style: { transformOrigin: '32px 27px', animation: isAnalyzing ? 'eyeSpin 1.2s linear infinite' : 'eyeBlink 5s infinite' } },
+        /* 왼쪽 눈 (크기 확장 및 인간형 동공 조립) */
+        h('circle', { cx: 27, cy: 26.5, r: isAnalyzing ? 2.2 : 3.8, fill: '#00FFFF' }), 
+        h('circle', { cx: 27, cy: 26.5, r: 1.8, fill: '#0A0E1A' }), 
+        h('circle', { cx: 25.5, cy: 25, r: 0.9, fill: '#FFFFFF' }), 
+        h('circle', { cx: 28.5, cy: 28, r: 0.4, fill: '#FFFFFF' }), 
+
+        /* 오른쪽 눈 (크기 확장 및 인간형 동공 조립) */
+        h('circle', { cx: 37, cy: 26.5, r: isAnalyzing ? 2.2 : 3.8, fill: '#00FFFF' }), 
+        h('circle', { cx: 37, cy: 26.5, r: 1.8, fill: '#0A0E1A' }), 
+        h('circle', { cx: 35.5, cy: 25, r: 0.9, fill: '#FFFFFF' }), 
+        h('circle', { cx: 38.5, cy: 28, r: 0.4, fill: '#FFFFFF' })  
+      ),
+
+      /* 9. 바이저 내부 빛나는 미니 코 */
+      h('polygon', { points: '32,29.5 30.5,31.5 33.5,31.5', fill: '#00FFFF', opacity: 0.9 }),
+
+      /* 10. 바이저 내부 활짝 웃는 미소 입라인 */
+      h('path', { d: 'M28.5,33.5 Q32,36 35.5,33.5', stroke: '#00FFFF', strokeWidth: 1.2, fill: 'none', strokeLinecap: 'round' })
+    )
+  );
+}
+
 /* ★ PART2: 중복 검증 커스텀 모달 (중앙 팝업) */
 function DuplicateModal(props) {
   var dupTx = props.dupTx;
