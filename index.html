@@ -547,68 +547,110 @@ var THEME_NEO2030 = {
 };
 
 /* =========================================================================
-   🎨 [THEME PALETTE MATRIX] 테마별 원클릭 독립형 3D 팔레트 정의
+   🎨 [THEME PALETTE MATRIX] 테마별 원클릭 독립형 3D 팔레트 정의 (가독성/시인성 극대화 5종 세트)
    ========================================================================= */
 var PALETTES = {
   dark: {
     default: {
-      accent: '#00E5FF', bg: '#0A0E1A', card: '#141B2D', card2: '#1C2541', border: '#233056', text: '#E8ECF1', muted: '#7B8CA3',
-      chart: ['#00E5FF', '#7C3AED', '#FF007C', '#FFD600', '#00FF9D'], grad: '#7C3AED', glow: 'rgba(0,229,255,0.25)'
+      accent: '#00E5FF', bg: '#0A0E1A', card: '#141B2D', card2: '#1C2541', border: '#233056', text: '#FFFFFF', muted: '#8898AA',
+      chart: ['#00E5FF', '#FF007C', '#FFD600', '#7C3AED', '#00FF9D'], grad: 'linear-gradient(135deg, #00E5FF, #7C3AED)', glow: 'rgba(0,229,255,0.3)'
     },
     cyber_purple: {
-      accent: '#BD00FF', bg: '#070014', card: '#12002A', card2: '#1E003E', border: '#3A0066', text: '#F3E5F5', muted: '#B39DDB',
-      chart: ['#BD00FF', '#00FFFF', '#FF0055', '#FFD700', '#7C4DFF'], grad: '#BD00FF', glow: 'rgba(189,0,255,0.25)'
+      accent: '#E024FF', bg: '#070014', card: '#12002A', card2: '#1E003E', border: '#3A0066', text: '#FFFFFF', muted: '#A288D8',
+      chart: ['#E024FF', '#00FFFF', '#FFD700', '#FF3366', '#8A2BE2'], grad: 'linear-gradient(135deg, #E024FF, #00FFFF)', glow: 'rgba(224,36,255,0.3)'
     },
     emerald_matrix: {
-      accent: '#00FF88', bg: '#020C06', card: '#061D0F', card2: '#0D331A', border: '#124D28', text: '#E8F5E9', muted: '#81C784',
-      chart: ['#00FF88', '#00E5FF', '#FFD700', '#7C4DFF', '#FF3D71'], grad: '#00FF88', glow: 'rgba(0,255,136,0.25)'
+      accent: '#00FF88', bg: '#020C06', card: '#061D0F', card2: '#0D331A', border: '#124D28', text: '#FFFFFF', muted: '#71B588',
+      chart: ['#00FF88', '#00CFFF', '#FFD600', '#FF2A6D', '#A55EEA'], grad: 'linear-gradient(135deg, #00FF88, #00CFFF)', glow: 'rgba(0,255,136,0.3)'
+    },
+    crimson_forge: { // 신규 1
+      accent: '#FF3366', bg: '#0F0505', card: '#1A080A', card2: '#2C1014', border: '#4D1A22', text: '#FFFFFF', muted: '#B88A92',
+      chart: ['#FF3366', '#FF9E45', '#00E5FF', '#FFD600', '#7C3AED'], grad: 'linear-gradient(135deg, #FF3366, #FF9E45)', glow: 'rgba(255,51,102,0.3)'
+    },
+    golden_dune: { // 신규 2
+      accent: '#FFD600', bg: '#11100C', card: '#1C1A14', card2: '#2E2B21', border: '#4A4636', text: '#FFFFFF', muted: '#B5AE9C',
+      chart: ['#FFD600', '#FF4D4D', '#00E5FF', '#FF8C00', '#9D4EDD'], grad: 'linear-gradient(135deg, #FFD600, #FF8C00)', glow: 'rgba(255,214,0,0.3)'
     }
   },
   light: {
     default: {
-      accent: '#00BFA5', bg: '#EFF4FB', card: '#FFFFFF', card2: '#E4EBF5', border: '#D1D9E6', text: '#1A2138', muted: '#7B8794',
-      chart: ['#00BFA5', '#6C5CE7', '#FF6B6B', '#FFB300', '#0984E3'], grad: '#0984E3', glow: 'rgba(0,191,165,0.12)'
+      accent: '#00BFA5', bg: '#EFF4FB', card: '#FFFFFF', card2: '#E8EEF6', border: '#D1D9E6', text: '#1A2138', muted: '#728197',
+      chart: ['#00BFA5', '#FF5252', '#6C5CE7', '#FFB300', '#0984E3'], grad: 'linear-gradient(135deg, #00BFA5, #0984E3)', glow: 'rgba(0,191,165,0.15)'
     },
     neo_light: {
       accent: '#3B82F6', bg: '#F8FAFC', card: '#FFFFFF', card2: '#F1F5F9', border: '#E2E8F0', text: '#0F172A', muted: '#64748B',
-      chart: ['#7DD3FC', '#3B82F6', '#60A5FA', '#4ADE80', '#FDBA74'], grad: '#3B82F6', glow: 'rgba(59,130,246,0.12)'
+      chart: ['#3B82F6', '#F43F5E', '#10B981', '#F59E0B', '#8B5CF6'], grad: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', glow: 'rgba(59,130,246,0.15)'
     },
     lavender_haze: {
-      accent: '#8E44AD', bg: '#F5EDF9', card: '#FFFFFF', card2: '#EADCF2', border: '#D5C4E0', text: '#2C1B3D', muted: '#8A7A99',
-      chart: ['#8E44AD', '#D980FA', '#4ECDC4', '#FF7E67', '#00CECE'], grad: '#8E44AD', glow: 'rgba(142,68,173,0.12)'
+      accent: '#8E44AD', bg: '#F5EDF9', card: '#FFFFFF', card2: '#EADCF2', border: '#D5C4E0', text: '#2C1B3D', muted: '#857396',
+      chart: ['#8E44AD', '#00BFA5', '#FF6B6B', '#F39C12', '#0984E3'], grad: 'linear-gradient(135deg, #8E44AD, #D980FA)', glow: 'rgba(142,68,173,0.15)'
+    },
+    coral_blush: { // 신규 1
+      accent: '#FF6B6B', bg: '#FFF5F5', card: '#FFFFFF', card2: '#FFEBEB', border: '#FFD6D6', text: '#3B1F1F', muted: '#9E7A7A',
+      chart: ['#FF6B6B', '#1DD1A1', '#54A0FF', '#FF9F43', '#5F27CD'], grad: 'linear-gradient(135deg, #FF6B6B, #FF9F43)', glow: 'rgba(255,107,107,0.15)'
+    },
+    citrus_sun: { // 신규 2
+      accent: '#E67E22', bg: '#FFFAF0', card: '#FFFFFF', card2: '#FFF2E0', border: '#FDE0C5', text: '#3E2723', muted: '#A0806B',
+      chart: ['#E67E22', '#3498DB', '#E74C3C', '#2ECC71', '#9B59B6'], grad: 'linear-gradient(135deg, #E67E22, #F39C12)', glow: 'rgba(230,126,34,0.15)'
     }
   },
   cozy: {
     default: {
-      accent: '#FFAC5F', bg: 'linear-gradient(180deg, #1E1E1E 0%, #121212 100%)', 
+      accent: '#FF9E45', bg: 'linear-gradient(180deg, #1E1E1E 0%, #121212 100%)', 
       card: 'linear-gradient(135deg, rgba(50,35,25,0.98) 0%, rgba(35,22,15,0.95) 50%, rgba(20,12,8,0.98) 100%)',
       card2: 'linear-gradient(135deg, rgba(70,50,40,0.98) 0%, rgba(45,30,22,0.95) 100%)',
-      border: 'rgba(255, 196, 107, 0.35)', text: '#FFF9F2', muted: '#C7B19D',
-      chart: ['#FFAC5F', '#FFD38C', '#FF7E67', '#FFC46B', '#74E682'], grad: 'linear-gradient(135deg, #FFD38C 0%, #FF9E45 40%, #E67E22 100%)', glow: 'rgba(255,158,69,0.35)'
+      border: 'rgba(255, 158, 69, 0.45)', text: '#FFFFFF', muted: '#D4BFA9',
+      chart: ['#FF9E45', '#00E5FF', '#FF4D6D', '#FFD166', '#A2D2FF'], grad: 'linear-gradient(135deg, #FF9E45, #FFD166)', glow: 'rgba(255,158,69,0.4)'
     },
     cozy_wood: {
-      accent: '#D97706', bg: 'linear-gradient(180deg, #1A0D00 0%, #0A0500 100%)', 
+      accent: '#F59E0B', bg: 'linear-gradient(180deg, #1A0D00 0%, #0A0500 100%)', 
       card: 'linear-gradient(135deg, #3A230F 0%, #201205 100%)',
       card2: 'linear-gradient(135deg, #4D3118 0%, #2F1A0B 100%)',
-      border: 'rgba(217,119,6,0.35)', text: '#FFFBEB', muted: '#D97706',
-      chart: ['#F59E0B', '#D97706', '#B45309', '#FBBF24', '#78350F'], grad: 'linear-gradient(135deg, #FBBF24, #D97706)', glow: 'rgba(217,119,6,0.3)'
+      border: 'rgba(245, 158, 11, 0.45)', text: '#FFFFFF', muted: '#D9985F',
+      chart: ['#F59E0B', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'], grad: 'linear-gradient(135deg, #F59E0B, #FBBF24)', glow: 'rgba(245,158,11,0.4)'
     },
     cozy_moss: {
-      accent: '#84CC16', bg: 'linear-gradient(180deg, #0F172A 0%, #020617 100%)', 
+      accent: '#10B981', bg: 'linear-gradient(180deg, #0F172A 0%, #020617 100%)', 
       card: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
       card2: 'linear-gradient(135deg, #334155 0%, #1E293B 100%)',
-      border: 'rgba(132,204,22,0.3)', text: '#F8FAFC', muted: '#94A3B8',
-      chart: ['#84CC16', '#65A30D', '#4D7C0F', '#A3E635', '#475569'], grad: 'linear-gradient(135deg, #A3E635, #65A30D)', glow: 'rgba(132,204,22,0.3)'
+      border: 'rgba(16, 185, 129, 0.45)', text: '#FFFFFF', muted: '#94A3B8',
+      chart: ['#10B981', '#F43F5E', '#F59E0B', '#3B82F6', '#D946EF'], grad: 'linear-gradient(135deg, #10B981, #3B82F6)', glow: 'rgba(16,185,129,0.4)'
+    },
+    cozy_wine: { // 신규 1: 럭셔리 와인 & 로즈골드
+      accent: '#FF7EB3', bg: 'linear-gradient(180deg, #1A0510 0%, #0D0208 100%)', 
+      card: 'linear-gradient(135deg, #380C1E 0%, #1F0510 100%)',
+      card2: 'linear-gradient(135deg, #4A122A 0%, #2B0818 100%)',
+      border: 'rgba(255, 126, 179, 0.45)', text: '#FFFFFF', muted: '#D69EBA',
+      chart: ['#FF7EB3', '#00E5FF', '#FFD166', '#3B82F6', '#10B981'], grad: 'linear-gradient(135deg, #FF7EB3, #FF9E45)', glow: 'rgba(255,126,179,0.4)'
+    },
+    cozy_ocean: { // 신규 2: 심해 네이비 & 코랄
+      accent: '#00E5FF', bg: 'linear-gradient(180deg, #02111B 0%, #01080D 100%)', 
+      card: 'linear-gradient(135deg, #0A243D 0%, #051424 100%)',
+      card2: 'linear-gradient(135deg, #123454 0%, #091D33 100%)',
+      border: 'rgba(0, 229, 255, 0.45)', text: '#FFFFFF', muted: '#82A6C4',
+      chart: ['#00E5FF', '#FF6B6B', '#FFD166', '#1DD1A1', '#D980FA'], grad: 'linear-gradient(135deg, #00E5FF, #3B82F6)', glow: 'rgba(0,229,255,0.4)'
     }
   },
   neo2030: {
     default: {
-      accent: '#00FFFF', bg: '#000000', card: 'rgba(0, 255, 255, 0.03)', card2: 'rgba(15, 0, 40, 0.88)', border: 'rgba(0, 255, 255, 0.22)', text: '#E8F4FF', muted: 'rgba(160, 220, 255, 0.62)',
-      chart: ['#00FFFF', '#FF00FF', '#FF0066', '#00FF88', '#FFD700'], grad: '#FF00FF', glow: 'rgba(0, 255, 255, 0.42)'
+      accent: '#00FFFF', bg: '#000000', card: 'rgba(0, 255, 255, 0.04)', card2: 'rgba(15, 0, 40, 0.88)', border: 'rgba(0, 255, 255, 0.3)', text: '#FFFFFF', muted: '#A0DCFF',
+      chart: ['#00FFFF', '#FF00FF', '#FFD700', '#00FF88', '#FF3366'], grad: 'linear-gradient(90deg, #00FFFF, #FF00FF)', glow: 'rgba(0, 255, 255, 0.5)'
     },
     laser_grid: {
-      accent: '#FF007F', bg: '#0A000A', card: 'rgba(255,0,127,0.03)', card2: 'rgba(20,0,30,0.85)', border: 'rgba(255,0,127,0.22)', text: '#FFE4E1', muted: 'rgba(255,182,193,0.6)',
-      chart: ['#FF007F', '#00FFFF', '#7C3AED', '#FFD600', '#00FF88'], grad: '#00FFFF', glow: 'rgba(255,0,127,0.42)'
+      accent: '#FF00FF', bg: '#05000A', card: 'rgba(255, 0, 255, 0.04)', card2: 'rgba(25, 0, 35, 0.88)', border: 'rgba(255, 0, 255, 0.3)', text: '#FFFFFF', muted: '#E5A0FF',
+      chart: ['#FF00FF', '#00FFFF', '#FFD700', '#00FF88', '#FF6600'], grad: 'linear-gradient(90deg, #FF00FF, #00FFFF)', glow: 'rgba(255, 0, 255, 0.5)'
+    },
+    toxic_waste: { // 신규 1
+      accent: '#39FF14', bg: '#000800', card: 'rgba(57, 255, 20, 0.04)', card2: 'rgba(0, 30, 0, 0.88)', border: 'rgba(57, 255, 20, 0.3)', text: '#FFFFFF', muted: '#A0FFAA',
+      chart: ['#39FF14', '#FF00FF', '#00FFFF', '#FFD700', '#FF3366'], grad: 'linear-gradient(90deg, #39FF14, #00FFFF)', glow: 'rgba(57, 255, 20, 0.5)'
+    },
+    plasma_flare: { // 신규 2
+      accent: '#FF3300', bg: '#0A0200', card: 'rgba(255, 51, 0, 0.04)', card2: 'rgba(35, 10, 0, 0.88)', border: 'rgba(255, 51, 0, 0.3)', text: '#FFFFFF', muted: '#FFAFA0',
+      chart: ['#FF3300', '#00FFFF', '#FFD700', '#FF00FF', '#00FF88'], grad: 'linear-gradient(90deg, #FF3300, #FFD700)', glow: 'rgba(255, 51, 0, 0.5)'
+    },
+    deep_space: { // 신규 3
+      accent: '#0066FF', bg: '#000008', card: 'rgba(0, 102, 255, 0.04)', card2: 'rgba(0, 15, 40, 0.88)', border: 'rgba(0, 102, 255, 0.3)', text: '#FFFFFF', muted: '#A0C8FF',
+      chart: ['#0066FF', '#FF00FF', '#39FF14', '#FFD700', '#FF3366'], grad: 'linear-gradient(90deg, #0066FF, #00FFFF)', glow: 'rgba(0, 102, 255, 0.5)'
     }
   }
 };
@@ -1028,7 +1070,7 @@ function compressCardImg(file, cb) {
 
 // ★★★ [STEP2 끝] ★★★
 
-/* ★★★ [CYBER 2030] ⚡ 플라즈마 번개 차트 (가속화 버전) ★★★ */
+/* ★★★ [CYBER 2030] ⚡ 플라즈마 번개 차트 (선명도 극대화 + 고해상도 지원) ★★★ */
 function PlasmaLineChart(props) {
   var data     = props.data     || [];
   var color    = props.color    || '#00FFFF';
@@ -1041,12 +1083,20 @@ function PlasmaLineChart(props) {
 
   useEffect(function() {
     var cv = cvRef.current; if (!cv || data.length < 2) return;
-    var ctx = cv.getContext('2d'), W = cv.width;
-    cv.height = height;
+    var ctx = cv.getContext('2d');
+    
+    // ★ 디바이스 해상도에 맞춘 캔버스 픽셀 스케일링 (텍스트 선명도 해결의 핵심)
+    var dpr = window.devicePixelRatio || 1;
+    var W = cv.clientWidth || 334; // 화면에 보여질 CSS 너비
+    cv.width = W * dpr;
+    cv.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
     var mn = Math.min.apply(null, data) * 0.82;
     var mx = Math.max.apply(null, data) * 1.18;
-    var px = function(i) { return 36 + (i / (data.length - 1)) * (W - 52); };
-    var py = function(v) { return height - 15 - ((v - mn) / ((mx - mn) || 1)) * (height - 30); };
+    // 차트 여백 확보
+    var px = function(i) { return 40 + (i / (data.length - 1)) * (W - 56); };
+    var py = function(v) { return height - 18 - ((v - mn) / ((mx - mn) || 1)) * (height - 35); };
     var timer = 0;
 
     function spawnBolt() {
@@ -1072,13 +1122,16 @@ function PlasmaLineChart(props) {
       fnum.current++; timer++;
       ctx.clearRect(0, 0, W, height);
 
-      // 격자 가이드 그리기
+      // 격자 가이드 및 좌측 단위 텍스트
       for (var g = 0; g <= 4; g++) {
         var gy = 13 + g/4*(height - 26);
-        ctx.beginPath(); ctx.moveTo(36, gy); ctx.lineTo(W - 4, gy);
-        ctx.strokeStyle = 'rgba(160,0,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = 'rgba(220,180,255,0.7)'; ctx.font = 'bold 9px monospace';
-        ctx.fillText(Math.round((mx - g/4*(mx-mn))/10000) + '만', 2, gy + 3);
+        ctx.beginPath(); ctx.moveTo(40, gy); ctx.lineTo(W - 4, gy);
+        ctx.strokeStyle = 'rgba(160,0,255,0.15)'; ctx.lineWidth = 1; ctx.stroke();
+        
+        ctx.shadowBlur = 0; // 텍스트 그리기 전 그림자 초기화
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; // 색상 선명도 상승
+        ctx.font = 'bold 10px sans-serif'; 
+        ctx.fillText(Math.round((mx - g/4*(mx-mn))/10000) + '만', 2, gy + 4);
       }
 
       // 그라데이션 면적 채우기
@@ -1086,7 +1139,7 @@ function PlasmaLineChart(props) {
       ag.addColorStop(0, color + '42'); ag.addColorStop(0.7, 'rgba(0,0,0,0)');
       ctx.beginPath();
       data.forEach(function(v, i){ i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)); });
-      ctx.lineTo(px(data.length-1), height - 15); ctx.lineTo(px(0), height - 15); ctx.closePath();
+      ctx.lineTo(px(data.length-1), height - 18); ctx.lineTo(px(0), height - 18); ctx.closePath();
       ctx.fillStyle = ag; ctx.fill();
 
       // 글로우 광원 및 실선 렌더링
@@ -1101,7 +1154,7 @@ function PlasmaLineChart(props) {
         ctx.shadowColor = color; ctx.shadowBlur = li === 0 ? 22 : 9; ctx.stroke(); ctx.shadowBlur = 0;
       });
 
-      // 데이터 원형 포인터
+      // 데이터 원형 포인터 및 상단 수치 텍스트
       data.forEach(function(v, i) {
         var dx = px(i), dy = py(v);
         ctx.beginPath(); ctx.arc(dx, dy, 5 + Math.sin(fnum.current*0.08+i)*1.2, 0, Math.PI*2);
@@ -1111,13 +1164,16 @@ function PlasmaLineChart(props) {
         ctx.beginPath(); ctx.arc(dx, dy, 1.5, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
         
         var val = Math.round(data[i]/10000);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-        ctx.fillText(val + '만', dx, dy - 10); ctx.textAlign = 'left';
+        ctx.shadowBlur = 0; // 텍스트 그림자 초기화
+        ctx.fillStyle = '#FFFFFF'; // 완전 흰색으로 강조
+        ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(val + '만', dx, dy - 12); ctx.textAlign = 'left';
       });
 
-      // X축 라벨 드로잉
+      // X축 하단 월별 라벨 드로잉
       xLabels.forEach(function(lb, i) {
-        ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(lb, px(i), height - 2);
       }); ctx.textAlign = 'left';
 
@@ -1142,9 +1198,9 @@ function PlasmaLineChart(props) {
     }
     draw();
     return function() { cancelAnimationFrame(rafRef.current); };
-  }, [data, color, height]);
+  }, [data, color, height, xLabels]);
 
-  return h('canvas', { ref: cvRef, width: 334, height: height, style: { width: '100%', height: height + 'px', display: 'block' } });
+  return h('canvas', { ref: cvRef, style: { width: '100%', height: height + 'px', display: 'block' } });
 }
 
 /* ★★★ [CYBER 2030] 🔮 홀로그램 도넛 차트 (초고해상도 다차원 렌더링) ★★★ */
@@ -6908,40 +6964,23 @@ var _BASE = 'https://kimyungkook.github.io/family-ledger/';
     setIsEditingBdg(false);
   }
 
-  /* 최근 6개월 트렌딩 데이터 추출 */
-  var trendData = useMemo(function(){
-    var now=new Date(), result=[];
+ /* 최근 6개월 트렌딩 금액 및 실제 매칭되는 월 라벨 동적 추출 */
+  var trendInfo = useMemo(function(){
+    var now=new Date(), dataResult=[], labelsResult=[];
     for(var i=5;i>=0;i--){
-      var d=new Date(now.getFullYear(),now.getMonth()-i,1);
-      var mTxs=txs.filter(function(t){var td=new Date(t.date);return td.getFullYear()===d.getFullYear()&&td.getMonth()===d.getMonth();});
-      result.push(mTxs.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0)||0);
+      var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      var mTxs = txs.filter(function(t){
+        var td = new Date(t.date);
+        return td.getFullYear()===d.getFullYear() && td.getMonth()===d.getMonth();
+      });
+      dataResult.push(mTxs.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0)||0);
+      labelsResult.push((d.getMonth() + 1) + '월'); // 실제 월을 계산하여 라벨에 밀어넣음
     }
-/* 불꽃 파티클 */
-  var fireParticles = [];
-  for(var fp=0; fp<4; fp++) {
-    fireParticles.push(h('div', {
-      key:'fp'+fp,
-      style:{
-        position:'fixed',
-        zIndex:1,
-        pointerEvents:'none',
-        width: fp%2===0 ? '100%' : 2,
-        height: fp%2===0 ? 2 : '100%',
-        top: fp===0 ? 0 : (fp===2 ? 'auto' : 0),
-        bottom: fp===2 ? 0 : 'auto',
-        left: fp===3 ? 'auto' : 0,
-        right: fp===3 ? 0 : 'auto',
-        background:'linear-gradient(90deg, #FF4400, #FF00FF, #00FFFF, #FF8800, #FF4400)',
-        backgroundSize:'300% 100%',
-        animation:'fireBorder '+(2+fp*0.5)+'s linear infinite',
-        maxWidth:430
-      }
-    }));
-  }
-    return result;
+    return { data: dataResult, labels: labelsResult };
   },[txs]);
 
-  var monthXLabels = ['1월','2월','3월','4월','5월','6월'];
+  var trendData = trendInfo.data;
+  var monthXLabels = trendInfo.labels;
 
   return h('div', {style:{padding:'0 16px 120px', overflowY:'auto', height:'100vh', background:'#000', position:'relative'}},
     h('div', {style:{
@@ -10811,14 +10850,27 @@ function Settings(props) {
               var curActivePal = localStorage.getItem('flai_palette_' + savedTheme) || 'default';
               
               var palNames = {
-                default: savedTheme === 'light' ? 'NEO LIGHT (기본)' : (savedTheme === 'cozy' ? 'COZY 2.0 (기본)' : 'NEO DARK (기본)'),
+                // 다크 테마
+                default: savedTheme === 'light' ? 'NEO LIGHT (기본)' : (savedTheme === 'cozy' ? 'COZY 2.0 (기본)' : (savedTheme === 'neo2030' ? 'TRON CYAN (기본)' : 'NEO DARK (기본)')),
                 cyber_purple: 'CYBER PURPLE 성운',
                 emerald_matrix: 'EMERALD MATRIX 그리드',
-                neo_light: 'NEO LIGHT 슬레이트',
+                crimson_forge: 'CRIMSON RED 루비',
+                golden_dune: 'GOLDEN DUNE 앰버',
+                // 라이트 테마
+                neo_light: 'SKY BLUE 슬레이트',
                 lavender_haze: 'LAVENDER HAZE 파스텔',
+                coral_blush: 'CORAL BLUSH 핑크',
+                citrus_sun: 'CITRUS SUN 오렌지',
+                // 코지 테마
                 cozy_wood: 'COZY WOOD 브론즈',
                 cozy_moss: 'COZY MOSS 올리브',
-                laser_grid: 'LASER GRID 푸크시아'
+                cozy_wine: 'COZY WINE 로즈골드',
+                cozy_ocean: 'COZY OCEAN 심해',
+                // NEO 2030 테마
+                laser_grid: 'LASER GRID 푸크시아',
+                toxic_waste: 'TOXIC NEON 애시드',
+                plasma_flare: 'PLASMA FLARE 블레이즈',
+                deep_space: 'DEEP SPACE 코발트'
               };
 
               return Object.keys(currentThemePalettes).map(function(pKey) {
@@ -12223,49 +12275,105 @@ function BulkIn(props) {
 /* =========================================================================
    ⚡ [최종 통합 버전] 3D 오비탈 플라즈마 도넛 & 4.5초 충전 전류 바 시스템
    ========================================================================= */
-
-/* 1. 외경을 따라 3D 지그재그 번개가 공전하고 내경에선 뇌전 스톰이 치는 고화질 도넛 차트 */
+/* 1. 사각틀을 없애고 얇은 카멜레온 물결 파동만 남긴 고화질 도넛 차트 */
 function HologramPlasmaDonut(props) {
   var data = props.data || [];
-  var size = props.size || 150; /* ★ 기본 사이즈를 150px로 대폭 키워 시인성 확보 */
+  var size = props.size || 150; 
   var totalLabel = props.totalLabel || '';
   var cvRef = React.useRef(null);
   var rafRef = React.useRef(null);
   var timeRef = React.useRef(0);
-  var sparksRef = React.useRef([]);
 
   React.useEffect(function() {
     var cv = cvRef.current; if (!cv) return;
-    var ctx = cv.getContext('2d');
-    var cx = size / 2, cy = size / 2;
-    var R = size * 0.38;       // 원형 그래프 외경 반지름 (57px)
-    var R_in = size * 0.25;    // 원형 그래프 내경 반지름 (37.5px)
-    var ri = R_in;
-    var R_light = R + 8;       // ★ 번개가 원형그래프의 외경 바깥을 타고 돌도록 반지름을 넓게 설정 (65px)
-
-    // 카멜레온 5대 에너지 컬러 루프
-    var chameleonColors = ['#00F5FF', '#BD00FF', '#FF0055', '#FFD600', '#00FF88'];
-
-    function hexToRgb(hex) {
-      var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-      hex = hex.replace(shorthandRegex, function(m, r, g, b) { return r + r + g + g + b + b; });
-      var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : { r: 0, g: 245, b: 255 };
+    
+    // CSS 애니메이션 주입 (공중부양만 남김)
+    if (!document.getElementById('hpd-aura-css')) {
+      var _sEl = document.createElement('style');
+      _sEl.id = 'hpd-aura-css';
+      _sEl.innerHTML =
+        '@keyframes hpdFloat{' +
+          '0%{transform:translateY(0px) rotate(0deg) scale(1)}' +
+          '20%{transform:translateY(-10px) rotate(0.8deg) scale(1.015)}' +
+          '47%{transform:translateY(-20px) rotate(-0.5deg) scale(1.025)}' +
+          '73%{transform:translateY(-13px) rotate(1.1deg) scale(1.01)}' +
+          '100%{transform:translateY(0px) rotate(0deg) scale(1)}' +
+        '}';
+      document.head.appendChild(_sEl);
     }
+    
+    var ctx = cv.getContext('2d');
+    var cSize = size * 1.8; // 파동 반경 축소에 맞춰 캔버스 크기도 1.8배로 타협
+    cv.width = cSize;
+    cv.height = cSize;
+    
+    var cx = cSize / 2, cy = cSize / 2;
+    var R = size * 0.38;
+    var R_in = size * 0.25;
 
     function draw() {
       timeRef.current += 0.012;
       var t = timeRef.current;
       var total = data.reduce(function(s, d) { return s + d.value; }, 0);
-      ctx.clearRect(0, 0, size, size);
+      
+      // 화면 지우기 (사각틀 원천 차단)
+      ctx.clearRect(0, 0, cSize, cSize);
 
       if (total === 0) return;
 
       var currentTheme = localStorage.getItem('flai_theme') || 'dark';
       var isLight = currentTheme === 'light';
+      var baseTime = Date.now();
 
-      // --- 1단계: 깔끔한 평면 원형 그래프 베이스 그리기 (가독성 100% 확보) ---
+      // =========================================================
+      // ★ 1. 카멜레온 물결 파동 렌더링 (범위 축소, 두께 얇게, 허연 원형 제거)
+      // =========================================================
+      var numWaves = 3; 
+      for (var w = 0; w < numWaves; w++) {
+        var waveCycle = 4000; 
+        var phase = ((baseTime + w * (waveCycle / numWaves)) % waveCycle) / waveCycle; 
+        
+        // 반경 확장을 대폭 축소하여 옆 글씨(KPI) 침범을 막음
+        var waveRadius = R + phase * (size * 0.25);
+        // 부드럽게 사라지도록 투명도 조절
+        var waveAlpha = Math.max(0, (1.0 - phase * 1.5)) * 0.6; 
+        var hue = (baseTime * 0.08 + w * 120) % 360; // 무지개 색상 변환
+        
+        ctx.beginPath();
+        for (var a = 0; a <= Math.PI * 2; a += 0.1) {
+          // 물결 일렁임(Noise) 정도도 얌전하게 축소
+          var noise = Math.sin(a * 6 + baseTime * 0.003) * (4 + phase * 6);
+          var curR = waveRadius + noise;
+          var wx = cx + Math.cos(a) * curR;
+          var wy = cy + Math.sin(a) * curR;
+          if (a === 0) ctx.moveTo(wx, wy);
+          else ctx.lineTo(wx, wy);
+        }
+        ctx.closePath();
+        
+        ctx.strokeStyle = 'hsla(' + hue + ', 100%, 60%, ' + waveAlpha + ')';
+        ctx.lineWidth = 1 + phase * 4; // 선 두께를 얇게 유지 (떡짐 방지)
+        ctx.shadowColor = 'hsl(' + hue + ', 100%, 60%)';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+       // =========================================================
+      // ★ 2. 투명한 유리 케이스 안의 선명한 도넛 차트 (Glassmorphism)
+      // =========================================================
+      
+      // (1) 유리관 배경 (어두운 바닥면 렌더링)
+      ctx.beginPath();
+      ctx.arc(cx, cy, (R + R_in) / 2, 0, Math.PI * 2);
+      ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = R - R_in;
+      ctx.stroke();
+
+      // (2) 데이터 코어 렌더링 (조각 간 경계를 명확하게 분리)
       var sAngle = -Math.PI / 2;
+      var gap = 0.06; // 데이터 조각 사이의 명확한 간격(Gap)
+      
       data.forEach(function(d, idx) {
         var arc = (d.value / total) * Math.PI * 2;
         if (arc < 0.01) { sAngle += arc; return; }
@@ -12277,291 +12385,58 @@ function HologramPlasmaDonut(props) {
         ];
         var col = palette[idx % palette.length];
 
-        // 1차: 글로우 헤일로
-ctx.beginPath();
-ctx.arc(cx, cy, (R + R_in) / 2, sAngle, sAngle + arc);
-ctx.strokeStyle = col;
-ctx.lineWidth = (R - R_in) + 6;
-ctx.shadowColor = col;
-ctx.shadowBlur = 18;
-ctx.globalAlpha = 0.45;
-ctx.stroke();
-ctx.shadowBlur = 0;
-ctx.globalAlpha = 1.0;
-// 2차: 코어 선명 렌더링
-ctx.beginPath();
-ctx.arc(cx, cy, (R + R_in) / 2, sAngle, sAngle + arc);
-ctx.strokeStyle = col;
-ctx.lineWidth = R - R_in;
-ctx.shadowColor = col;
-ctx.shadowBlur = 8;
-ctx.stroke();
-ctx.shadowBlur = 0;
-// 3차: 하이라이트 흰 선
-ctx.beginPath();
-ctx.arc(cx, cy, R_in + (R - R_in) * 0.28, sAngle + 0.04, sAngle + arc - 0.04);
-ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-ctx.lineWidth = 2;
-ctx.stroke();
+        var start = sAngle + (data.length > 1 ? gap / 2 : 0);
+        var end = sAngle + arc - (data.length > 1 ? gap / 2 : 0);
+        if (end < start) end = start;
+
+        // 튜브 안에 담긴 선명한 형광 액체
+        ctx.beginPath();
+        ctx.arc(cx, cy, (R + R_in) / 2, start, end);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = (R - R_in) * 0.85; // 유리벽과 살짝 틈을 주어 입체감 향상
+        ctx.lineCap = 'butt'; // 직각 절단면으로 경계 뚜렷하게 분할
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 4; // 빛 번짐을 최소화하여 선명도 극대화
+        ctx.stroke();
+        ctx.shadowBlur = 0;
 
         sAngle += arc;
       });
 
-      // --- ⚡ [대표님 지시사항 1] 번개가 원형그래프의 외경 바깥을 타고 돌아가는 리얼 번개 형상 구현 ---
-      var orbitTime = 6; // 6초에 한바퀴
-      var orbitCount = t / orbitTime;
-      var cometAngle = (t * (Math.PI * 2) / orbitTime) % (Math.PI * 2);
-      var currentLap = Math.floor(orbitCount) % 5;
-      var nextLap = (currentLap + 1) % 5;
-      var lapProgress = orbitCount - Math.floor(orbitCount);
+      // (3) 유리 케이스 표면 덮어씌우기 (빛 반사 및 굴절 효과)
+      // 외곽 유리벽 테두리
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.strokeStyle = isLight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // 내곽 유리벽 테두리
+      ctx.beginPath();
+      ctx.arc(cx, cy, R_in, 0, Math.PI * 2);
+      ctx.strokeStyle = isLight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
-      // 도도리표식 우아한 카멜레온 변색
-      var rgb1 = hexToRgb(chameleonColors[currentLap]);
-      var rgb2 = hexToRgb(chameleonColors[nextLap]);
-      var curR = Math.round(rgb1.r + (rgb2.r - rgb1.r) * lapProgress);
-      var curG = Math.round(rgb1.g + (rgb2.g - rgb1.g) * lapProgress);
-      var curB = Math.round(rgb1.b + (rgb2.b - rgb1.b) * lapProgress);
-      var cometColor = 'rgb(' + curR + ',' + curG + ',' + curB + ')';
+      // 상단 입체 반사광 (유리관 위에 맺히는 볼록한 빛)
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - (R - R_in) * 0.25, -Math.PI * 0.8, -Math.PI * 0.2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = (R - R_in) * 0.15;
+      ctx.lineCap = 'round';
+      ctx.stroke();
 
-// ⚡ 사이버 플라즈마 번개 v5 — 다중 실타래 필라멘트 번들 시스템
-      var CYAN = '#00F5FF';
+      // 하단 어두운 굴절 (입체감 부여)
+      ctx.beginPath();
+      ctx.arc(cx, cy, R_in + (R - R_in) * 0.25, Math.PI * 0.2, Math.PI * 0.8);
+      ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = (R - R_in) * 0.15;
+      ctx.lineCap = 'round';
+      ctx.stroke();
 
-      /* 아크 파이버 점 생성 — 짧은 호 위에 반경 편차로 꼬인 실타래 */
-      function arcFiber(sa, ea, br, rough, nPts) {
-        var fp = [];
-        for (var i=0; i<=nPts; i++) {
-          var a = sa + (i/nPts)*(ea-sa);
-          var r = br + (Math.random()-0.5)*rough*2.2;
-          fp.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});
-        }
-        return fp;
-      }
-
-      /* 수직변위 미드포인트 치환 (번개 가지용) */
-      function mpD(x1,y1,x2,y2,dep,rough) {
-        if (dep<=0) return [{x:x1,y:y1},{x:x2,y:y2}];
-        var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
-        var nx=-dy/len,ny=dx/len;
-        var d=(Math.random()-0.5)*rough;
-        var mx=(x1+x2)/2+nx*d, my=(y1+y2)/2+ny*d;
-        var Lp=mpD(x1,y1,mx,my,dep-1,rough*0.52);
-        var Rp=mpD(mx,my,x2,y2,dep-1,rough*0.52);
-        return Lp.concat(Rp.slice(1));
-      }
-
-      /* 번개 가지 렌더링 */
-      function rBolt(pts,lw,col,blur,alpha) {
-        if (!pts||pts.length<2) return;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x,pts[0].y);
-        for (var _ri=1;_ri<pts.length;_ri++) ctx.lineTo(pts[_ri].x,pts[_ri].y);
-        ctx.strokeStyle=col; ctx.lineWidth=lw;
-        ctx.shadowColor=col; ctx.shadowBlur=blur;
-        ctx.globalAlpha=alpha; ctx.lineCap='round'; ctx.lineJoin='round';
-        ctx.stroke();
-        ctx.shadowBlur=0; ctx.globalAlpha=1.0;
-      }
-
-      var tailSpan = Math.PI * 1.35;
-      var ARC_N = 32;
-
-      /* ── 배경 앰비언트 글로우 (굵은 심 없음 — 희미한 경로 힌트만) ── */
-      for (var _ga=0;_ga<ARC_N;_ga++) {
-        var _gas=cometAngle-tailSpan+(_ga/ARC_N)*tailSpan;
-        var _gae=cometAngle-tailSpan+((_ga+1)/ARC_N)*tailSpan;
-        var _gaf=Math.pow(_ga/ARC_N,0.45);
-        ctx.beginPath(); ctx.arc(cx,cy,R_light,_gas,_gae);
-        ctx.strokeStyle=CYAN; ctx.lineWidth=26;
-        ctx.shadowColor=CYAN; ctx.shadowBlur=44;
-        ctx.globalAlpha=_gaf*0.08; ctx.lineCap='round'; ctx.stroke();
-      }
-      ctx.globalAlpha=1; ctx.shadowBlur=0;
-
-      for (var _gb=0;_gb<ARC_N;_gb++) {
-        var _gbs=cometAngle-tailSpan+(_gb/ARC_N)*tailSpan;
-        var _gbe=cometAngle-tailSpan+((_gb+1)/ARC_N)*tailSpan;
-        var _gbf=Math.pow(_gb/ARC_N,0.45);
-        ctx.beginPath(); ctx.arc(cx,cy,R_light,_gbs,_gbe);
-        ctx.strokeStyle=CYAN; ctx.lineWidth=10;
-        ctx.shadowColor=CYAN; ctx.shadowBlur=16;
-        ctx.globalAlpha=_gbf*0.17; ctx.lineCap='round'; ctx.stroke();
-      }
-      ctx.globalAlpha=1; ctx.shadowBlur=0;
-
-      /* ── 다중 실타래 필라멘트 번들 ──
-         각 실: 독립 위상(phase)으로 꿈틀 + 반경 편차로 교차/뒤얽힘
-         15% 역방향 이동 → 실들이 서로 반대방향으로 꼬이는 효과 */
-      var _numF = 38 + Math.floor(Math.random()*20); // 38~57개
-      for (var _fi=0;_fi<_numF;_fi++) {
-        var _fPos = Math.pow(Math.random(),0.58); // 앞쪽 집중
-        // 독립 위상: 각 실이 서로 다른 속도로 꿈틀거림
-        var _fPhase = Math.sin(t*2.6+_fi*0.81)*0.03;
-        // 15% 역방향 → 뒤엉킴/꼬임 강조
-        var _fRev = Math.random()<0.15 ? -0.08 : 0;
-        var _fCenter = cometAngle - tailSpan*(1-_fPos) + _fPhase + _fRev;
-
-        // 실 길이 (짧은 조각들)
-        var _fSpan = 0.03 + Math.random()*0.24;
-        var _fSA = _fCenter - _fSpan*0.5;
-        var _fEA = _fCenter + _fSpan*0.5;
-
-        // 반경: R_light ±8px → 서로 다른 반경 = 교차/교란 효과
-        var _fR = R_light + (Math.random()-0.4)*16;
-
-        // 실 굵기 (매우 얇게)
-        var _fW = 0.1 + Math.random()*0.52;
-
-        // 투명도 (꼬리=희미, 머리=밝음)
-        var _fAlpha = _fPos*(0.28+Math.random()*0.72);
-
-        // 색상: 65% 흰청색, 35% 시안
-        var _fCol = Math.random()>0.35
-          ? 'rgba(208,246,255,0.95)' : CYAN;
-
-        // 파이버 점 (7점, 반경 편차로 꺾임 구현)
-        var _fPts = arcFiber(_fSA,_fEA,_fR, 2.0+Math.random()*4.2, 7);
-
-        ctx.beginPath();
-        ctx.moveTo(_fPts[0].x,_fPts[0].y);
-        for (var _fpi=1;_fpi<_fPts.length;_fpi++)
-          ctx.lineTo(_fPts[_fpi].x,_fPts[_fpi].y);
-        ctx.strokeStyle=_fCol;
-        ctx.lineWidth=_fW;
-        ctx.shadowColor=CYAN;
-        ctx.shadowBlur=1+Math.random()*5;
-        ctx.globalAlpha=_fAlpha;
-        ctx.lineCap='round'; ctx.lineJoin='round';
-        ctx.stroke();
-        ctx.shadowBlur=0; ctx.globalAlpha=1;
-      }
-
-      /* ── 번개 가지 (얇게 조정) ── */
-      var _numB = 8+Math.floor(Math.random()*8);
-      for (var _bi=0;_bi<_numB;_bi++) {
-        var _bFrac=Math.pow(Math.random(),0.62);
-        var _bAng=cometAngle-tailSpan*(1-_bFrac);
-        var _bRr=R_light+(Math.random()-0.38)*4;
-        var _bx0=cx+_bRr*Math.cos(_bAng);
-        var _by0=cy+_bRr*Math.sin(_bAng);
-        var _aBias=Math.random()<0.5
-          ?(Math.random()-0.5)*0.55:(Math.random()-0.5)*Math.PI*0.9;
-        var _oDir=_bAng+_aBias;
-        var _bLen=4+Math.random()*20;
-        var _bAlp=_bFrac*(0.4+Math.random()*0.5);
-        var _bx1=_bx0+Math.cos(_oDir)*_bLen;
-        var _by1=_by0+Math.sin(_oDir)*_bLen;
-        var _bPts=mpD(_bx0,_by0,_bx1,_by1,3,_bLen*0.72);
-        rBolt(_bPts,1.7,CYAN,12,_bAlp*0.58);
-        rBolt(_bPts,0.5,'rgba(218,248,255,0.95)',3,_bAlp);
-
-        if (Math.random()>0.55 && _bPts.length>3) {
-          var _mIdx=1+Math.floor(Math.random()*(_bPts.length-2));
-          var _fkBias=(Math.random()>0.5?1:-1)*(0.7+Math.random()*0.95);
-          var _fkDir=_oDir+_fkBias;
-          var _fkLen=_bLen*(0.28+Math.random()*0.48);
-          var _fkx1=_bPts[_mIdx].x+Math.cos(_fkDir)*_fkLen;
-          var _fky1=_bPts[_mIdx].y+Math.sin(_fkDir)*_fkLen;
-          var _fkPts=mpD(_bPts[_mIdx].x,_bPts[_mIdx].y,
-                         _fkx1,_fky1,2,_fkLen*0.78);
-          rBolt(_fkPts,0.95,CYAN,8,_bAlp*0.42);
-          rBolt(_fkPts,0.36,'rgba(218,248,255,0.88)',2,_bAlp*0.46);
-        }
-      }
-
-      /* ── 마이크로 스파크 (전표면 불규칙) ── */
-      var _spN=6+Math.floor(Math.random()*11);
-      for (var _sk=0;_sk<_spN;_sk++) {
-        var _skF=Math.random();
-        var _skA=cometAngle-tailSpan*(1-_skF);
-        var _skR=R_light+(Math.random()-0.5)*12;
-        var _skX=cx+_skR*Math.cos(_skA);
-        var _skY=cy+_skR*Math.sin(_skA);
-        var _skL=1+Math.random()*11;
-        var _skD=_skA+(Math.random()-0.5)*Math.PI*2.4;
-        ctx.beginPath();
-        ctx.moveTo(_skX,_skY);
-        ctx.lineTo(_skX+Math.cos(_skD)*_skL,_skY+Math.sin(_skD)*_skL);
-        ctx.strokeStyle=Math.random()>0.3?CYAN:'rgba(218,248,255,0.95)';
-        ctx.lineWidth=0.3+Math.random()*1.2;
-        ctx.shadowColor=CYAN; ctx.shadowBlur=4+Math.random()*8;
-        ctx.globalAlpha=0.28+Math.random()*0.72;
-        ctx.lineCap='round'; ctx.stroke();
-        ctx.shadowBlur=0; ctx.globalAlpha=1;
-      }
-
-      /* ── 헤드: 방사 글로우 (원형 구체 없음) ── */
-      var _hx=cx+R_light*Math.cos(cometAngle);
-      var _hy=cy+R_light*Math.sin(cometAngle);
-      var _hG=ctx.createRadialGradient(_hx,_hy,0,_hx,_hy,16);
-      _hG.addColorStop(0,'rgba(235,252,255,0.72)');
-      _hG.addColorStop(0.3,'rgba(0,245,255,0.48)');
-      _hG.addColorStop(0.72,'rgba(0,245,255,0.09)');
-      _hG.addColorStop(1,'rgba(0,245,255,0)');
-      ctx.beginPath(); ctx.arc(_hx,_hy,16,0,Math.PI*2);
-      ctx.fillStyle=_hG;
-      ctx.shadowColor=CYAN; ctx.shadowBlur=26;
-      ctx.globalAlpha=0.82; ctx.fill();
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
-
-      var _hRot=t*3.4;
-      for (var _hr=0;_hr<8;_hr++) {
-        var _hDir=_hRot+_hr*(Math.PI/4)+(Math.random()-0.5)*0.4;
-        var _hL=3+Math.random()*10;
-        ctx.beginPath(); ctx.moveTo(_hx,_hy);
-        ctx.lineTo(_hx+Math.cos(_hDir)*_hL,_hy+Math.sin(_hDir)*_hL);
-        ctx.strokeStyle=Math.random()>0.4?'rgba(218,248,255,0.9)':CYAN;
-        ctx.lineWidth=0.4+Math.random()*1.1;
-        ctx.shadowColor=CYAN; ctx.shadowBlur=8;
-        ctx.globalAlpha=0.4+Math.random()*0.6;
-        ctx.lineCap='round'; ctx.stroke();
-        ctx.shadowBlur=0; ctx.globalAlpha=1;
-      }
-
-      // --- ⚡ [대표님 지시사항 2] 내경 플라즈마 뇌전 스톰 (밝은 청색 고정 스파크 무작위 발사) ---
-      if (Math.random() > 0.55) {
-        var targetAngle = Math.random() * Math.PI * 2;
-        var sparkPath = [];
-        var segments = 5;
-        sparkPath.push({ x: cx, y: cy });
-
-        for (var k = 1; k <= segments; k++) {
-          var segmentDist = (ri * (k / segments));
-          var jitterX = (Math.random() - 0.5) * 5;
-          var jitterY = (Math.random() - 0.5) * 5;
-          if (k === segments) { jitterX = 0; jitterY = 0; }
-          var rx = cx + segmentDist * Math.cos(targetAngle) + jitterX;
-          var ry = cy + segmentDist * Math.sin(targetAngle) + jitterY;
-          sparkPath.push({ x: rx, y: ry });
-        }
-        sparksRef.current.push({ path: sparkPath, alpha: 1.0 });
-      }
-
-      sparksRef.current = sparksRef.current.filter(function(s) { return s.alpha > 0.05; });
-      sparksRef.current.forEach(function(s) {
-        ctx.beginPath();
-        ctx.moveTo(s.path[0].x, s.path[0].y);
-        for (var pi = 1; pi < s.path.length; pi++) {
-          ctx.lineTo(s.path[pi].x, s.path[pi].y);
-        }
-        ctx.strokeStyle = isLight
-  ? 'rgba(0, 60, 200, ' + s.alpha + ')'
-  : 'rgba(0, 245, 255, ' + s.alpha + ')';
-ctx.lineWidth = 1.4;
-ctx.shadowColor = isLight ? '#003388' : '#00F5FF';
-ctx.shadowBlur = isLight ? 6 : 8;
-ctx.stroke();
-ctx.shadowBlur = 0;
-
-ctx.strokeStyle = isLight
-  ? 'rgba(0, 30, 150, ' + s.alpha * 0.8 + ')'
-  : 'rgba(255, 255, 255, ' + s.alpha * 1.2 + ')';
-ctx.lineWidth = isLight ? 0.8 : 0.5;
-ctx.stroke();
-        s.alpha -= 0.15;
-      });
-
-      // 중앙 텍스트 캡 보호막
-      ctx.beginPath(); ctx.arc(cx, cy, ri, 0, Math.PI * 2);
+      // =========================================================
+      // ★ 3. 중앙 텍스트 캡 보호막
+      ctx.beginPath(); ctx.arc(cx, cy, R_in, 0, Math.PI * 2);
       ctx.fillStyle = isLight ? '#FFFFFF' : '#0B0D19';
       ctx.shadowColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,245,255,0.08)';
       ctx.shadowBlur = 8;
@@ -12581,12 +12456,32 @@ ctx.stroke();
 
       rafRef.current = requestAnimationFrame(draw);
     }
+    
     draw();
+    
     return function() { cancelAnimationFrame(rafRef.current); };
   }, [data, size, totalLabel]);
 
-  return h('canvas', { ref: cvRef, width: size, height: size, style: { width: size + 'px', height: size + 'px', flexShrink: 0 } });
+  // 반환부 (캔버스 위치 중앙 정렬 및 주변 UI 밀림 방지)
+  return h('div', {style:{
+    position:'relative', flexShrink:0,
+    width: size + 'px', height: size + 'px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    overflow: 'visible',
+    animation:'hpdFloat 5.4s ease-in-out infinite'
+  }},
+    h('canvas', {
+      ref: cvRef, 
+      style: {
+        position:'absolute', zIndex:2,
+        top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: (size * 1.8) + 'px', height: (size * 1.8) + 'px', 
+        display:'block', pointerEvents:'none'
+      }
+    })
+  );
 }
+// 수정 끝 6줄
 
 /* 2. 기둥 내부에서 번개가 질주하는 전류 에너지 프로그레스 바 (4.5초 주기 정교화 버전) */
 function PlasmaProgressBar(props) {
