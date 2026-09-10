@@ -98,21 +98,20 @@
         theme_color: '#00E5FF',
         orientation: 'portrait',
                 icons: [
-          { src: 'https://kimyungkook.github.io/family-ledger/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'https://kimyungkook.github.io/family-ledger/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'https://kimyungkook.github.io/family-ledger/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: 'https://kimyungkook.github.io/family-ledger/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'https://eunhashortscenter.github.io/family-ledger/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'https://eunhashortscenter.github.io/family-ledger/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+         
         ],
         screenshots: [
           {
-            src: 'https://kimyungkook.github.io/family-ledger/screenshot-wide.png',
+            src: 'https://eunhashortscenter.github.io/family-ledger/screenshot-wide.png',
             sizes: '1280x720',
             type: 'image/png',
             form_factor: 'wide',
             label: 'FamilyLedger 데스크톱'
           },
           {
-            src: 'https://kimyungkook.github.io/family-ledger/screenshot-narrow.png',
+            src: 'https://eunhashortscenter.github.io/family-ledger/screenshot-narrow.png',
             sizes: '750x1334',
             type: 'image/png',
             form_factor: 'narrow',
@@ -4857,8 +4856,8 @@ function sendNotif(title, body, tag) {
   if(Notification.permission !== 'granted') return Promise.reject('권한없음');
   var opts = {
     body: body || '',
-    icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-    badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    icon: 'https://eunhashortscenter.github.io/family-ledger/icon-192.png',
+    badge: 'https://eunhashortscenter.github.io/family-ledger/icon-192.png',
     tag: tag || ('notif-' + Date.now()),
     vibrate: [200, 100, 200],
     requireInteraction: false
@@ -6916,7 +6915,7 @@ function DashboardNeo2030(props) {
 
   var spentRatio = cyberExpected > 0 ? curExp / cyberExpected : 0;
   var pctDisplay = Math.round(spentRatio * 100);
-var _BASE = 'https://kimyungkook.github.io/family-ledger/';
+var _BASE = 'https://eunhashortscenter.github.io/family-ledger/';
   var _vsrc = spentRatio >= 0.75 ? _BASE + 'v5_collapse.mp4'
             : spentRatio >= 0.50 ? _BASE + 'v4_collapse.mp4'
             : spentRatio >= 0.25 ? _BASE + 'v3_collapse.mp4'
@@ -7026,7 +7025,7 @@ var _BASE = 'https://kimyungkook.github.io/family-ledger/';
           h('p', {className: 'cyber-panel-title'}, '// 생태계 날씨 모니터'),
           h('video', {
             key: spentRatio >= 0.75 ? 'v5' : spentRatio >= 0.50 ? 'v4' : spentRatio >= 0.25 ? 'v3' : 'v2',
-            src: 'https://kimyungkook.github.io/family-ledger/' + (
+            src: 'https://eunhashortscenter.github.io/family-ledger/' + (
               spentRatio >= 0.75 ? 'v5_collapse.mp4' :
               spentRatio >= 0.50 ? 'v4_collapse.mp4' :
               spentRatio >= 0.25 ? 'v3_collapse.mp4' : 'v2_collapse.mp4'),
@@ -12909,8 +12908,8 @@ function sendNotif(title, body, tag) {
   if(Notification.permission !== 'granted') return Promise.reject('권한없음');
   var opts = {
     body: body || '',
-    icon: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
-    badge: 'https://kimyungkook.github.io/family-ledger/icon-192.png',
+    icon: 'https://eunhashortscenter.github.io/family-ledger/icon-192.png',
+    badge: 'https://eunhashortscenter.github.io/family-ledger/icon-192.png',
     tag: tag || ('notif-' + Date.now()),
     vibrate: [200, 100, 200],
     requireInteraction: false
